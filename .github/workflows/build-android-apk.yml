@@ -1,0 +1,76 @@
+name: Build Android APK
+
+# Mirrors the Desktop workflow: pushes to main build for sanity, v* tags
+# trigger the actual R2 publish, workflow_dispatch surfaces a manual button.
+# Android builds happily on Linux runners so this is much faster (and free
+# of the Windows-runner quotas) than the MSI workflow.
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle.kts', 'gradle/wrapper/gradle-wrapper.properties') }}
+
+      - name: Grant gradlew execute permission
+        run: chmod +x ./gradlew
+
+      # Debug build is intentional for the beta channel — no release keystore
+      # is set up yet. When the Play Store keystore is provisioned, swap this
+      # for `assembleRelease` and add signing secrets (KEYSTORE_BASE64,
+      # KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD).
+      - name: Build APK
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Locate APK
+        id: locate
+        run: |
+          APK_PATH=$(find app/build/outputs/apk/debug -name "*.apk" | head -1)
+          echo "Found: $APK_PATH"
+          echo "apk_path=$APK_PATH" >> "$GITHUB_OUTPUT"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hangar-flow-android-beta-apk
+          path: ${{ steps.locate.outputs.apk_path }}
+          retention-days: 30
+
+      - name: Publish to Cloudflare R2
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BUCKET: hangarflow-installers
+        run: |
+          if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$R2_ENDPOINT" ]; then
+            echo "::warning::R2 secrets not set — skipping publish step."
+            exit 0
+          fi
+          aws s3 cp "${{ steps.locate.outputs.apk_path }}" \
+            "s3://$R2_BUCKET/Hangar-Flow-Android-Beta.apk" \
+            --endpoint-url "$R2_ENDPOINT" \
+            --content-type "application/vnd.android.package-archive"
+          echo "Published to: https://pub-255b2db29597443abd3ccb6104ab034b.r2.dev/Hangar-Flow-Android-Beta.apk"

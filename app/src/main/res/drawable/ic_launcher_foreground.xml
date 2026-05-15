@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- HF brand logo centered inside the adaptive icon safe zone.
+     Adaptive icons render at 108x108 with a 66dp safe zone, so we
+     inset the bitmap to ~72x72 so the logo reads well even under the
+     system's circular / squircle mask. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:drawable="@drawable/hf_brand_logo"
+        android:gravity="center"
+        android:width="68dp"
+        android:height="68dp" />
+</layer-list>

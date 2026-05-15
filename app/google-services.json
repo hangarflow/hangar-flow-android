@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "572844227932",
+    "project_id": "hangar-flow-deb06",
+    "storage_bucket": "hangar-flow-deb06.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:572844227932:android:b7edc19bf82c48fc7fd599",
+        "android_client_info": {
+          "package_name": "com.hangarflow.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBQvJg7W_M62ZIQMI-yyCf_ocXObDwNoMU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

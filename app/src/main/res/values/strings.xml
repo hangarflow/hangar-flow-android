@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Hangar Flow</string>
+
+    <!-- Permission rationales shown in Play Console listings -->
+    <string name="perm_camera_rationale">Take photos of squawks and completed work so admins can verify repairs.</string>
+    <string name="perm_photos_rationale">Attach existing photos to squawks and work logs.</string>
+    <string name="perm_notifications_rationale">Get alerts when squawks are filed, work is assigned, or parts arrive.</string>
+</resources>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Base app theme — black background so the launch window matches the
+         in-app brand canvas instead of flashing white before Compose renders. -->
+    <style name="Theme.HangarFlow" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/hf_background</item>
+        <item name="android:statusBarColor">@color/hf_background</item>
+        <item name="android:navigationBarColor">@color/hf_background</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
+
+    <!-- Splash that briefly shows the HF lockup while Compose wires up. -->
+    <style name="Theme.HangarFlow.Splash" parent="Theme.HangarFlow">
+        <item name="android:windowBackground">@drawable/splash_background</item>
+    </style>
+</resources>
