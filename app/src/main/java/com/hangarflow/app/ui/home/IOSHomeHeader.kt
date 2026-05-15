@@ -16,7 +16,6 @@ import androidx.compose.material.icons.outlined.Logout
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -26,14 +25,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material3.Text
 import com.hangarflow.app.ui.theme.HFColors
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 /**
  * Port of the iOS tech home header. Big bold title (tech's name for
- * techs, org name for admins), small date/time line above, sync badge
- * under it, three round pill-capped action buttons on the right.
+ * techs, org name for admins), sync badge under it, three round
+ * pill-capped action buttons on the right. The system status bar
+ * already shows the current time, so we don't render an in-app
+ * clock line to avoid duplicating it.
  */
 @Composable
 fun IOSHomeHeader(
@@ -44,13 +42,6 @@ fun IOSHomeHeader(
     onOpenSettings: () -> Unit,
     onSignOut: () -> Unit
 ) {
-    val now = remember { LocalDateTime.now() }
-    val dateLine = remember(now) {
-        val time = now.format(DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault()))
-        val day = now.format(DateTimeFormatter.ofPattern("EEE MMM d", Locale.getDefault()))
-        "$time · $day"
-    }
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -62,12 +53,6 @@ fun IOSHomeHeader(
             verticalArrangement = Arrangement.spacedBy(4.dp),
             modifier = Modifier.weight(1f)
         ) {
-            Text(
-                text = dateLine,
-                color = HFColors.OnSurface.copy(alpha = 0.45f),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Medium
-            )
             Text(
                 text = primaryTitle.ifBlank { "Hangar Flow" },
                 color = HFColors.OnSurface,

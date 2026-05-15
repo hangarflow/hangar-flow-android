@@ -4,7 +4,11 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
 import com.hangarflow.app.data.OfflineCache
@@ -35,8 +39,22 @@ class MainActivity : ComponentActivity() {
         com.hangarflow.app.push.FcmTokenManager.ensureRegistered(this)
         setContent {
             HangarFlowTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { _ ->
-                    RootScreen()
+                // safeDrawing covers status bar, gesture/3-button nav,
+                // and notch cutouts in one shot. Without applying the
+                // innerPadding the Scaffold gives us, buttons at the
+                // top/bottom of the screen render under the system
+                // bars and look half-clipped.
+                Scaffold(
+                    modifier = Modifier.fillMaxSize(),
+                    contentWindowInsets = WindowInsets.safeDrawing
+                ) { innerPadding ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding)
+                    ) {
+                        RootScreen()
+                    }
                 }
             }
         }
