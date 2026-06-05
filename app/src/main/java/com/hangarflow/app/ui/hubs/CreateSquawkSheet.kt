@@ -111,6 +111,70 @@ fun CreateSquawkSheet(onDismiss: () -> Unit) {
         !isSaving &&
         authState.orgId != null
 
+    // Single save path shared by "Save" and "Save & add another". When
+    // keepOpen is true we clear the entry fields but keep the plane
+    // selected so a tech can stack squawks during a walk-around without
+    // re-opening the sheet (the mobile bulk-entry pattern).
+    val doSave: (Boolean) -> Unit = doSave@{ keepOpen ->
+        val plane = selectedPlane ?: return@doSave
+        val orgId = authState.orgId ?: return@doSave
+        isSaving = true
+        saveError = null
+        val snapshotPhotos = photos.toList()
+        scope.launch {
+            try {
+                val compressed = withContext(Dispatchers.Default) {
+                    snapshotPhotos.map { compressForUpload(it) }
+                }
+                val squawkIdPlaceholder = java.util.UUID.randomUUID().toString()
+                val uploadedPaths = compressed.map { bytes ->
+                    cloud.uploadSquawkPhoto(
+                        data = bytes,
+                        orgId = orgId,
+                        squawkId = squawkIdPlaceholder
+                    )
+                }
+                val newSquawkId = cloud.createSquawk(
+                    orgId = orgId,
+                    planeId = plane.id,
+                    planeTailNumber = plane.tailNumber,
+                    title = title.trim(),
+                    notes = notes.trim(),
+                    reportedByUserId = shopState.currentUser?.id,
+                    reportedByUserName = shopState.currentUser?.displayName,
+                    photoPaths = uploadedPaths,
+                    sourceDevice = SharedStore.deviceIdentifier()
+                )
+                if (needsParts && (requestedPart.isNotBlank() || title.isNotBlank())) {
+                    cloud.createPartRequest(
+                        orgId = orgId,
+                        squawkId = newSquawkId,
+                        planeId = plane.id,
+                        planeTailNumber = plane.tailNumber,
+                        title = title.trim(),
+                        requestedPart = requestedPart.trim(),
+                        urgency = urgency,
+                        requestedBy = shopState.currentUser?.displayName
+                    )
+                }
+                SharedStore.refresh()
+                if (keepOpen) {
+                    title = ""
+                    notes = ""
+                    photos.clear()
+                    needsParts = false
+                    requestedPart = ""
+                } else {
+                    onDismiss()
+                }
+            } catch (t: Throwable) {
+                saveError = t.message ?: "Failed to save squawk."
+            } finally {
+                isSaving = false
+            }
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -299,56 +363,7 @@ fun CreateSquawkSheet(onDismiss: () -> Unit) {
                         if (canSave) HFColors.BrandWhite
                         else HFColors.OnSurface.copy(alpha = 0.15f)
                     )
-                    .clickable(enabled = canSave) {
-                        val plane = selectedPlane ?: return@clickable
-                        val orgId = authState.orgId ?: return@clickable
-                        isSaving = true
-                        saveError = null
-                        scope.launch {
-                            try {
-                                val compressed = withContext(Dispatchers.Default) {
-                                    photos.map { compressForUpload(it) }
-                                }
-                                val squawkIdPlaceholder = java.util.UUID.randomUUID().toString()
-                                val uploadedPaths = compressed.map { bytes ->
-                                    cloud.uploadSquawkPhoto(
-                                        data = bytes,
-                                        orgId = orgId,
-                                        squawkId = squawkIdPlaceholder
-                                    )
-                                }
-                                val newSquawkId = cloud.createSquawk(
-                                    orgId = orgId,
-                                    planeId = plane.id,
-                                    planeTailNumber = plane.tailNumber,
-                                    title = title.trim(),
-                                    notes = notes.trim(),
-                                    reportedByUserId = shopState.currentUser?.id,
-                                    reportedByUserName = shopState.currentUser?.displayName,
-                                    photoPaths = uploadedPaths,
-                                    sourceDevice = SharedStore.deviceIdentifier()
-                                )
-                                if (needsParts && (requestedPart.isNotBlank() || title.isNotBlank())) {
-                                    cloud.createPartRequest(
-                                        orgId = orgId,
-                                        squawkId = newSquawkId,
-                                        planeId = plane.id,
-                                        planeTailNumber = plane.tailNumber,
-                                        title = title.trim(),
-                                        requestedPart = requestedPart.trim(),
-                                        urgency = urgency,
-                                        requestedBy = shopState.currentUser?.displayName
-                                    )
-                                }
-                                SharedStore.refresh()
-                                onDismiss()
-                            } catch (t: Throwable) {
-                                saveError = t.message ?: "Failed to save squawk."
-                            } finally {
-                                isSaving = false
-                            }
-                        }
-                    }
+                    .clickable(enabled = canSave) { doSave(false) }
                     .padding(vertical = 14.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -368,6 +383,26 @@ fun CreateSquawkSheet(onDismiss: () -> Unit) {
                 }
             }
 
+            // Save & add another — commit this squawk, clear the fields, keep
+            // the plane selected so the next one is one tap away.
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(HFColors.StatusOrange.copy(alpha = 0.14f))
+                    .border(1.dp, HFColors.StatusOrange.copy(alpha = 0.35f), RoundedCornerShape(14.dp))
+                    .clickable(enabled = canSave) { doSave(true) }
+                    .padding(vertical = 13.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    "Save & add another",
+                    color = if (canSave) HFColors.StatusOrange else HFColors.OnSurface.copy(alpha = 0.4f),
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
             Spacer(Modifier.size(40.dp))
         }
     }
@@ -382,6 +417,7 @@ private fun NeedsPartsSection(
     urgency: String,
     onUrgencyChange: (String) -> Unit
 ) {
+    val shopState by SharedStore.state.collectAsState()
     Column {
         // Needs Parts toggle row
         Row(
@@ -452,6 +488,30 @@ private fun NeedsPartsSection(
                 modifier = Modifier.fillMaxWidth(),
                 colors = hfFieldColors()
             )
+
+            // Live "in stock?" check against the shared inventory.
+            val q = requestedPart.trim().lowercase()
+            if (q.isNotEmpty()) {
+                val matches = shopState.partLocations.filter {
+                    it.partName.lowercase().contains(q) || it.partNumber.lowercase().contains(q)
+                }
+                val match = matches.firstOrNull { it.quantity > 0 } ?: matches.firstOrNull()
+                val inStock = (match?.quantity ?: 0) > 0
+                Spacer(Modifier.size(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        Modifier.size(8.dp).clip(CircleShape)
+                            .background(if (inStock) HFColors.StatusGreen else HFColors.StatusOrange)
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        if (inStock) "In stock: ${match!!.quantity} @ ${match.location.ifBlank { "—" }}"
+                        else "Not in stock — will be added to Parts to Order",
+                        color = if (inStock) HFColors.StatusGreen else HFColors.StatusOrange,
+                        fontSize = 11.sp, fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
 
             Spacer(Modifier.size(10.dp))
             SectionLabel("Urgency")

@@ -31,6 +31,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.automirrored.outlined.ListAlt
 import androidx.compose.material.icons.outlined.Build
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.ChecklistRtl
 import androidx.compose.material.icons.outlined.PeopleAlt
@@ -86,6 +87,14 @@ private fun HomeHubContent(onOpenHub: (HomeDestination) -> Unit) {
     val me = shopState.currentUser
     val isAdmin = authState.isAdmin
 
+    // Presents IOSClockOutSheet when the tech taps Clock Out, so they
+    // can log a summary + reimbursements before the shift closes.
+    var showClockOutSheet by remember { mutableStateOf(false) }
+    if (showClockOutSheet) {
+        com.hangarflow.app.ui.hubs.ClockOutSheet(onDismiss = { showClockOutSheet = false })
+        return
+    }
+
     val openAssignedCount = openAssignedCount(shopState, me, isAdmin)
     val baseTodayMinutes = todayMinutes(shopState, me, isAdmin)
 
@@ -127,7 +136,9 @@ private fun HomeHubContent(onOpenHub: (HomeDestination) -> Unit) {
         shopState.error?.isNotBlank() == true
 
     val context = LocalContext.current
-    val defaultCards = cardsForRole(isAdmin)
+    // Lead techs see the same cards as admins (incl. Users) — they manage
+    // the roster too. Owner-only powers are gated inside each hub.
+    val defaultCards = cardsForRole(authState.isAdmin || authState.isLeadTech)
     val savedOrder = remember { HomeCardPreferences.loadOrder(context) }
     val orderedIds = remember(defaultCards, savedOrder) {
         HomeCardPreferences.applyOrder(defaultCards.map { it.id }, savedOrder).toMutableList()
@@ -175,10 +186,13 @@ private fun HomeHubContent(onOpenHub: (HomeDestination) -> Unit) {
                         ClockPhase.Idle -> SharedStore.clockIn()
                         ClockPhase.Working -> SharedStore.lunchOut()
                         ClockPhase.OnLunch -> SharedStore.lunchIn()
-                        ClockPhase.ReadyToClockOut -> SharedStore.clockOut()
+                        // Show the summary + reimbursements sheet; it
+                        // calls SharedStore.clockOut() on submit so the
+                        // shift closes only after the receipts upload.
+                        ClockPhase.ReadyToClockOut -> { showClockOutSheet = true }
                     }
                 },
-                onSkipLunchClockOut = { SharedStore.clockOut() },
+                onSkipLunch = { SharedStore.skipLunch() },
                 todayHoursLabel = formatHours(displayedTodayMinutes),
                 openAssignedCount = openAssignedCount,
                 manualsCount = manualsCount,
@@ -456,7 +470,7 @@ private fun CustomizeHomeSheet(
 }
 
 enum class HomeDestination {
-    Planes, WorkLogs, Tasks, Squawks, PartsToOrder, PartLocations, TimeCard, Manuals, FindParts, Settings, Users, Review
+    Planes, WorkLogs, Tasks, Squawks, PartsToOrder, PartLocations, TimeCard, Manuals, FindParts, Settings, Users, Review, Schedule
 }
 
 private data class HomeCard(
@@ -538,6 +552,14 @@ private fun cardsForRole(isAdmin: Boolean): List<HomeCard> {
             icon = Icons.Outlined.Inventory2,
             accent = HFColors.StatusYellow.copy(alpha = 0.44f),
             destination = HomeDestination.PartLocations
+        ),
+        HomeCard(
+            id = "schedule",
+            title = "Schedule",
+            subtitle = "Plane drop-offs, RTS deadlines, and time-off",
+            icon = Icons.Outlined.CalendarMonth,
+            accent = HFColors.StatusBlue.copy(alpha = 0.44f),
+            destination = HomeDestination.Schedule
         )
     )
     // Admins get a Users card on top of the tech grid so they can manage

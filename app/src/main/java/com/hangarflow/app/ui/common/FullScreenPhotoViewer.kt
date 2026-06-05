@@ -53,9 +53,16 @@ import com.hangarflow.app.ui.theme.HFColors
 fun FullScreenPhotoViewer(
     photoPaths: List<String>,
     initialIndex: Int,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    /**
+     * How to mint a signed URL for a given storage path. Defaults to the
+     * squawk-photos bucket; part-location photos pass their own signer so
+     * the same viewer serves both private buckets.
+     */
+    signedUrlFor: suspend (String) -> String = { path ->
+        HFCloudSyncService().signedSquawkPhotoURL(path)
+    }
 ) {
-    val cloud = remember { HFCloudSyncService() }
     val pagerState = rememberPagerState(
         initialPage = initialIndex.coerceIn(0, (photoPaths.size - 1).coerceAtLeast(0)),
         pageCount = { photoPaths.size }
@@ -72,7 +79,7 @@ fun FullScreenPhotoViewer(
         ) { page ->
             ZoomablePhoto(
                 path = photoPaths[page],
-                cloud = cloud
+                signedUrlFor = signedUrlFor
             )
         }
 
@@ -119,12 +126,12 @@ fun FullScreenPhotoViewer(
 }
 
 @Composable
-private fun ZoomablePhoto(path: String, cloud: HFCloudSyncService) {
+private fun ZoomablePhoto(path: String, signedUrlFor: suspend (String) -> String) {
     var signedUrl by remember(path) { mutableStateOf<String?>(null) }
     val context = LocalContext.current
 
     LaunchedEffect(path) {
-        signedUrl = runCatching { cloud.signedSquawkPhotoURL(path) }.getOrNull()
+        signedUrl = runCatching { signedUrlFor(path) }.getOrNull()
     }
 
     var scale by remember(path) { mutableStateOf(1f) }

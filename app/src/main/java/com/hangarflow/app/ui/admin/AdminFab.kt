@@ -37,7 +37,10 @@ fun AdminFabOverlay(
 
     Box(modifier = Modifier.fillMaxSize()) {
         content()
-        if (auth.isAdmin) {
+        // Lead techs can create planes / work logs / invite teammates too
+        // (the invite sheet blocks them from creating admins). No file
+        // import lives here, so this stays within the laptop-only rule.
+        if (auth.isAdmin || auth.isLeadTech) {
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)

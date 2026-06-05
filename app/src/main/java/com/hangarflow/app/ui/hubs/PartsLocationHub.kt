@@ -1,5 +1,12 @@
 package com.hangarflow.app.ui.hubs
 
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -25,8 +32,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.Icons.AutoMirrored
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ArrowDropDown
+import androidx.compose.material.icons.outlined.Camera
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Inventory2
+import androidx.compose.material.icons.outlined.PhotoLibrary
 import androidx.compose.material.icons.outlined.Numbers
 import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material.icons.outlined.Search
@@ -41,6 +51,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -52,16 +63,28 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
+import coil3.request.crossfade
+import com.hangarflow.app.auth.AuthManager
 import com.hangarflow.app.data.SharedStore
+import com.hangarflow.app.data.cloud.HFCloudSyncService
 import com.hangarflow.app.data.model.HFPartLocation
 import com.hangarflow.app.data.model.HFPlane
+import com.hangarflow.app.ui.common.FullScreenPhotoViewer
 import com.hangarflow.app.ui.common.HFPullToRefreshHost
 import com.hangarflow.app.ui.theme.HFColors
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.ByteArrayOutputStream
 
 // ---------- stock status ----------
 
@@ -101,6 +124,18 @@ private fun PartsLocationHubContent() {
     var filters by remember { mutableStateOf(InventoryFilters()) }
     var editing by remember { mutableStateOf<HFPartLocation?>(null) }
     var createOpen by remember { mutableStateOf(false) }
+    // Full-screen photo viewer state (mirrors SquawksHub).
+    var viewingPhotoPaths by remember { mutableStateOf<List<String>?>(null) }
+
+    if (viewingPhotoPaths != null) {
+        FullScreenPhotoViewer(
+            photoPaths = viewingPhotoPaths!!,
+            initialIndex = 0,
+            onClose = { viewingPhotoPaths = null },
+            signedUrlFor = { path -> HFCloudSyncService().signedPartLocationPhotoURL(path) }
+        )
+        return
+    }
 
     val filtered = remember(state.partLocations, filters) {
         val q = filters.query.trim().lowercase()
@@ -198,7 +233,8 @@ private fun PartsLocationHubContent() {
                 PartLocationRow(
                     row = row,
                     planes = state.planes,
-                    onClick = { editing = row }
+                    onClick = { editing = row },
+                    onOpenPhoto = { paths -> viewingPhotoPaths = paths }
                 )
             }
         }
@@ -464,7 +500,8 @@ private fun StatusPill(
 private fun PartLocationRow(
     row: HFPartLocation,
     planes: List<HFPlane>,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onOpenPhoto: (List<String>) -> Unit
 ) {
     val status = StockStatus.of(row.stockStatus)
     Column(
@@ -564,6 +601,13 @@ private fun PartLocationRow(
                 }
             }
         }
+        if (row.photoPaths.isNotEmpty()) {
+            Spacer(Modifier.size(10.dp))
+            PartLocationPhotoThumb(
+                path = row.photoPaths.first(),
+                onClick = { onOpenPhoto(row.photoPaths) }
+            )
+        }
         if (row.updatedByUserName.isNotBlank()) {
             Spacer(Modifier.size(6.dp))
             Text(
@@ -613,6 +657,40 @@ private fun InlineTag(text: String, color: Color) {
     }
 }
 
+/** Single signed-URL thumbnail for a part's location photo. Mirrors
+ *  SquawkPhotoThumb — tap opens the full-screen viewer. */
+@Composable
+private fun PartLocationPhotoThumb(path: String, onClick: () -> Unit) {
+    val cloud = remember { HFCloudSyncService() }
+    var signedUrl by remember(path) { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
+
+    LaunchedEffect(path) {
+        signedUrl = runCatching { cloud.signedPartLocationPhotoURL(path) }.getOrNull()
+    }
+
+    Box(
+        modifier = Modifier
+            .size(88.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(HFColors.OnSurface.copy(alpha = 0.06f))
+            .border(1.dp, HFColors.OnSurface.copy(alpha = 0.10f), RoundedCornerShape(10.dp))
+            .clickable(onClick = onClick)
+    ) {
+        if (signedUrl != null) {
+            AsyncImage(
+                model = ImageRequest.Builder(context)
+                    .data(signedUrl)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = "Part location photo",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(10.dp))
+            )
+        }
+    }
+}
+
 // ---------- create/edit sheet ----------
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -636,6 +714,41 @@ private fun PartLocationSheet(
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val cloud = remember { HFCloudSyncService() }
+    val authState by AuthManager.state.collectAsState()
+
+    // ---- single-photo state (one photo per part) ----
+    // `existingPhotoPath` is the path already stored on the row; `newPhoto`
+    // is a freshly captured/picked bitmap not yet uploaded. Setting either
+    // a new bitmap or clearing both drives the Add / Replace / Remove UI.
+    var existingPhotoPath by remember { mutableStateOf(existing?.photoPaths?.firstOrNull()) }
+    var newPhoto by remember { mutableStateOf<Bitmap?>(null) }
+    var viewingPhoto by remember { mutableStateOf(false) }
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.TakePicturePreview()
+    ) { bitmap ->
+        if (bitmap != null) newPhoto = bitmap
+    }
+    val launchCameraWithPermission = com.hangarflow.app.ui.common.rememberCameraPermissionGate {
+        cameraLauncher.launch(null)
+    }
+    val libraryLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) decodeUriToBitmap(context, uri)?.let { newPhoto = it }
+    }
+
+    if (viewingPhoto && existingPhotoPath != null) {
+        FullScreenPhotoViewer(
+            photoPaths = listOf(existingPhotoPath!!),
+            initialIndex = 0,
+            onClose = { viewingPhoto = false },
+            signedUrlFor = { path -> cloud.signedPartLocationPhotoURL(path) }
+        )
+        return
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -755,6 +868,65 @@ private fun PartLocationSheet(
                 singleLine = false
             )
 
+            // ---- single location photo: Add / Replace / Remove ----
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Label("Location Photo")
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    PartPhotoButton(
+                        icon = Icons.Outlined.Camera,
+                        label = if (newPhoto == null && existingPhotoPath == null) "Camera" else "Retake",
+                        color = HFColors.StatusGreen,
+                        onClick = launchCameraWithPermission,
+                        modifier = Modifier.weight(1f)
+                    )
+                    PartPhotoButton(
+                        icon = Icons.Outlined.PhotoLibrary,
+                        label = if (newPhoto == null && existingPhotoPath == null) "Library" else "Replace",
+                        color = HFColors.StatusBlue,
+                        onClick = {
+                            libraryLauncher.launch(
+                                androidx.activity.result.PickVisualMediaRequest(
+                                    ActivityResultContracts.PickVisualMedia.ImageOnly
+                                )
+                            )
+                        },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                when {
+                    newPhoto != null -> {
+                        Box {
+                            Image(
+                                bitmap = newPhoto!!.asImageBitmap(),
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .size(120.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                            )
+                            PartPhotoBadgeBox {newPhoto = null }
+                        }
+                    }
+                    existingPhotoPath != null -> {
+                        Box {
+                            PartLocationPhotoThumb(
+                                path = existingPhotoPath!!,
+                                onClick = { viewingPhoto = true }
+                            )
+                            PartPhotoBadgeBox {existingPhotoPath = null }
+                        }
+                    }
+                    else -> {
+                        Text(
+                            "No photo attached yet.",
+                            color = HFColors.OnSurface.copy(alpha = 0.45f),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
+
             if (error != null) {
                 Text(error!!, color = HFColors.StatusRed, fontSize = 12.sp, fontWeight = FontWeight.Medium)
             }
@@ -768,6 +940,45 @@ private fun PartLocationSheet(
                         busy = true
                         error = null
                         scope.launch {
+                            val orgId = authState.orgId
+                            // Resolve the final single-element photoPaths list.
+                            // New bitmap wins; uploading under a stable id that
+                            // doubles as the storage path segment (the row id
+                            // need not match — mirrors the squawk flow).
+                            val partPathId = existing?.id
+                                ?: java.util.UUID.randomUUID().toString()
+                            val photoPaths: List<String> = try {
+                                val captured = newPhoto
+                                when {
+                                    captured != null && orgId != null -> {
+                                        // Replace: drop the old object first.
+                                        existingPhotoPath?.let { old ->
+                                            runCatching { cloud.deletePartLocationPhoto(old) }
+                                        }
+                                        val bytes = withContext(Dispatchers.Default) {
+                                            compressForUpload(captured)
+                                        }
+                                        val path = cloud.uploadPartLocationPhoto(
+                                            data = bytes,
+                                            orgId = orgId,
+                                            partLocationId = partPathId
+                                        )
+                                        listOf(path)
+                                    }
+                                    existingPhotoPath != null -> listOf(existingPhotoPath!!)
+                                    else -> {
+                                        // Removed: clean up the orphaned object.
+                                        existing?.photoPaths?.firstOrNull()?.let { old ->
+                                            runCatching { cloud.deletePartLocationPhoto(old) }
+                                        }
+                                        emptyList()
+                                    }
+                                }
+                            } catch (t: Throwable) {
+                                error = t.message ?: "Couldn't upload photo."
+                                busy = false
+                                return@launch
+                            }
                             val result = SharedStore.savePartLocation(
                                 existingId = existing?.id,
                                 partName = partName,
@@ -777,7 +988,8 @@ private fun PartLocationSheet(
                                 quantity = quantity.toIntOrNull() ?: 1,
                                 stockStatus = status.raw,
                                 planeIds = selectedPlaneIds.toList(),
-                                notes = notes
+                                notes = notes,
+                                photoPaths = photoPaths
                             )
                             when (result) {
                                 SharedStore.CreateResult.Success -> onDismiss()
@@ -842,6 +1054,75 @@ private fun InventoryField(
             colors = inventoryFieldColors()
         )
     }
+}
+
+/** Camera / Library action button for the single location photo.
+ *  Mirrors AttachButton from CreateSquawkSheet. */
+@Composable
+private fun PartPhotoButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    color: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(color.copy(alpha = 0.14f))
+            .border(1.dp, color.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(16.dp))
+        Spacer(Modifier.size(8.dp))
+        Text(label, color = color, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+/** Small red "×" overlay to clear the staged / existing photo. */
+@Composable
+private fun PartPhotoBadgeBox(onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .padding(4.dp)
+            .size(22.dp)
+            .clip(CircleShape)
+            .background(HFColors.StatusRed)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.Close,
+            contentDescription = "Remove",
+            tint = HFColors.OnSurface,
+            modifier = Modifier.size(12.dp)
+        )
+    }
+}
+
+private fun decodeUriToBitmap(context: Context, uri: Uri): Bitmap? = runCatching {
+    context.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it) }
+}.getOrNull()
+
+/** Resize down to 1800px on the long edge, then encode to JPEG 72 quality.
+ *  Identical to CreateSquawkSheet's compressForUpload. */
+private fun compressForUpload(bitmap: Bitmap): ByteArray {
+    val max = 1800
+    val scaled = if (bitmap.width > max || bitmap.height > max) {
+        val ratio = max.toFloat() / maxOf(bitmap.width, bitmap.height)
+        Bitmap.createScaledBitmap(
+            bitmap,
+            (bitmap.width * ratio).toInt(),
+            (bitmap.height * ratio).toInt(),
+            true
+        )
+    } else bitmap
+    val out = ByteArrayOutputStream()
+    scaled.compress(Bitmap.CompressFormat.JPEG, 72, out)
+    return out.toByteArray()
 }
 
 @Composable

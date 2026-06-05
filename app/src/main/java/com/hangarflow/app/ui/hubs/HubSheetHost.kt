@@ -87,6 +87,7 @@ fun HubSheetHost(
                 HomeDestination.TimeCard -> TimeCardHub()
                 HomeDestination.Settings -> SettingsHub()
                 HomeDestination.Users -> UsersHub()
+                HomeDestination.Schedule -> ScheduleHub()
                 else -> Column(
                     modifier = Modifier
                         .padding(horizontal = 16.dp)
@@ -114,6 +115,7 @@ private val HomeDestination.title: String
         HomeDestination.Settings -> "Settings"
         HomeDestination.Users -> "Users"
         HomeDestination.Review -> "Needs Review"
+        HomeDestination.Schedule -> "Schedule"
     }
 
 private val HomeDestination.subtitle: String
@@ -130,6 +132,7 @@ private val HomeDestination.subtitle: String
         HomeDestination.Settings -> "Account, cards, and preferences."
         HomeDestination.Users -> "Roster, roles, and invitations."
         HomeDestination.Review -> "Imported rows awaiting approval."
+        HomeDestination.Schedule -> "Plane drop-offs, RTS deadlines, time-off."
     }
 
 private val HomeDestination.phaseMessage: String

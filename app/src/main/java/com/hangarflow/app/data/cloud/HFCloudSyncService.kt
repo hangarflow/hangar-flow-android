@@ -115,7 +115,8 @@ class HFCloudSyncService {
         val plane_ids: List<String>,
         val notes: String,
         val updated_by_user_id: String?,
-        val updated_by_user_name: String
+        val updated_by_user_name: String,
+        val photo_paths: List<String>
     )
 
     suspend fun createPartLocation(
@@ -129,7 +130,8 @@ class HFCloudSyncService {
         planeIds: List<String>,
         notes: String,
         updatedByUserId: String?,
-        updatedByUserName: String
+        updatedByUserName: String,
+        photoPaths: List<String> = emptyList()
     ): String {
         val id = java.util.UUID.randomUUID().toString()
         val row = PartLocationRow(
@@ -144,7 +146,8 @@ class HFCloudSyncService {
             plane_ids = planeIds,
             notes = notes.trim(),
             updated_by_user_id = updatedByUserId,
-            updated_by_user_name = updatedByUserName.trim()
+            updated_by_user_name = updatedByUserName.trim(),
+            photo_paths = photoPaths
         )
         client.postgrest.from("hf_part_locations").insert(row)
         return id
@@ -161,7 +164,8 @@ class HFCloudSyncService {
         planeIds: List<String>,
         notes: String,
         updatedByUserId: String?,
-        updatedByUserName: String
+        updatedByUserName: String,
+        photoPaths: List<String> = emptyList()
     ) {
         val row = PartLocationRow(
             part_name = partName.trim(),
@@ -173,7 +177,8 @@ class HFCloudSyncService {
             plane_ids = planeIds,
             notes = notes.trim(),
             updated_by_user_id = updatedByUserId,
-            updated_by_user_name = updatedByUserName.trim()
+            updated_by_user_name = updatedByUserName.trim(),
+            photo_paths = photoPaths
         )
         client.postgrest.from("hf_part_locations").update(row) {
             filter { eq("id", id) }
@@ -298,9 +303,14 @@ class HFCloudSyncService {
             }
             .decodeList()
 
-    suspend fun searchManualReferences(orgId: String, query: String): List<ManualSearchHit> {
+    suspend fun searchManualReferences(
+        orgId: String,
+        query: String,
+        restrictToPlaneTail: String? = null
+    ): List<ManualSearchHit> {
         val trimmed = query.trim()
         if (trimmed.isEmpty()) return emptyList()
+        val tail = restrictToPlaneTail?.trim()?.uppercase()?.takeIf { it.isNotEmpty() }
         val cols = io.github.jan.supabase.postgrest.query.Columns.list(
             "id", "manual_id", "plane_tail_number", "title",
             "reference_code", "body_text", "page_start", "page_end",
@@ -318,6 +328,7 @@ class HFCloudSyncService {
                 filter {
                     eq("org_id", orgId)
                     eq("category", "section")
+                    if (tail != null) eq("plane_tail_number", tail)
                     textSearch(
                         column = "search_vector",
                         query = trimmed,
@@ -338,6 +349,7 @@ class HFCloudSyncService {
                 filter {
                     eq("org_id", orgId)
                     neq("category", "section")
+                    if (tail != null) eq("plane_tail_number", tail)
                     textSearch(
                         column = "search_vector",
                         query = trimmed,
@@ -383,6 +395,120 @@ class HFCloudSyncService {
     }
 
     /**
+     * Mint a short-lived signed URL for a part-location photo stored in
+     * the `part-location-photos` bucket. Mirrors `signedSquawkPhotoURL` —
+     * the bucket is private, so every thumbnail / full-screen view goes
+     * through a signed URL re-requested on demand.
+     */
+    suspend fun signedPartLocationPhotoURL(path: String, expiresInSeconds: Int = 3600): String {
+        return client.storage
+            .from("part-location-photos")
+            .createSignedUrl(path, expiresIn = expiresInSeconds.seconds)
+    }
+
+    /**
+     * Upload a single JPEG photo under the RLS-prefixed path
+     * `<orgId>/<partLocationId>/<uuid>.jpg`. Returns the stored path so
+     * the caller can attach it to `hf_part_locations.photo_paths`.
+     */
+    suspend fun uploadPartLocationPhoto(
+        data: ByteArray,
+        orgId: String,
+        partLocationId: String
+    ): String {
+        val path = "$orgId/$partLocationId/${java.util.UUID.randomUUID()}.jpg"
+        client.storage.from("part-location-photos").upload(path, data) {
+            contentType = io.ktor.http.ContentType.Image.JPEG
+            upsert = false
+        }
+        return path
+    }
+
+    /**
+     * Remove a part-location photo from the `part-location-photos` bucket.
+     * Used by the Replace / Remove flow so we don't orphan old objects
+     * (one photo per part). Best-effort — caller wraps in runCatching.
+     */
+    suspend fun deletePartLocationPhoto(path: String) {
+        client.storage.from("part-location-photos").delete(path)
+    }
+
+    /**
+     * Upload a single receipt JPEG to the reimbursement-receipts bucket.
+     * Path: `{orgId}/{userId}/{YYYY-MM}/{reimbursementId}.jpg` so the
+     * admin scrolling the bucket sees a clean per-user-per-month tree.
+     * Caller is responsible for converting HEIC → JPEG before upload.
+     */
+    suspend fun uploadReceiptPhoto(
+        jpeg: ByteArray,
+        orgId: String,
+        userAuthId: String,
+        reimbursementId: String,
+        capturedAtIso: String? = null
+    ): String {
+        val month = (capturedAtIso ?: java.time.Instant.now().toString())
+            .let { it.substring(0, kotlin.math.min(7, it.length)) } // YYYY-MM
+        val path = "$orgId/$userAuthId/$month/$reimbursementId.jpg"
+        client.storage.from("reimbursement-receipts").upload(path, jpeg) {
+            contentType = io.ktor.http.ContentType.Image.JPEG
+            upsert = false
+        }
+        return path
+    }
+
+    @kotlinx.serialization.Serializable
+    private data class NewReimbursementRow(
+        val id: String,
+        val org_id: String,
+        val user_id: String,
+        val user_name: String,
+        val amount_cents: Int,
+        val description: String,
+        val receipt_storage_path: String?,
+        val time_entry_id: String?,
+        val status: String
+    )
+
+    /**
+     * Insert a tech-submitted reimbursement. Status starts at `pending`;
+     * an admin reviews via the desktop CSV export and updates status
+     * with `updateReimbursementStatus`.
+     */
+    suspend fun createReimbursement(
+        id: String,
+        orgId: String,
+        userId: String,
+        userName: String,
+        amountCents: Int,
+        description: String,
+        receiptStoragePath: String?,
+        timeEntryId: String?,
+        sourceDevice: String
+    ) {
+        client.postgrest.from("hf_reimbursements").insert(
+            NewReimbursementRow(
+                id = id,
+                org_id = orgId,
+                user_id = userId,
+                user_name = userName,
+                amount_cents = amountCents,
+                description = description,
+                receipt_storage_path = receiptStoragePath,
+                time_entry_id = timeEntryId,
+                status = "pending"
+            )
+        )
+        emitOrgEvent(orgId = orgId, sourceDevice = sourceDevice, eventType = "reimbursement_submitted")
+    }
+
+    /** Pulls every reimbursement row for the org so the Hours / Payroll
+     *  list can show pending + decided entries side-by-side. */
+    suspend fun fetchReimbursements(orgId: String): List<com.hangarflow.app.data.model.HFReimbursement> =
+        client.postgrest.from("hf_reimbursements")
+            .select { filter { eq("org_id", orgId) } }
+            .decodeList()
+
+    /**
      * Insert a new row into `hf_squawks`. Returns the new row id so the
      * caller can correlate it with uploaded photos. Triggers an org
      * event afterward so every other device re-syncs within ~500ms.
@@ -401,6 +527,58 @@ class HFCloudSyncService {
         val reported_by_user_name: String?,
         val photo_paths: List<String>
     )
+
+    @kotlinx.serialization.Serializable
+    private data class NewTimeOffRow(
+        val id: String,
+        val org_id: String,
+        val user_id: String,
+        val user_name: String,
+        val start_date: String,
+        val end_date: String,
+        val reason: String,
+        val status: String,
+        val decided_by_user_id: String? = null,
+        val decided_by_name: String? = null,
+        val decided_at: String? = null
+    )
+
+    /**
+     * Submit a PTO request. Default status `pending` (tech flow).
+     * Admins call with `autoApprove=true` so their own days off land
+     * straight on the calendar without a self-approval round-trip.
+     * `startDateIso` / `endDateIso` are YYYY-MM-DD (Postgres date type).
+     */
+    suspend fun createTimeOffRequest(
+        orgId: String,
+        userId: String,
+        userName: String,
+        startDateIso: String,
+        endDateIso: String,
+        reason: String,
+        sourceDevice: String,
+        autoApprove: Boolean = false
+    ): String {
+        val id = java.util.UUID.randomUUID().toString()
+        val nowIso = if (autoApprove) java.time.Instant.now().toString() else null
+        client.postgrest.from("hf_time_off_requests").insert(
+            NewTimeOffRow(
+                id = id,
+                org_id = orgId,
+                user_id = userId,
+                user_name = userName,
+                start_date = startDateIso,
+                end_date = endDateIso,
+                reason = reason,
+                status = if (autoApprove) "approved" else "pending",
+                decided_by_user_id = if (autoApprove) userId else null,
+                decided_by_name = if (autoApprove) userName else null,
+                decided_at = nowIso
+            )
+        )
+        emitOrgEvent(orgId = orgId, sourceDevice = sourceDevice, eventType = "time_off_requested")
+        return id
+    }
 
     suspend fun createSquawk(
         orgId: String,
@@ -692,16 +870,107 @@ class HFCloudSyncService {
     @kotlinx.serialization.Serializable
     private data class UpdatePlaneRow(
         val tail_number: String, val display_name: String,
-        val outline_hex: String, val arrival_date: String?, val deadline_date: String?
+        val outline_hex: String, val arrival_date: String?, val deadline_date: String?,
+        val incoming_inspection: String?, val aircraft_type: String?
     )
 
     suspend fun updatePlane(
         planeId: String, tailNumber: String, displayName: String,
-        outlineHex: String, arrivalDate: String?, deadlineDate: String?
+        outlineHex: String, arrivalDate: String?, deadlineDate: String?,
+        incomingInspection: String? = null, aircraftType: String? = null
     ) {
         client.postgrest.from("hf_aircraft").update(
-            UpdatePlaneRow(tailNumber.trim().uppercase(), displayName.trim(), outlineHex, arrivalDate, deadlineDate)
+            UpdatePlaneRow(tailNumber.trim().uppercase(), displayName.trim(), outlineHex, arrivalDate, deadlineDate, incomingInspection, aircraftType)
         ) { filter { eq("id", planeId) } }
     }
+
+    // ---------- Parity wave: archive, manual assignments, ref linking, export name ----------
+
+    @kotlinx.serialization.Serializable
+    private data class IsArchivedRow(val is_archived: Boolean)
+
+    /** Archive / unarchive a plane (hides from active list, keeps all data). */
+    suspend fun setPlaneArchived(planeId: String, archived: Boolean) {
+        client.postgrest.from("hf_aircraft").update(IsArchivedRow(archived)) {
+            filter { eq("id", planeId) }
+        }
+    }
+
+    @kotlinx.serialization.Serializable
+    private data class ManualPlaneAssignmentRow(
+        val org_id: String,
+        val manual_id: String,
+        val plane_id: String,
+        val plane_tail_number: String? = null
+    )
+
+    /** Attach an already-uploaded manual to a plane via the junction table
+     *  (no re-upload). Mirrors the iOS / Desktop "use existing files" flow. */
+    suspend fun attachManualToPlane(
+        orgId: String, manualId: String, planeId: String, planeTailNumber: String?
+    ) {
+        client.postgrest.from("hf_manual_plane_assignments")
+            .insert(ManualPlaneAssignmentRow(orgId, manualId, planeId, planeTailNumber))
+    }
+
+    /** Detach a single manual from a plane (junction-table delete). */
+    suspend fun detachManualFromPlane(manualId: String, planeId: String) {
+        client.postgrest.from("hf_manual_plane_assignments").delete {
+            filter { eq("manual_id", manualId); eq("plane_id", planeId) }
+        }
+    }
+
+    /** Manual ids assigned to a plane; caller resolves against cached manuals. */
+    suspend fun fetchManualIdsForPlane(orgId: String, planeId: String): List<String> =
+        client.postgrest.from("hf_manual_plane_assignments")
+            .select { filter { eq("org_id", orgId); eq("plane_id", planeId) } }
+            .decodeList<ManualPlaneAssignmentRow>()
+            .map { it.manual_id }
+
+    /** Purge a manual from the DB. Junction rows cascade; indexed references
+     *  persist by design so they can be re-attached. */
+    suspend fun deleteManual(manualId: String) {
+        client.postgrest.from("hf_manuals").delete { filter { eq("id", manualId) } }
+    }
+
+    @kotlinx.serialization.Serializable
+    private data class WorkLogReferenceUpdateRow(
+        val reference_id: String?,
+        val reference_code: String?,
+        val reference_title: String?,
+        val manual_page_start: Int?,
+        val manual_page_end: Int?,
+        val manual_source_name: String?
+    )
+
+    /** Persist a manual-reference link chosen from the work-log detail
+     *  "possible matches" panel. Pass nulls to clear the link. */
+    suspend fun updateWorkLogReference(
+        workLogId: String,
+        referenceId: String?,
+        referenceCode: String?,
+        referenceTitle: String?,
+        pageStart: Int?,
+        pageEnd: Int?,
+        sourceName: String?
+    ) {
+        client.postgrest.from("hf_work_logs").update(
+            WorkLogReferenceUpdateRow(referenceId, referenceCode, referenceTitle, pageStart, pageEnd, sourceName)
+        ) { filter { eq("id", workLogId) } }
+    }
+
+    @kotlinx.serialization.Serializable
+    private data class OrgExportNameRow(
+        @kotlinx.serialization.SerialName("export_business_name") val exportBusinessName: String? = null
+    )
+
+    /** Org's optional "doing-business-as" name for PDF export headers
+     *  (falls back to org name when null). */
+    suspend fun fetchOrgExportBusinessName(orgId: String): String? =
+        client.postgrest.from("organizations")
+            .select { filter { eq("id", orgId) } }
+            .decodeList<OrgExportNameRow>()
+            .firstOrNull()
+            ?.exportBusinessName
 
 }

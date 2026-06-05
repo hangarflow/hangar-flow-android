@@ -404,13 +404,37 @@ object SharedStore {
     }
 
     /**
+     * Mark lunch as skipped for the active shift. Sets `lunchTaken = true`
+     * so the lunch prompt goes away — the tech keeps working straight
+     * through and clocks out normally at end of day. Does NOT clock out.
+     */
+    fun skipLunch() {
+        val shift = _activeShift.value ?: return
+        if (shift.lunchTaken || shift.lunchStartedAt != null) return
+        val next = shift.copy(lunchTaken = true)
+        _activeShift.value = next
+        ShiftPersistence.save(next)
+    }
+
+    /**
      * End the active shift. Total shift minutes minus any lunch minutes
      * become the entry. If the tech somehow clocks out while still on
      * lunch we close the lunch bracket first so the math stays honest.
      */
     fun clockOut() {
-        val shift = _activeShift.value ?: return
-        val orgId = bootstrappedOrgId ?: return
+        scope.launch { clockOutWithSummary("") }
+    }
+
+    /**
+     * Awaited version of clockOut that lets the caller (the clock-out
+     * sheet) pass a daily summary and chain reimbursement inserts off
+     * the returned time entry id. Returns null if there's no active
+     * shift or no org loaded. The summary string is appended to the
+     * lunch suffix so the admin sees both in one notes column.
+     */
+    suspend fun clockOutWithSummary(summary: String): String? {
+        val shift = _activeShift.value ?: return null
+        val orgId = bootstrappedOrgId ?: return null
         val end = Instant.now()
         val totalMin = ChronoUnit.MINUTES.between(shift.startedAt, end).toInt().coerceAtLeast(1)
         val tailLunch = shift.lunchStartedAt?.let {
@@ -420,27 +444,31 @@ object SharedStore {
         val minutes = (totalMin - totalLunch).coerceAtLeast(1)
         _activeShift.value = null
         ShiftPersistence.clear()
-        scope.launch {
-            try {
-                val notes = if (totalLunch > 0) "Lunch: ${formatLunch(totalLunch)}" else ""
-                timeEntryService.createTimeEntry(
-                    orgId = orgId,
-                    userId = shift.userId,
-                    userName = shift.userName,
-                    planeId = null,
-                    planeTailNumber = null,
-                    entryDateIso = end.toString(),
-                    minutesWorked = minutes,
-                    notes = notes
-                )
-                cloud.emitOrgEvent(orgId = orgId, sourceDevice = deviceId, eventType = "time_entry_logged")
-                // Local refresh so the Today tile ticks up immediately —
-                // don't wait for the realtime self-event (we filter
-                // self-events out intentionally).
-                pullSnapshot(orgId)
-            } catch (t: Throwable) {
-                _state.update { it.copy(error = t.message ?: "Failed to save time entry.") }
-            }
+        return try {
+            val trimmedSummary = summary.trim()
+            val lunchPart = if (totalLunch > 0) "Lunch: ${formatLunch(totalLunch)}" else ""
+            val notes = listOf(trimmedSummary, lunchPart)
+                .filter { it.isNotBlank() }
+                .joinToString("\n\n")
+            val entry = timeEntryService.createTimeEntry(
+                orgId = orgId,
+                userId = shift.userId,
+                userName = shift.userName,
+                planeId = null,
+                planeTailNumber = null,
+                entryDateIso = end.toString(),
+                minutesWorked = minutes,
+                notes = notes
+            )
+            cloud.emitOrgEvent(orgId = orgId, sourceDevice = deviceId, eventType = "time_entry_logged")
+            // Local refresh so the Today tile ticks up immediately —
+            // don't wait for the realtime self-event (we filter
+            // self-events out intentionally).
+            pullSnapshot(orgId)
+            entry.id
+        } catch (t: Throwable) {
+            _state.update { it.copy(error = t.message ?: "Failed to save time entry.") }
+            null
         }
     }
 
@@ -451,6 +479,15 @@ object SharedStore {
         object Success : CreateResult()
         data class Error(val message: String) : CreateResult()
     }
+
+    /** One staged row for the bulk "add work log" sheet. */
+    data class NewWorkLogDraft(
+        val planeId: String?,
+        val planeTailNumber: String,
+        val title: String,
+        val category: String,
+        val details: String
+    )
 
     suspend fun createPlane(
         tailNumber: String,
@@ -521,7 +558,8 @@ object SharedStore {
         quantity: Int,
         stockStatus: String,
         planeIds: List<String>,
-        notes: String
+        notes: String,
+        photoPaths: List<String> = emptyList()
     ): CreateResult {
         val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded yet.")
         if (partName.trim().isBlank()) return CreateResult.Error("Part name is required.")
@@ -539,7 +577,8 @@ object SharedStore {
                     planeIds = planeIds,
                     notes = notes,
                     updatedByUserId = me?.id,
-                    updatedByUserName = me?.displayName ?: "Tech"
+                    updatedByUserName = me?.displayName ?: "Tech",
+                    photoPaths = photoPaths
                 )
             } else {
                 cloud.updatePartLocation(
@@ -553,7 +592,8 @@ object SharedStore {
                     planeIds = planeIds,
                     notes = notes,
                     updatedByUserId = me?.id,
-                    updatedByUserName = me?.displayName ?: "Tech"
+                    updatedByUserName = me?.displayName ?: "Tech",
+                    photoPaths = photoPaths
                 )
             }
             cloud.emitOrgEvent(orgId, deviceId, "part_location_saved")
@@ -622,17 +662,156 @@ object SharedStore {
         } catch (t: Throwable) { CreateResult.Error(t.message ?: "Couldn't update role.") }
     }
 
+    /** Distinct aircraft types known to the org (from tagged manuals + planes). */
+    fun knownAircraftTypes(): List<String> {
+        val all = (_state.value.manuals.mapNotNull { it.aircraftType } +
+                   _state.value.planes.mapNotNull { it.aircraftType })
+            .map { it.trim() }.filter { it.isNotEmpty() }
+        val seen = HashSet<String>()
+        val out = ArrayList<String>()
+        for (t in all) if (seen.add(t.lowercase())) out.add(t)
+        return out.sortedBy { it.lowercase() }
+    }
+
+    /** Manuals tagged with the given aircraft type (case-insensitive). */
+    fun manualsForType(type: String): List<com.hangarflow.app.data.model.HFManual> {
+        val t = type.trim().lowercase()
+        if (t.isBlank()) return emptyList()
+        return _state.value.manuals.filter { (it.aircraftType ?: "").trim().lowercase() == t }
+    }
+
     suspend fun updatePlane(
         planeId: String, tailNumber: String, displayName: String,
-        outlineHex: String, arrivalDate: String?, deadlineDate: String?
+        outlineHex: String, arrivalDate: String?, deadlineDate: String?,
+        incomingInspection: String? = null, aircraftType: String? = null
     ): CreateResult {
         val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
         return try {
-            cloud.updatePlane(planeId, tailNumber, displayName, outlineHex, arrivalDate, deadlineDate)
+            cloud.updatePlane(planeId, tailNumber, displayName, outlineHex, arrivalDate, deadlineDate, incomingInspection, aircraftType)
             cloud.emitOrgEvent(orgId, deviceId, "plane_updated")
             pullSnapshot(orgId)
             CreateResult.Success
         } catch (t: Throwable) { CreateResult.Error(t.message ?: "Couldn't update plane.") }
+    }
+
+    // ---------- Parity wave: archive, manual assignments, ref linking, bulk ----------
+
+    /** Archive / unarchive a plane. Optimistic flip + org event so every
+     *  other device re-syncs; rolls back on failure. */
+    fun setPlaneArchived(planeId: String, archived: Boolean) {
+        val orgId = bootstrappedOrgId ?: return
+        val previous = _state.value.planes.firstOrNull { it.id == planeId }?.isArchived
+        _state.update { current ->
+            current.copy(planes = current.planes.map { p ->
+                if (p.id == planeId) p.copy(isArchived = archived) else p
+            })
+        }
+        scope.launch {
+            try {
+                cloud.setPlaneArchived(planeId, archived)
+                cloud.emitOrgEvent(orgId, deviceId, "plane_archived")
+            } catch (t: Throwable) {
+                _state.update { current ->
+                    current.copy(
+                        planes = current.planes.map { p ->
+                            if (p.id == planeId && previous != null) p.copy(isArchived = previous) else p
+                        },
+                        error = t.message
+                    )
+                }
+            }
+        }
+    }
+
+    /** Attach already-uploaded manuals to a plane (no re-upload). One org
+     *  event + re-pull after the whole batch. */
+    suspend fun attachManualsToPlane(
+        planeId: String, planeTailNumber: String, manualIds: List<String>
+    ): CreateResult {
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        if (manualIds.isEmpty()) return CreateResult.Success
+        return try {
+            manualIds.forEach { mid -> cloud.attachManualToPlane(orgId, mid, planeId, planeTailNumber) }
+            cloud.emitOrgEvent(orgId, deviceId, "manual_attached")
+            pullSnapshot(orgId)
+            CreateResult.Success
+        } catch (t: Throwable) { CreateResult.Error(t.message ?: "Couldn't attach manuals.") }
+    }
+
+    /** Purge a manual from the Files page (admin only). Indexed references
+     *  persist by design so the manual can be re-attached later. */
+    suspend fun purgeManual(manualId: String): CreateResult {
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        return try {
+            cloud.deleteManual(manualId)
+            cloud.emitOrgEvent(orgId, deviceId, "manual_purged")
+            pullSnapshot(orgId)
+            CreateResult.Success
+        } catch (t: Throwable) { CreateResult.Error(t.message ?: "Couldn't delete manual.") }
+    }
+
+    /** Link (or, with null fields, clear) a work log's manual reference.
+     *  Optimistic local update + org event; rolls back on failure. */
+    fun linkWorkLogToReference(
+        workLogId: String,
+        referenceId: String?,
+        referenceCode: String?,
+        referenceTitle: String?,
+        pageStart: Int?,
+        pageEnd: Int?,
+        sourceName: String?
+    ) {
+        val orgId = bootstrappedOrgId ?: return
+        val previous = _state.value.workLogs.firstOrNull { it.id == workLogId }
+        _state.update { current ->
+            current.copy(workLogs = current.workLogs.map { log ->
+                if (log.id == workLogId) log.copy(
+                    referenceId = referenceId,
+                    referenceCode = referenceCode,
+                    referenceTitle = referenceTitle,
+                    manualPageStart = pageStart,
+                    manualPageEnd = pageEnd,
+                    manualSourceName = sourceName
+                ) else log
+            })
+        }
+        scope.launch {
+            try {
+                cloud.updateWorkLogReference(workLogId, referenceId, referenceCode, referenceTitle, pageStart, pageEnd, sourceName)
+                cloud.emitOrgEvent(orgId, deviceId, "work_log_reference_linked")
+            } catch (t: Throwable) {
+                _state.update { current ->
+                    current.copy(
+                        workLogs = current.workLogs.map { log ->
+                            if (log.id == workLogId && previous != null) log.copy(
+                                referenceId = previous.referenceId,
+                                referenceCode = previous.referenceCode,
+                                referenceTitle = previous.referenceTitle,
+                                manualPageStart = previous.manualPageStart,
+                                manualPageEnd = previous.manualPageEnd,
+                                manualSourceName = previous.manualSourceName
+                            ) else log
+                        },
+                        error = t.message
+                    )
+                }
+            }
+        }
+    }
+
+    /** Bulk-create work logs from the staging sheet (one org event + re-pull). */
+    suspend fun createWorkLogsBulk(logs: List<NewWorkLogDraft>): CreateResult {
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        val valid = logs.filter { it.title.trim().isNotBlank() }
+        if (valid.isEmpty()) return CreateResult.Error("Add at least one work log.")
+        return try {
+            valid.forEach { d ->
+                cloud.createWorkLog(orgId, d.planeId, d.planeTailNumber, d.title, d.category, d.details)
+            }
+            cloud.emitOrgEvent(orgId, deviceId, "work_log_created")
+            pullSnapshot(orgId)
+            CreateResult.Success
+        } catch (t: Throwable) { CreateResult.Error(t.message ?: "Couldn't create work logs.") }
     }
 
     /** Reassign a work log. Optimistic local update + org event so every
@@ -703,6 +882,9 @@ object SharedStore {
                 emptyList()
             }
             val tasks = runCatching { cloud.fetchTasks(orgId) }.getOrElse { emptyList() }
+            // Reimbursements may not have the migration yet on older orgs.
+            // Fail open so the rest of the snapshot loads.
+            val reimbursements = runCatching { cloud.fetchReimbursements(orgId) }.getOrElse { emptyList() }
             val authUserId = runCatching {
                 SupabaseClientProvider.client.auth.currentUserOrNull()?.id
             }.getOrNull()
@@ -717,6 +899,7 @@ object SharedStore {
                 partRequests = partRequests,
                 partLocations = partLocations.sortedByDescending { it.updatedAt ?: "" },
                 tasks = tasks.sortedByDescending { it.updatedAt ?: "" },
+                reimbursements = reimbursements.sortedByDescending { it.createdAt ?: "" },
                 currentUser = me,
                 loading = false,
                 error = null
@@ -827,6 +1010,7 @@ data class ShopState(
     val partRequests: List<HFPartRequest>,
     val partLocations: List<HFPartLocation>,
     val tasks: List<HFTask> = emptyList(),
+    val reimbursements: List<com.hangarflow.app.data.model.HFReimbursement> = emptyList(),
     val currentUser: HFUserProfile?,
     val loading: Boolean,
     val error: String?
@@ -842,6 +1026,7 @@ data class ShopState(
             partRequests = emptyList(),
             partLocations = emptyList(),
             tasks = emptyList(),
+            reimbursements = emptyList(),
             currentUser = null,
             loading = false,
             error = null

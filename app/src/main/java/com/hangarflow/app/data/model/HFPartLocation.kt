@@ -33,6 +33,7 @@ data class HFPartLocation(
     @SerialName("received_at") val receivedAt: String? = null,
     @SerialName("plane_model") val planeModel: String? = null,
     @SerialName("plane_tail_number") val planeTailNumber: String? = null,
+    @SerialName("photo_paths") val photoPaths: List<String> = emptyList(),
     val status: String = "In Stock",
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("updated_at") val updatedAt: String? = null

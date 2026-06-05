@@ -98,7 +98,12 @@ object ManualCache {
                 android.util.Log.i(TAG, "download: R2 status=${response.status.value}")
                 if (response.status.value !in 200..299) {
                     val body = runCatching { response.bodyAsText() }.getOrDefault("")
-                    throw IllegalStateException("R2 returned ${response.status.value}: ${body.take(200)}")
+                    android.util.Log.e(TAG, "download: non-2xx ${response.status.value}: ${body.take(200)}")
+                    throw IllegalStateException(
+                        if (response.status.value == 404)
+                            "This manual's file is missing from cloud storage. Re-import the PDF to restore it."
+                        else "Couldn't download this manual (${response.status.value}). Please try again."
+                    )
                 }
                 outFile.outputStream().use { sink ->
                     response.bodyAsChannel().copyTo(sink)

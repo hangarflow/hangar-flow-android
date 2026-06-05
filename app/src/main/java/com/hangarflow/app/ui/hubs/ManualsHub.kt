@@ -69,6 +69,8 @@ private fun ManualsHubContent() {
     var viewingFile by remember { mutableStateOf<java.io.File?>(null) }
     var viewingManual by remember { mutableStateOf<HFManual?>(null) }
     var openError by remember { mutableStateOf<String?>(null) }
+    val authState by com.hangarflow.app.auth.AuthManager.state.collectAsState()
+    var confirmPurge by remember { mutableStateOf<HFManual?>(null) }
 
     // Same filter as the Live View tile: only real manuals, deduped.
     val manuals = remember(state.manuals) {
@@ -161,9 +163,36 @@ private fun ManualsHubContent() {
                                     DownloadState.Error(err.message ?: "Download failed")
                             }
                     }
-                }
+                },
+                onPurge = if (authState.isAdmin) {
+                    { confirmPurge = manual }
+                } else null
             )
         }
+    }
+
+    confirmPurge?.let { target ->
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { confirmPurge = null },
+            containerColor = HFColors.Surface,
+            title = { Text("Purge ${target.fileName}?", color = HFColors.StatusRed, fontWeight = FontWeight.Bold) },
+            text = {
+                Text(
+                    "This permanently deletes the manual file for everyone in the org. Indexed references are kept so it can be re-attached later.",
+                    color = HFColors.OnSurface, fontSize = 13.sp
+                )
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    val id = target.id
+                    confirmPurge = null
+                    scope.launch { SharedStore.purgeManual(id) }
+                }) { Text("Purge", color = HFColors.StatusRed, fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { confirmPurge = null }) { Text("Cancel") }
+            }
+        )
     }
 
     // In-app full-screen PDF viewer — sits above the list when a
@@ -202,7 +231,8 @@ private fun ManualRow(
     manual: HFManual,
     downloadState: DownloadState,
     onTap: () -> Unit,
-    onDownload: () -> Unit
+    onDownload: () -> Unit,
+    onPurge: (() -> Unit)? = null
 ) {
     val cached = downloadState is DownloadState.Cached
     val accent = HFColors.StatusPurple
@@ -286,6 +316,20 @@ private fun ManualRow(
                     tint = HFColors.OnSurface,
                     modifier = Modifier.size(18.dp)
                 )
+            }
+        }
+
+        if (onPurge != null) {
+            Spacer(Modifier.size(8.dp))
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(HFColors.StatusRed.copy(alpha = 0.10f))
+                    .clickable(onClick = onPurge)
+                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Purge", color = HFColors.StatusRed, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
             }
         }
     }

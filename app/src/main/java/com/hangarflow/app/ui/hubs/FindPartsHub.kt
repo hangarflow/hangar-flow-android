@@ -50,7 +50,7 @@ private enum class OrderUrgency(val raw: String, val label: String, val color: C
 }
 
 @Composable
-fun FindPartsHub() {
+fun FindPartsHub(restrictToPlaneTail: String? = null) {
     val authState by AuthManager.state.collectAsState()
     val shopState by SharedStore.state.collectAsState()
     val orgId = authState.orgId
@@ -61,6 +61,9 @@ fun FindPartsHub() {
     var isSearching by remember { mutableStateOf(false) }
     var selectedHit by remember { mutableStateOf<HFCloudSyncService.ManualSearchHit?>(null) }
     var showOrderDialog by remember { mutableStateOf(false) }
+    // Toggleable plane scope. Starts at whatever the entry point passed;
+    // tech can broaden mid-flight by tapping "Search all" in the chip.
+    var restrictedTail by remember { mutableStateOf(restrictToPlaneTail) }
     val cloud = remember { HFCloudSyncService() }
     val scope = rememberCoroutineScope()
 
@@ -106,11 +109,13 @@ fun FindPartsHub() {
         selectedHit?.let { loadPdfFor(it) }
     }
 
-    LaunchedEffect(query, orgId) {
+    LaunchedEffect(query, orgId, restrictedTail) {
         if (query.isBlank() || orgId == null) { hits = emptyList(); selectedHit = null; return@LaunchedEffect }
         delay(400)
         isSearching = true
-        val raw = runCatching { cloud.searchManualReferences(orgId, query) }.getOrElse { emptyList() }
+        val raw = runCatching {
+            cloud.searchManualReferences(orgId, query, restrictToPlaneTail = restrictedTail)
+        }.getOrElse { emptyList() }
 
         // Dedup: same section is indexed per-plane, so one physical
         // section shows up multiple times. Prefer the row whose plane
@@ -142,6 +147,41 @@ fun FindPartsHub() {
                     cursorColor = HFColors.OnSurface
                 )
             )
+
+            // Plane-scope chip — shown only when the search is restricted
+            // to a single plane (entry from plane detail). Lets the tech
+            // broaden to org-wide mid-flight without leaving the screen.
+            restrictedTail?.let { tail ->
+                Spacer(Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Color(0xFF00CCDD).copy(alpha = 0.12f))
+                        .border(1.dp, Color(0xFF00CCDD).copy(alpha = 0.40f), RoundedCornerShape(10.dp))
+                        .padding(horizontal = 10.dp, vertical = 7.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Searching only $tail",
+                        color = HFColors.OnSurface.copy(alpha = 0.85f),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        text = "Search all  ✕",
+                        color = HFColors.OnSurface,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .background(HFColors.OnSurface.copy(alpha = 0.12f))
+                            .clickable { restrictedTail = null }
+                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                    )
+                }
+            }
 
             if (isSearching || hits.isNotEmpty()) {
                 Spacer(Modifier.height(6.dp))

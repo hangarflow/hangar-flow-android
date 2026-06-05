@@ -46,7 +46,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
+import com.hangarflow.app.data.PdfExporter
 import com.hangarflow.app.data.SharedStore
+import com.hangarflow.app.data.cloud.HFCloudSyncService
 import com.hangarflow.app.data.model.HFPlane
 import com.hangarflow.app.data.model.HFWorkCategory
 import com.hangarflow.app.data.model.HFWorkLog
@@ -84,6 +88,13 @@ fun PlaneDetailView(
     val planeWorkLogs = remember(state.workLogs, plane.id) {
         state.workLogs.filter { it.planeId == plane.id }
     }
+    val planeSquawks = remember(state.squawks, plane.id) {
+        state.squawks.filter { it.planeId == plane.id }
+    }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val cloud = remember { HFCloudSyncService() }
+    val orgId = authState.orgId
 
     if (selectedCategory != null) {
         CategoryWorkLogList(
@@ -111,9 +122,26 @@ fun PlaneDetailView(
         accent = accent,
         workLogs = planeWorkLogs,
         isAdmin = authState.isAdmin,
+        canEditPlane = authState.canEditPlaneSchedule,
         onBack = onBack,
         onEdit = { showEditDialog = true },
+        onArchive = {
+            SharedStore.setPlaneArchived(plane.id, !plane.isArchived)
+            onBack()
+        },
         onDelete = { showDeleteDialog = true },
+        onExportWorkLogs = {
+            scope.launch {
+                val name = orgId?.let { runCatching { cloud.fetchOrgExportBusinessName(it) }.getOrNull() }
+                PdfExporter.exportWorkLogs(context, plane, planeWorkLogs, name)
+            }
+        },
+        onExportSquawks = {
+            scope.launch {
+                val name = orgId?.let { runCatching { cloud.fetchOrgExportBusinessName(it) }.getOrNull() }
+                PdfExporter.exportSquawks(context, plane, planeSquawks, name)
+            }
+        },
         onSelectCategory = { selectedCategory = it }
     )
 }
@@ -126,9 +154,13 @@ private fun CategoryGrid(
     accent: Color,
     workLogs: List<HFWorkLog>,
     isAdmin: Boolean,
+    canEditPlane: Boolean = false,
     onBack: () -> Unit,
     onEdit: () -> Unit,
+    onArchive: () -> Unit,
     onDelete: () -> Unit,
+    onExportWorkLogs: () -> Unit,
+    onExportSquawks: () -> Unit,
     onSelectCategory: (HFWorkCategory) -> Unit
 ) {
     // Seven tiles — iPad shows the six maintenance disciplines + General.
@@ -217,21 +249,47 @@ private fun CategoryGrid(
                     .clip(RoundedCornerShape(100.dp))
                     .background(accent)
             )
-            if (isAdmin) {
+            if (canEditPlane) {
                 Spacer(Modifier.size(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Edit is open to lead techs; Archive/Delete stay admin-only.
                     Box(
                         modifier = Modifier.clip(RoundedCornerShape(8.dp))
                             .background(HFColors.OnSurface.copy(alpha = 0.06f))
                             .clickable(onClick = onEdit)
                             .padding(horizontal = 12.dp, vertical = 6.dp)
                     ) { Text("Edit", color = HFColors.OnSurface, fontSize = 12.sp, fontWeight = FontWeight.SemiBold) }
+                    if (isAdmin) {
+                        Box(
+                            modifier = Modifier.clip(RoundedCornerShape(8.dp))
+                                .background(HFColors.StatusYellow.copy(alpha = 0.12f))
+                                .clickable(onClick = onArchive)
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        ) { Text(if (plane.isArchived) "Unarchive" else "Archive", color = HFColors.StatusYellow, fontSize = 12.sp, fontWeight = FontWeight.SemiBold) }
+                        Box(
+                            modifier = Modifier.clip(RoundedCornerShape(8.dp))
+                                .background(HFColors.StatusRed.copy(alpha = 0.10f))
+                                .clickable(onClick = onDelete)
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        ) { Text("Delete", color = HFColors.StatusRed, fontSize = 12.sp, fontWeight = FontWeight.SemiBold) }
+                    }
+                }
+            }
+            if (isAdmin) {
+                Spacer(Modifier.size(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Box(
                         modifier = Modifier.clip(RoundedCornerShape(8.dp))
-                            .background(HFColors.StatusRed.copy(alpha = 0.10f))
-                            .clickable(onClick = onDelete)
+                            .background(HFColors.StatusBlue.copy(alpha = 0.12f))
+                            .clickable(onClick = onExportWorkLogs)
                             .padding(horizontal = 12.dp, vertical = 6.dp)
-                    ) { Text("Delete", color = HFColors.StatusRed, fontSize = 12.sp, fontWeight = FontWeight.SemiBold) }
+                    ) { Text("Export Logs PDF", color = HFColors.StatusBlue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold) }
+                    Box(
+                        modifier = Modifier.clip(RoundedCornerShape(8.dp))
+                            .background(HFColors.StatusBlue.copy(alpha = 0.12f))
+                            .clickable(onClick = onExportSquawks)
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                    ) { Text("Export Squawks PDF", color = HFColors.StatusBlue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold) }
                 }
             }
         }

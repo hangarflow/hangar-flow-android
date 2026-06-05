@@ -73,6 +73,7 @@ fun PlanesHub(onOpenWorkLog: (com.hangarflow.app.data.model.HFWorkLog) -> Unit) 
 @Composable
 private fun PlanesHubContent(onSelectPlane: (HFPlane) -> Unit) {
     val state by SharedStore.state.collectAsState()
+    var showArchived by remember { mutableStateOf(false) }
 
     if (state.planes.isEmpty()) {
         Column(
@@ -99,8 +100,10 @@ private fun PlanesHubContent(onSelectPlane: (HFPlane) -> Unit) {
         return
     }
 
+    val archivedCount = state.planes.count { it.isArchived }
+    val visiblePlanes = state.planes.filter { showArchived || !it.isArchived }
     // Chunk into 2-column rows so the grid matches iOS `LazyVGrid spacing:14`.
-    val rows = state.planes.chunked(2)
+    val rows = visiblePlanes.chunked(2)
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -112,13 +115,40 @@ private fun PlanesHubContent(onSelectPlane: (HFPlane) -> Unit) {
         ),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
+        if (archivedCount > 0) {
+            item {
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(
+                            if (showArchived) HFColors.StatusYellow.copy(alpha = 0.16f)
+                            else HFColors.OnSurface.copy(alpha = 0.06f)
+                        )
+                        .clickable { showArchived = !showArchived }
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        if (showArchived) "Showing archived ($archivedCount)" else "Show archived ($archivedCount)",
+                        color = if (showArchived) HFColors.StatusYellow else HFColors.OnSurface.copy(alpha = 0.7f),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        }
         items(rows) { rowPair ->
             Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 rowPair.forEach { plane ->
                     IOSPlaneCard(
                         plane = plane,
                         onClick = { onSelectPlane(plane) },
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        workLogCount = state.workLogs.count { it.planeId == plane.id },
+                        openSquawkCount = state.squawks.count {
+                            it.planeId == plane.id &&
+                            (it.status == "open" || it.status == "inProgress" || it.status == "waitingOnParts")
+                        }
                     )
                 }
                 if (rowPair.size == 1) {
@@ -138,7 +168,9 @@ private fun PlanesHubContent(onSelectPlane: (HFPlane) -> Unit) {
 private fun IOSPlaneCard(
     plane: HFPlane,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    workLogCount: Int = 0,
+    openSquawkCount: Int = 0
 ) {
     val outline = runCatching {
         plane.outlineHex
@@ -190,6 +222,29 @@ private fun IOSPlaneCard(
                 fontWeight = FontWeight.Medium,
                 maxLines = 2
             )
+        }
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "$workLogCount work log${if (workLogCount == 1) "" else "s"}",
+                color = HFColors.OnSurface.copy(alpha = 0.45f),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+            if (openSquawkCount > 0) {
+                Text(
+                    "$openSquawkCount squawk${if (openSquawkCount == 1) "" else "s"}",
+                    color = HFColors.StatusOrange,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(HFColors.StatusOrange.copy(alpha = 0.16f))
+                        .padding(horizontal = 7.dp, vertical = 2.dp)
+                )
+            }
         }
     }
 }

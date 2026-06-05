@@ -49,11 +49,18 @@ import java.time.temporal.TemporalAdjusters
 
 @Composable
 fun TimeCardHub() {
-    HFPullToRefreshHost { TimeCardHubContent() }
+    var showRequestTimeOff by remember { mutableStateOf(false) }
+    if (showRequestTimeOff) {
+        RequestTimeOffSheet(onDismiss = { showRequestTimeOff = false })
+        return
+    }
+    HFPullToRefreshHost {
+        TimeCardHubContent(onRequestTimeOff = { showRequestTimeOff = true })
+    }
 }
 
 @Composable
-private fun TimeCardHubContent() {
+private fun TimeCardHubContent(onRequestTimeOff: () -> Unit = {}) {
     val shopState by SharedStore.state.collectAsState()
     val authState by AuthManager.state.collectAsState()
     val activeShift by SharedStore.activeShift.collectAsState()
@@ -169,6 +176,28 @@ private fun TimeCardHubContent() {
         }
 
         PeriodTotalsGrid(totals = periods)
+
+        // Request Time Off — visible to everyone. Submits a `pending`
+        // row to hf_time_off_requests; admins approve later.
+        Spacer(Modifier.size(10.dp))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(HFColors.OnSurface.copy(alpha = 0.04f))
+                .border(1.dp, HFColors.StatusBlue.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
+                .clickable { onRequestTimeOff() }
+                .padding(vertical = 12.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "Request Time Off",
+                color = HFColors.StatusBlue,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
 
         if (isAdmin) {
             Spacer(Modifier.size(10.dp))

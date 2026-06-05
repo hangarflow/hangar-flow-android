@@ -61,6 +61,9 @@ private fun UsersHubContent() {
     val state by SharedStore.state.collectAsState()
     val auth by AuthManager.state.collectAsState()
     val isAdmin = auth.isAdmin
+    // Lead techs manage members too (add/delete non-admins). Role changes
+    // and acting on admin rows stay admin-only — enforced per-action below.
+    val canManage = auth.canManageMembers
 
     val users = remember(state.users) {
         state.users.sortedWith(
@@ -75,7 +78,7 @@ private fun UsersHubContent() {
     val sheetState = rememberModalBottomSheetState()
 
     Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
-        if (!isAdmin) {
+        if (!canManage) {
             IOSPlaceholderPanel(
                 message = "User management is admin-only. Ask an admin to invite or manage teammates."
             )
@@ -204,8 +207,11 @@ private fun UserActionsSheet(
     onClose: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
+    val auth by AuthManager.state.collectAsState()
     var confirmDelete by remember { mutableStateOf(false) }
-    val isAdmin = user.role.equals("admin", ignoreCase = true)
+    val isAdmin = user.role.equals("admin", ignoreCase = true)  // target's role
+    // Only admins change roles. Lead techs may delete non-admin members.
+    val canDeleteThis = auth.isAdmin || (auth.isLeadTech && !isAdmin)
 
     Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
         Text(
@@ -223,23 +229,29 @@ private fun UserActionsSheet(
         }
         Spacer(Modifier.size(16.dp))
 
-        ActionRow(
-            label = if (isAdmin) "Set Role: Tech" else "Set Role: Admin",
-            destructive = false,
-            enabled = !isSelf,
-            onClick = {
-                val newRole = if (isAdmin) "tech" else "admin"
-                scope.launch { SharedStore.updateUserRole(user.id, newRole) }
-                onClose()
-            }
-        )
-        Spacer(Modifier.size(8.dp))
-        ActionRow(
-            label = "Delete User…",
-            destructive = true,
-            enabled = !isSelf,
-            onClick = { confirmDelete = true }
-        )
+        // Role changes are admin-only.
+        if (auth.isAdmin) {
+            ActionRow(
+                label = if (isAdmin) "Set Role: Tech" else "Set Role: Admin",
+                destructive = false,
+                enabled = !isSelf,
+                onClick = {
+                    val newRole = if (isAdmin) "tech" else "admin"
+                    scope.launch { SharedStore.updateUserRole(user.id, newRole) }
+                    onClose()
+                }
+            )
+            Spacer(Modifier.size(8.dp))
+        }
+        // Lead techs can delete non-admin members; admins can delete anyone.
+        if (canDeleteThis) {
+            ActionRow(
+                label = "Delete User…",
+                destructive = true,
+                enabled = !isSelf,
+                onClick = { confirmDelete = true }
+            )
+        }
         if (isSelf) {
             Spacer(Modifier.size(8.dp))
             Text(

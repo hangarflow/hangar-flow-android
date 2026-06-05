@@ -242,6 +242,21 @@ data class AuthState(
     val role: String
 ) {
     val isAdmin: Boolean get() = role.equals("admin", ignoreCase = true)
+    val isLeadTech: Boolean get() = role.equals("lead_tech", ignoreCase = true)
+    val roleLabel: String get() = when {
+        isAdmin -> "Admin"; isLeadTech -> "Lead Tech"; else -> "Tech"
+    }
+
+    // Lead techs get the shop-floor admin powers on mobile EXCEPT file
+    // import (laptop-only), payroll, plane delete/archive, org settings, and
+    // time-off approval. Mirrors the macOS/Compose/iOS capability model.
+    val canEditCalendar: Boolean get() = isAdmin || isLeadTech       // arrivals, deadlines, events
+    val canManageMembers: Boolean get() = isAdmin || isLeadTech      // add/delete users (never admins)
+    val canManageWorkLogs: Boolean get() = isAdmin || isLeadTech     // add work logs
+    val canEditPlaneSchedule: Boolean get() = isAdmin || isLeadTech  // add plane + edit schedule
+    val canSeeParts: Boolean get() = isAdmin || isLeadTech           // inventory + parts to order
+    val canSeeLiveBoard: Boolean get() = isAdmin || isLeadTech       // admin live view + cards
+    val canImportFiles: Boolean get() = isAdmin                      // NEVER lead tech on mobile
 
     companion object {
         fun initial() = AuthState(

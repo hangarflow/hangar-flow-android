@@ -16,5 +16,8 @@ data class HFManual(
     @SerialName("storage_path") val storagePath: String? = null,
     @SerialName("revision_label") val revisionLabel: String? = null,
     @SerialName("file_size_bytes") val fileSizeBytes: Long? = null,
+    /** Aircraft type/model this manual belongs to (Phase 4) — suggested
+     *  for attach when a plane of this type is added. null = untyped. */
+    @SerialName("aircraft_type") val aircraftType: String? = null,
     @SerialName("updated_at") val updatedAt: String? = null
 )

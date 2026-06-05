@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.StopCircle
 import androidx.compose.material.icons.outlined.Restaurant
 import androidx.compose.material.icons.outlined.WifiOff
@@ -47,7 +48,7 @@ fun IOSLiveViewPanel(
     syncLabel: String,
     clockPhase: ClockPhase,
     onClockAction: () -> Unit,
-    onSkipLunchClockOut: () -> Unit,
+    onSkipLunch: () -> Unit,
     todayHoursLabel: String,
     openAssignedCount: Int,
     manualsCount: Int,
@@ -98,13 +99,13 @@ fun IOSLiveViewPanel(
         // Clock in / lunch out / lunch in / clock out cycle.
         ClockCycleButton(phase = clockPhase, onAction = onClockAction)
 
-        // Secondary escape hatch — only shown while the tech is working
-        // and hasn't taken lunch yet. Lets them clock out straight past
-        // lunch (half-day, quick job, etc.) without having to fake a
-        // zero-minute lunch bracket.
+        // Secondary action — only shown while the tech is working and
+        // hasn't taken lunch yet. Marks lunch as skipped so the lunch
+        // prompt clears; does NOT clock out. Tech keeps working straight
+        // through and clocks out normally at end of day.
         if (clockPhase == ClockPhase.Working) {
             Spacer(Modifier.height(6.dp))
-            SkipLunchClockOutButton(onClick = onSkipLunchClockOut)
+            SkipLunchButton(onClick = onSkipLunch)
         }
 
         Spacer(Modifier.height(10.dp))
@@ -192,8 +193,8 @@ private fun ClockCycleButton(phase: ClockPhase, onAction: () -> Unit) {
 }
 
 @Composable
-private fun SkipLunchClockOutButton(onClick: () -> Unit) {
-    val accent = HFColors.StatusRed
+private fun SkipLunchButton(onClick: () -> Unit) {
+    val accent = HFColors.StatusOrange
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -206,14 +207,14 @@ private fun SkipLunchClockOutButton(onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            imageVector = Icons.Filled.StopCircle,
+            imageVector = Icons.Filled.SkipNext,
             contentDescription = null,
             tint = accent,
             modifier = Modifier.size(14.dp)
         )
         Spacer(Modifier.width(8.dp))
         Text(
-            text = "Clock Out (Skip Lunch)",
+            text = "Skip Lunch",
             color = accent,
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold
