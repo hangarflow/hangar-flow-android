@@ -3,6 +3,7 @@ package com.hangarflow.app.ui.hubs
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -31,6 +32,7 @@ import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
+import kotlinx.coroutines.launch
 
 /**
  * Schedule hub — monthly calendar showing plane arrivals (drop-offs)
@@ -41,18 +43,29 @@ import java.util.Locale
 @Composable
 fun ScheduleHub() {
     var showRequestTimeOff by remember { mutableStateOf(false) }
+    var addEventDate by remember { mutableStateOf<LocalDate?>(null) }
     if (showRequestTimeOff) {
         RequestTimeOffSheet(onDismiss = { showRequestTimeOff = false })
         return
     }
-    ScheduleHubContent(onRequestTimeOff = { showRequestTimeOff = true })
+    addEventDate?.let { date ->
+        AddCalendarEventSheet(
+            initialDate = date,
+            onDismiss = { addEventDate = null }
+        )
+    }
+    ScheduleHubContent(
+        onRequestTimeOff = { showRequestTimeOff = true },
+        onAddEvent = { addEventDate = it }
+    )
 }
 
 @Composable
-private fun ScheduleHubContent(onRequestTimeOff: () -> Unit) {
+private fun ScheduleHubContent(onRequestTimeOff: () -> Unit, onAddEvent: (LocalDate) -> Unit) {
     val shopState by SharedStore.state.collectAsState()
     val authState by com.hangarflow.app.auth.AuthManager.state.collectAsState()
     val isAdmin = authState.isAdmin
+    val scope = rememberCoroutineScope()
 
     val today = LocalDate.now()
     var monthAnchor by remember { mutableStateOf(YearMonth.from(today)) }
@@ -64,6 +77,15 @@ private fun ScheduleHubContent(onRequestTimeOff: () -> Unit) {
     // Parse plane arrival/deadline dates once per plane list change.
     val planeEvents = remember(shopState.planes) {
         buildPlaneEventIndex(shopState.planes)
+    }
+
+    // Calendar events visible to this user, expanded into a per-day index.
+    val myUserId = shopState.currentUser?.id
+    val calendarByDay = remember(shopState.calendarEvents, isAdmin, myUserId) {
+        buildCalendarEventIndex(shopState.calendarEvents, isAdmin, myUserId)
+    }
+    val eventDayKeys = remember(planeEvents, calendarByDay) {
+        planeEvents.keys + calendarByDay.keys
     }
 
     Column(
@@ -86,24 +108,47 @@ private fun ScheduleHubContent(onRequestTimeOff: () -> Unit) {
         StatsStrip(month = monthAnchor, plane = shopState.planes)
 
         Spacer(Modifier.height(14.dp))
-        // Top action: every tech can request PTO right from the calendar.
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .background(HFColors.OnSurface.copy(alpha = 0.04f))
-                .border(1.dp, HFColors.StatusBlue.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
-                .clickable { onRequestTimeOff() }
-                .padding(vertical = 12.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                if (isAdmin) "Mark Time Off" else "Request Time Off",
-                color = HFColors.StatusBlue,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold
-            )
+        // Top actions: every tech can request PTO; admins can also drop a
+        // calendar event on the selected day right from the calendar.
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(HFColors.OnSurface.copy(alpha = 0.04f))
+                    .border(1.dp, HFColors.StatusBlue.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
+                    .clickable { onRequestTimeOff() }
+                    .padding(vertical = 12.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    if (isAdmin) "Mark Time Off" else "Request Time Off",
+                    color = HFColors.StatusBlue,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            if (isAdmin) {
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(HFColors.OnSurface.copy(alpha = 0.04f))
+                        .border(1.dp, HFColors.StatusYellow.copy(alpha = 0.40f), RoundedCornerShape(12.dp))
+                        .clickable { onAddEvent(selectedDay ?: today) }
+                        .padding(vertical = 12.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "Add Event",
+                        color = HFColors.StatusYellow,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
         }
 
         Spacer(Modifier.height(14.dp))
@@ -118,7 +163,7 @@ private fun ScheduleHubContent(onRequestTimeOff: () -> Unit) {
             month = monthAnchor,
             today = today,
             selectedDay = selectedDay,
-            eventDays = planeEvents.keys,
+            eventDays = eventDayKeys,
             onSelect = { selectedDay = it }
         )
 
@@ -132,7 +177,8 @@ private fun ScheduleHubContent(onRequestTimeOff: () -> Unit) {
             )
             Spacer(Modifier.height(8.dp))
             val events = planeEvents[day].orEmpty()
-            if (events.isEmpty()) {
+            val dayCalendarEvents = calendarByDay[day].orEmpty()
+            if (events.isEmpty() && dayCalendarEvents.isEmpty()) {
                 Text(
                     "Nothing on this day.",
                     color = HFColors.OnSurface.copy(alpha = 0.55f),
@@ -140,6 +186,13 @@ private fun ScheduleHubContent(onRequestTimeOff: () -> Unit) {
                 )
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    dayCalendarEvents.forEach { ev ->
+                        CalendarEventRow(
+                            event = ev,
+                            canDelete = isAdmin,
+                            scope = scope
+                        )
+                    }
                     events.forEach { event ->
                         EventRow(event)
                     }
@@ -147,7 +200,130 @@ private fun ScheduleHubContent(onRequestTimeOff: () -> Unit) {
             }
         }
 
+        TimeOffSection(
+            requests = shopState.timeOffRequests,
+            isAdmin = isAdmin,
+            myUserId = shopState.currentUser?.id
+        )
+
         Spacer(Modifier.height(24.dp))
+    }
+}
+
+/**
+ * Time-off requests. Admins see a pending-approval queue (Approve/Deny)
+ * plus recently decided rows; everyone else sees their own requests with
+ * current status. Mirrors the iOS schedule hub's PTO surface.
+ */
+@Composable
+private fun TimeOffSection(
+    requests: List<com.hangarflow.app.data.model.HFTimeOffRequest>,
+    isAdmin: Boolean,
+    myUserId: String?
+) {
+    if (requests.isEmpty()) return
+    val dateFmt = remember { DateTimeFormatter.ofPattern("MMM d") }
+    val pending = requests.filter { it.status == "pending" }
+    val mine = requests.filter { it.userId == myUserId }
+    val decided = requests.filter { it.status != "pending" }.take(8)
+
+    Spacer(Modifier.height(22.dp))
+    if (isAdmin && pending.isNotEmpty()) {
+        Text(
+            "PENDING TIME-OFF (${pending.size})",
+            color = HFColors.StatusOrange, fontSize = 11.sp,
+            fontWeight = FontWeight.Bold, letterSpacing = 0.8.sp
+        )
+        Spacer(Modifier.height(8.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            pending.forEach { req -> TimeOffRow(req, dateFmt, showActions = true) }
+        }
+    }
+
+    val historyRows = if (isAdmin) decided else mine
+    if (historyRows.isNotEmpty()) {
+        Spacer(Modifier.height(16.dp))
+        Text(
+            if (isAdmin) "RECENT DECISIONS" else "MY TIME-OFF",
+            color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 11.sp,
+            fontWeight = FontWeight.Bold, letterSpacing = 0.8.sp
+        )
+        Spacer(Modifier.height(8.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            historyRows.forEach { req -> TimeOffRow(req, dateFmt, showActions = false) }
+        }
+    }
+}
+
+@Composable
+private fun TimeOffRow(
+    req: com.hangarflow.app.data.model.HFTimeOffRequest,
+    dateFmt: DateTimeFormatter,
+    showActions: Boolean
+) {
+    val statusColor = when (req.status) {
+        "approved" -> HFColors.StatusGreen
+        "denied" -> HFColors.StatusRed
+        else -> HFColors.StatusOrange
+    }
+    val range = remember(req.startDate, req.endDate) {
+        val s = parseDate(req.startDate)
+        val e = parseDate(req.endDate)
+        when {
+            s != null && e != null && s == e -> s.format(dateFmt)
+            s != null && e != null -> "${s.format(dateFmt)} – ${e.format(dateFmt)}"
+            else -> "${req.startDate} – ${req.endDate}"
+        }
+    }
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(HFColors.OnSurface.copy(alpha = 0.04f))
+            .border(1.dp, statusColor.copy(alpha = 0.35f), RoundedCornerShape(10.dp))
+            .padding(12.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(req.userName, color = HFColors.OnSurface, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                Text(range, color = HFColors.OnSurface.copy(alpha = 0.70f), fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                if (req.reason.isNotBlank()) {
+                    Text(req.reason, color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 11.sp)
+                }
+            }
+            if (!showActions) {
+                Text(
+                    req.status.replaceFirstChar { it.uppercase() },
+                    color = statusColor, fontSize = 11.sp, fontWeight = FontWeight.Bold
+                )
+            }
+        }
+        if (showActions) {
+            Spacer(Modifier.height(10.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                DecisionButton("Approve", HFColors.StatusGreen, Modifier.weight(1f)) {
+                    SharedStore.decideTimeOffRequest(req.id, approve = true)
+                }
+                DecisionButton("Deny", HFColors.StatusRed, Modifier.weight(1f)) {
+                    SharedStore.decideTimeOffRequest(req.id, approve = false)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DecisionButton(label: String, accent: Color, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(9.dp))
+            .background(accent.copy(alpha = 0.14f))
+            .border(1.dp, accent.copy(alpha = 0.55f), RoundedCornerShape(9.dp))
+            .clickable { onClick() }
+            .padding(vertical = 9.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(label, color = accent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -396,4 +572,248 @@ private fun parseDate(iso: String?): LocalDate? {
         // Accept full ISO instant or date-only
         if (iso.length >= 10) LocalDate.parse(iso.substring(0, 10)) else LocalDate.parse(iso)
     }.getOrNull()
+}
+
+// ----- Calendar events -----
+
+/** Expand each visible calendar event across its inclusive day range,
+ *  applying the visibility test (public/admin_only/personal). */
+private fun buildCalendarEventIndex(
+    events: List<com.hangarflow.app.data.model.HFCalendarEvent>,
+    isAdmin: Boolean,
+    myUserId: String?
+): Map<LocalDate, List<com.hangarflow.app.data.model.HFCalendarEvent>> {
+    val out = mutableMapOf<LocalDate, MutableList<com.hangarflow.app.data.model.HFCalendarEvent>>()
+    events.forEach { ev ->
+        val visible = when (ev.visibility) {
+            "admin_only" -> isAdmin
+            "personal" -> ev.createdByUserId != null && ev.createdByUserId == myUserId
+            else -> true
+        }
+        if (!visible) return@forEach
+        val start = parseDate(ev.startDate) ?: return@forEach
+        val end = parseDate(ev.endDate) ?: start
+        var d = start
+        var guard = 0
+        while (!d.isAfter(end) && guard < 366) {
+            out.getOrPut(d) { mutableListOf() }.add(ev)
+            d = d.plusDays(1)
+            guard++
+        }
+    }
+    return out
+}
+
+@Composable
+private fun CalendarEventRow(
+    event: com.hangarflow.app.data.model.HFCalendarEvent,
+    canDelete: Boolean,
+    scope: kotlinx.coroutines.CoroutineScope
+) {
+    val accent = HFColors.StatusYellow
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(accent.copy(alpha = 0.06f))
+            .border(1.dp, accent.copy(alpha = 0.40f), RoundedCornerShape(10.dp))
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(8.dp)
+                .clip(CircleShape)
+                .background(accent)
+        )
+        Spacer(Modifier.width(10.dp))
+        Column(Modifier.weight(1f)) {
+            Text(event.title, color = HFColors.OnSurface, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            val sub = listOfNotNull(
+                event.planeTailNumber?.takeIf { it.isNotBlank() } ?: "Org-wide",
+                event.description.takeIf { it.isNotBlank() }
+            ).joinToString(" · ")
+            if (sub.isNotBlank()) {
+                Text(sub, color = accent, fontSize = 11.sp, fontWeight = FontWeight.Medium, maxLines = 2)
+            }
+            if (event.visibility != "public") {
+                Text(
+                    if (event.visibility == "admin_only") "Admins only" else "Personal",
+                    color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 10.sp, fontWeight = FontWeight.Medium
+                )
+            }
+        }
+        if (canDelete) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(HFColors.StatusRed.copy(alpha = 0.12f))
+                    .clickable { scope.launch { SharedStore.deleteCalendarEvent(event.id) } }
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
+            ) {
+                Text("Delete", color = HFColors.StatusRed, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+/**
+ * Admin sheet to add a calendar event. Title + dates required; plane
+ * scope and audience optional. Date steppers (no native picker dep).
+ */
+@Composable
+private fun AddCalendarEventSheet(
+    initialDate: LocalDate,
+    onDismiss: () -> Unit
+) {
+    val shopState by SharedStore.state.collectAsState()
+    val scope = rememberCoroutineScope()
+
+    var title by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+    var startDate by remember { mutableStateOf(initialDate) }
+    var endDate by remember { mutableStateOf(initialDate) }
+    var planeTail by remember { mutableStateOf<String?>(null) }
+    var visibility by remember { mutableStateOf("public") }
+    var saving by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+
+    val dateFmt = remember { DateTimeFormatter.ofPattern("EEE, MMM d") }
+    val canSave = title.trim().isNotEmpty() && !saving
+
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = { if (!saving) onDismiss() },
+        title = { Text("Add to schedule", color = HFColors.OnSurface, fontWeight = FontWeight.Bold) },
+        text = {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    "Visible to the org. Use for inspection windows, meetings, training days, etc.",
+                    color = HFColors.OnSurface.copy(alpha = 0.6f), fontSize = 11.sp
+                )
+                EventField("TITLE", title, "Borescope inspection, team meeting…") { title = it }
+                EventField("DESCRIPTION (OPTIONAL)", description, "Context techs should see.", singleLine = false) { description = it }
+
+                Text("START DATE", color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+                DateStepperRow(startDate, dateFmt) {
+                    startDate = it
+                    if (endDate.isBefore(it)) endDate = it
+                }
+                Text("END DATE", color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+                DateStepperRow(endDate, dateFmt) {
+                    endDate = if (it.isBefore(startDate)) startDate else it
+                }
+
+                Text("PLANE (OPTIONAL)", color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+                Row(
+                    modifier = Modifier.horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    ScopeChip("Org-wide", planeTail == null) { planeTail = null }
+                    shopState.planes.forEach { plane ->
+                        ScopeChip(plane.tailNumber, planeTail == plane.tailNumber) { planeTail = plane.tailNumber }
+                    }
+                }
+
+                Text("WHO CAN SEE IT", color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    ScopeChip("Everyone", visibility == "public") { visibility = "public" }
+                    ScopeChip("Admins", visibility == "admin_only") { visibility = "admin_only" }
+                    ScopeChip("Only me", visibility == "personal") { visibility = "personal" }
+                }
+
+                error?.let { Text(it, color = HFColors.StatusRed, fontSize = 11.sp, fontWeight = FontWeight.Medium) }
+            }
+        },
+        confirmButton = {
+            androidx.compose.material3.TextButton(
+                enabled = canSave,
+                onClick = {
+                    saving = true; error = null
+                    val tail = planeTail
+                    val planeId = tail?.let { t -> shopState.planes.firstOrNull { it.tailNumber == t }?.id }
+                    scope.launch {
+                        when (val r = SharedStore.createCalendarEvent(
+                            title = title,
+                            description = description,
+                            startDate = startDate.format(DateTimeFormatter.ISO_LOCAL_DATE),
+                            endDate = endDate.format(DateTimeFormatter.ISO_LOCAL_DATE),
+                            planeId = planeId,
+                            planeTailNumber = tail,
+                            colorHex = null,
+                            visibility = visibility
+                        )) {
+                            SharedStore.CreateResult.Success -> onDismiss()
+                            is SharedStore.CreateResult.Error -> { error = r.message; saving = false }
+                        }
+                    }
+                }
+            ) { Text(if (saving) "Saving…" else "Save", color = HFColors.StatusYellow, fontWeight = FontWeight.Bold) }
+        },
+        dismissButton = { androidx.compose.material3.TextButton(onClick = { if (!saving) onDismiss() }) { Text("Cancel") } }
+    )
+}
+
+@Composable
+private fun EventField(label: String, value: String, placeholder: String, singleLine: Boolean = true, onChange: (String) -> Unit) {
+    Column {
+        Text(label, color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+        Spacer(Modifier.height(4.dp))
+        androidx.compose.material3.OutlinedTextField(
+            value = value,
+            onValueChange = onChange,
+            placeholder = { Text(placeholder, color = HFColors.OnSurface.copy(alpha = 0.4f), fontSize = 13.sp) },
+            singleLine = singleLine,
+            modifier = Modifier.fillMaxWidth(),
+            textStyle = androidx.compose.ui.text.TextStyle(color = HFColors.OnSurface, fontSize = 13.sp)
+        )
+    }
+}
+
+@Composable
+private fun DateStepperRow(date: LocalDate, fmt: DateTimeFormatter, onChange: (LocalDate) -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        StepChip("◄") { onChange(date.minusDays(1)) }
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(10.dp))
+                .background(HFColors.OnSurface.copy(alpha = 0.06f))
+                .border(1.dp, HFColors.OnSurface.copy(alpha = 0.12f), RoundedCornerShape(10.dp))
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+        ) {
+            Text(date.format(fmt), color = HFColors.OnSurface, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+        }
+        StepChip("►") { onChange(date.plusDays(1)) }
+        StepChip("+7") { onChange(date.plusDays(7)) }
+    }
+}
+
+@Composable
+private fun StepChip(label: String, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(HFColors.OnSurface.copy(alpha = 0.08f))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 5.dp)
+    ) {
+        Text(label, color = HFColors.OnSurface, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+private fun ScopeChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    val accent = HFColors.StatusYellow
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(100.dp))
+            .background(if (selected) accent.copy(alpha = 0.20f) else HFColors.OnSurface.copy(alpha = 0.06f))
+            .border(1.dp, if (selected) accent.copy(alpha = 0.55f) else HFColors.OnSurface.copy(alpha = 0.12f), RoundedCornerShape(100.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 11.dp, vertical = 6.dp)
+    ) {
+        Text(label, color = if (selected) accent else HFColors.OnSurface, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+    }
 }

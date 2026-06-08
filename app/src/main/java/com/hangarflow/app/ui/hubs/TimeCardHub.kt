@@ -228,6 +228,14 @@ private fun TimeCardHubContent(onRequestTimeOff: () -> Unit = {}) {
             }
         }
 
+        // Reimbursement approvals — admins see a pending queue with
+        // Approve/Deny; everyone sees their own submitted reimbursements.
+        ReimbursementSection(
+            reimbursements = shopState.reimbursements,
+            isAdmin = isAdmin,
+            myUserId = me?.id
+        )
+
         Spacer(Modifier.size(18.dp))
 
         Text(
@@ -258,7 +266,7 @@ private fun TimeCardHubContent(onRequestTimeOff: () -> Unit = {}) {
                     DayHeader(day = day, minutes = dayMinutes)
                 }
                 items(dayEntries, key = { "entry-${it.id}" }) { entry ->
-                    EntryRow(entry = entry)
+                    EntryRow(entry = entry, isAdmin = isAdmin)
                 }
                 // Admin-only activity breakdown: completed work logs +
                 // squawks filed on this day. Gives the admin a full
@@ -528,42 +536,175 @@ private fun DayHeader(day: String, minutes: Int) {
 }
 
 @Composable
-private fun EntryRow(entry: HFTimeEntry) {
-    Row(
+private fun EntryRow(entry: HFTimeEntry, isAdmin: Boolean) {
+    val isRejected = entry.approvalStatus == "rejected"
+    val borderColor = if (isRejected) HFColors.StatusRed.copy(alpha = 0.40f)
+        else HFColors.OnSurface.copy(alpha = 0.08f)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(
+                if (isRejected) HFColors.StatusRed.copy(alpha = 0.05f)
+                else HFColors.OnSurface.copy(alpha = 0.04f)
+            )
+            .border(1.dp, borderColor, RoundedCornerShape(12.dp))
+            .padding(12.dp)
+    ) {
+        Row {
+            Column(Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = entry.userName.ifBlank { "Unknown tech" },
+                        color = HFColors.OnSurface,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    if (isRejected) {
+                        Spacer(Modifier.size(6.dp))
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(HFColors.StatusRed.copy(alpha = 0.18f))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text("Rejected", color = HFColors.StatusRed, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+                if (!entry.planeTailNumber.isNullOrBlank() || entry.notes.isNotBlank()) {
+                    Spacer(Modifier.size(2.dp))
+                    Text(
+                        text = listOfNotNull(
+                            entry.planeTailNumber?.takeIf { it.isNotBlank() },
+                            entry.notes.takeIf { it.isNotBlank() }
+                        ).joinToString(" • "),
+                        color = HFColors.OnSurface.copy(alpha = 0.60f),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 2
+                    )
+                }
+                if (isRejected && !entry.rejectionReason.isNullOrBlank()) {
+                    Spacer(Modifier.size(2.dp))
+                    Text(
+                        "Reason: ${entry.rejectionReason}",
+                        color = HFColors.StatusRed.copy(alpha = 0.85f),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+            Text(
+                text = formatHours(entry.minutesWorked),
+                color = if (isRejected) HFColors.OnSurface.copy(alpha = 0.45f) else HFColors.OnSurface,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        // Admin reject / restore controls.
+        if (isAdmin) {
+            Spacer(Modifier.size(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (isRejected) {
+                    ApprovalChip("Restore", HFColors.StatusGreen, Modifier.weight(1f)) {
+                        SharedStore.decideTimeEntry(entry.id, reject = false)
+                    }
+                } else {
+                    ApprovalChip("Reject", HFColors.StatusRed, Modifier.weight(1f)) {
+                        SharedStore.decideTimeEntry(entry.id, reject = true)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReimbursementSection(
+    reimbursements: List<com.hangarflow.app.data.model.HFReimbursement>,
+    isAdmin: Boolean,
+    myUserId: String?
+) {
+    val visible = if (isAdmin) reimbursements else reimbursements.filter { it.userId == myUserId }
+    if (visible.isEmpty()) return
+    val pending = visible.filter { it.status == "pending" }
+    val decided = visible.filter { it.status != "pending" }.take(6)
+
+    Spacer(Modifier.size(18.dp))
+    Text(
+        if (isAdmin) "REIMBURSEMENTS" else "MY REIMBURSEMENTS",
+        color = HFColors.OnSurface.copy(alpha = 0.55f),
+        fontSize = 10.sp,
+        fontWeight = FontWeight.Bold,
+        letterSpacing = 1.2.sp
+    )
+    Spacer(Modifier.size(10.dp))
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        pending.forEach { r -> ReimbursementRow(r, showActions = isAdmin) }
+        decided.forEach { r -> ReimbursementRow(r, showActions = false) }
+    }
+}
+
+@Composable
+private fun ReimbursementRow(r: com.hangarflow.app.data.model.HFReimbursement, showActions: Boolean) {
+    val statusColor = when (r.status) {
+        "approved" -> HFColors.StatusGreen
+        "denied" -> HFColors.StatusRed
+        else -> HFColors.StatusOrange
+    }
+    val amount = "$%.2f".format(r.amountCents / 100.0)
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .background(HFColors.OnSurface.copy(alpha = 0.04f))
-            .border(1.dp, HFColors.OnSurface.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
+            .border(1.dp, statusColor.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
             .padding(12.dp)
     ) {
-        Column(Modifier.weight(1f)) {
-            Text(
-                text = entry.userName.ifBlank { "Unknown tech" },
-                color = HFColors.OnSurface,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-            if (!entry.planeTailNumber.isNullOrBlank() || entry.notes.isNotBlank()) {
-                Spacer(Modifier.size(2.dp))
-                Text(
-                    text = listOfNotNull(
-                        entry.planeTailNumber?.takeIf { it.isNotBlank() },
-                        entry.notes.takeIf { it.isNotBlank() }
-                    ).joinToString(" • "),
-                    color = HFColors.OnSurface.copy(alpha = 0.60f),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 2
-                )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(r.userName.ifBlank { "Tech" }, color = HFColors.OnSurface, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                if (r.description.isNotBlank()) {
+                    Text(r.description, color = HFColors.OnSurface.copy(alpha = 0.60f), fontSize = 11.sp, fontWeight = FontWeight.Medium, maxLines = 2)
+                }
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text(amount, color = HFColors.OnSurface, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                if (!showActions) {
+                    Text(
+                        r.status.replaceFirstChar { it.uppercase() },
+                        color = statusColor, fontSize = 10.sp, fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
-        Text(
-            text = formatHours(entry.minutesWorked),
-            color = HFColors.OnSurface,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Bold
-        )
+        if (showActions) {
+            Spacer(Modifier.size(10.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ApprovalChip("Approve", HFColors.StatusGreen, Modifier.weight(1f)) {
+                    SharedStore.decideReimbursement(r.id, approve = true)
+                }
+                ApprovalChip("Deny", HFColors.StatusRed, Modifier.weight(1f)) {
+                    SharedStore.decideReimbursement(r.id, approve = false)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ApprovalChip(label: String, accent: androidx.compose.ui.graphics.Color, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(9.dp))
+            .background(accent.copy(alpha = 0.14f))
+            .border(1.dp, accent.copy(alpha = 0.55f), RoundedCornerShape(9.dp))
+            .clickable { onClick() }
+            .padding(vertical = 8.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(label, color = accent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
     }
 }
 

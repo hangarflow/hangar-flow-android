@@ -470,7 +470,7 @@ private fun CustomizeHomeSheet(
 }
 
 enum class HomeDestination {
-    Planes, WorkLogs, Tasks, Squawks, PartsToOrder, PartLocations, TimeCard, Manuals, FindParts, Settings, Users, Review, Schedule
+    Planes, WorkLogs, Tasks, Squawks, PartsToOrder, PartLocations, TimeCard, Manuals, FindParts, Settings, Users, Review, Schedule, ActivityLog
 }
 
 private data class HomeCard(
@@ -560,6 +560,14 @@ private fun cardsForRole(isAdmin: Boolean): List<HomeCard> {
             icon = Icons.Outlined.CalendarMonth,
             accent = HFColors.StatusBlue.copy(alpha = 0.44f),
             destination = HomeDestination.Schedule
+        ),
+        HomeCard(
+            id = "activitylog",
+            title = "Activity Log",
+            subtitle = "Paper trail — who added, imported, or changed what",
+            icon = Icons.AutoMirrored.Outlined.ListAlt,
+            accent = HFColors.OnSurface.copy(alpha = 0.30f),
+            destination = HomeDestination.ActivityLog
         )
     )
     // Admins get a Users card on top of the tech grid so they can manage

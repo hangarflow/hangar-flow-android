@@ -17,5 +17,10 @@ data class HFTimeEntry(
     @SerialName("entry_date") val entryDate: String,
     @SerialName("minutes_worked") val minutesWorked: Int = 0,
     val notes: String = "",
+    @SerialName("approval_status") val approvalStatus: String = "approved",
+    @SerialName("decided_by_user_id") val decidedByUserId: String? = null,
+    @SerialName("decided_by_name") val decidedByName: String? = null,
+    @SerialName("decided_at") val decidedAt: String? = null,
+    @SerialName("rejection_reason") val rejectionReason: String? = null,
     @SerialName("created_at") val createdAt: String? = null
 )

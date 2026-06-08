@@ -145,6 +145,8 @@ fun CreateSquawkSheet(onDismiss: () -> Unit) {
                     photoPaths = uploadedPaths,
                     sourceDevice = SharedStore.deviceIdentifier()
                 )
+                SharedStore.logAudit("squawk", newSquawkId, "created",
+                    "Reported squawk \"${title.trim()}\" on ${plane.tailNumber.uppercase()}")
                 if (needsParts && (requestedPart.isNotBlank() || title.isNotBlank())) {
                     cloud.createPartRequest(
                         orgId = orgId,
@@ -156,6 +158,8 @@ fun CreateSquawkSheet(onDismiss: () -> Unit) {
                         urgency = urgency,
                         requestedBy = shopState.currentUser?.displayName
                     )
+                    SharedStore.logAudit("part_request", null, "created",
+                        "Requested part \"${requestedPart.trim().ifBlank { title.trim() }}\" for ${plane.tailNumber.uppercase()}")
                 }
                 SharedStore.refresh()
                 if (keepOpen) {

@@ -35,6 +35,9 @@ data class HFWorkLog(
     @SerialName("assigned_user_id") val assignedUserId: String? = null,
     @SerialName("assigned_user_name") val assignedUserName: String? = null,
     @SerialName("logged_minutes") val loggedMinutes: Int = 0,
+    /** Who logged this work (the "Added by" paper trail). */
+    @SerialName("created_by_user_id") val createdByUserId: String? = null,
+    @SerialName("created_by_user_name") val createdByUserName: String? = null,
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("updated_at") val updatedAt: String? = null
 )

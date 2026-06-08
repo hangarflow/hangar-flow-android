@@ -33,6 +33,7 @@ import androidx.compose.material.icons.rounded.Flight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -75,6 +76,7 @@ fun PlaneDetailView(
     var selectedCategory by remember { mutableStateOf<HFWorkCategory?>(null) }
     var showEditDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showAttachManual by remember { mutableStateOf(false) }
 
     val accent = remember(plane.id) {
         runCatching {
@@ -116,6 +118,9 @@ fun PlaneDetailView(
     if (showDeleteDialog) {
         DeletePlaneSheet(plane = plane, onDismiss = { showDeleteDialog = false; onBack() })
     }
+    if (showAttachManual) {
+        AttachManualSheet(plane = plane, onDismiss = { showAttachManual = false })
+    }
 
     CategoryGrid(
         plane = plane,
@@ -125,6 +130,7 @@ fun PlaneDetailView(
         canEditPlane = authState.canEditPlaneSchedule,
         onBack = onBack,
         onEdit = { showEditDialog = true },
+        onAttachManual = { showAttachManual = true },
         onArchive = {
             SharedStore.setPlaneArchived(plane.id, !plane.isArchived)
             onBack()
@@ -157,6 +163,7 @@ private fun CategoryGrid(
     canEditPlane: Boolean = false,
     onBack: () -> Unit,
     onEdit: () -> Unit,
+    onAttachManual: () -> Unit = {},
     onArchive: () -> Unit,
     onDelete: () -> Unit,
     onExportWorkLogs: () -> Unit,
@@ -259,6 +266,14 @@ private fun CategoryGrid(
                             .clickable(onClick = onEdit)
                             .padding(horizontal = 12.dp, vertical = 6.dp)
                     ) { Text("Edit", color = HFColors.OnSurface, fontSize = 12.sp, fontWeight = FontWeight.SemiBold) }
+                    // Attach existing manual — links an already-uploaded manual
+                    // (no import/upload, which stays laptop-only). Open to lead techs.
+                    Box(
+                        modifier = Modifier.clip(RoundedCornerShape(8.dp))
+                            .background(HFColors.StatusCyan.copy(alpha = 0.12f))
+                            .clickable(onClick = onAttachManual)
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                    ) { Text("Attach Manual", color = HFColors.StatusCyan, fontSize = 12.sp, fontWeight = FontWeight.SemiBold) }
                     if (isAdmin) {
                         Box(
                             modifier = Modifier.clip(RoundedCornerShape(8.dp))
@@ -697,6 +712,141 @@ private fun DeletePlaneSheet(plane: HFPlane, onDismiss: () -> Unit) {
                     }
                 }
             }, enabled = !busy) { Text(if (busy) "Deleting…" else "Delete", color = HFColors.StatusRed, fontWeight = FontWeight.Bold) }
+        },
+        dismissButton = { androidx.compose.material3.TextButton(onClick = { if (!busy) onDismiss() }) { Text("Cancel") } }
+    )
+}
+
+/**
+ * Attach already-uploaded manuals to this plane (junction link, no
+ * upload — importing stays laptop-only). Lists every org manual, marks
+ * the ones already attached, and floats type-matching manuals to the
+ * top so a returning aircraft gets its book set in one tap.
+ */
+@Composable
+private fun AttachManualSheet(plane: HFPlane, onDismiss: () -> Unit) {
+    val state by SharedStore.state.collectAsState()
+    val authState by com.hangarflow.app.auth.AuthManager.state.collectAsState()
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val cloud = remember { HFCloudSyncService() }
+
+    var attachedIds by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var selected by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var busy by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+
+    // Pull currently-attached manual ids so we can pre-check + hide them.
+    LaunchedEffect(plane.id, authState.orgId) {
+        val org = authState.orgId ?: return@LaunchedEffect
+        attachedIds = runCatching { cloud.fetchManualIdsForPlane(org, plane.id).toSet() }.getOrDefault(emptySet())
+    }
+
+    val planeType = plane.aircraftType?.trim()?.lowercase()
+    val candidates = remember(state.manuals, attachedIds, planeType) {
+        state.manuals
+            .filter { it.id !in attachedIds }
+            .sortedWith(
+                compareByDescending<com.hangarflow.app.data.model.HFManual> {
+                    planeType != null && (it.aircraftType ?: "").trim().lowercase() == planeType
+                }.thenBy { it.title.ifBlank { it.fileName }.lowercase() }
+            )
+    }
+
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = { if (!busy) onDismiss() },
+        title = { Text("Attach Manual to ${plane.tailNumber}", color = HFColors.OnSurface, fontWeight = FontWeight.Bold) },
+        text = {
+            Column {
+                if (candidates.isEmpty()) {
+                    Text(
+                        "No unattached manuals available. Import manuals from the desktop app first.",
+                        color = HFColors.OnSurface.copy(alpha = 0.7f), fontSize = 13.sp
+                    )
+                } else {
+                    Text(
+                        "Select manuals to link. Matching ${plane.aircraftType ?: "type"} manuals are listed first.",
+                        color = HFColors.OnSurface.copy(alpha = 0.65f), fontSize = 12.sp
+                    )
+                    Spacer(Modifier.size(10.dp))
+                    LazyColumn(
+                        modifier = Modifier.heightIn(max = 360.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        items(candidates, key = { it.id }) { manual ->
+                            val checked = manual.id in selected
+                            val typeMatch = planeType != null && (manual.aircraftType ?: "").trim().lowercase() == planeType
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(
+                                        if (checked) HFColors.StatusCyan.copy(alpha = 0.12f)
+                                        else HFColors.OnSurface.copy(alpha = 0.04f)
+                                    )
+                                    .border(
+                                        1.dp,
+                                        if (checked) HFColors.StatusCyan.copy(alpha = 0.55f)
+                                        else HFColors.OnSurface.copy(alpha = 0.10f),
+                                        RoundedCornerShape(10.dp)
+                                    )
+                                    .clickable {
+                                        selected = if (checked) selected - manual.id else selected + manual.id
+                                    }
+                                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(Modifier.weight(1f)) {
+                                    Text(
+                                        manual.title.ifBlank { manual.fileName.ifBlank { "Untitled manual" } },
+                                        color = HFColors.OnSurface, fontSize = 13.sp,
+                                        fontWeight = FontWeight.SemiBold, maxLines = 2
+                                    )
+                                    val sub = listOfNotNull(
+                                        manual.aircraftType?.takeIf { it.isNotBlank() },
+                                        manual.revisionLabel?.takeIf { it.isNotBlank() }
+                                    ).joinToString(" · ")
+                                    if (sub.isNotBlank()) {
+                                        Text(
+                                            sub + if (typeMatch) "  · matches" else "",
+                                            color = if (typeMatch) HFColors.StatusGreen else HFColors.OnSurface.copy(alpha = 0.55f),
+                                            fontSize = 11.sp, fontWeight = FontWeight.Medium
+                                        )
+                                    }
+                                }
+                                if (checked) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.VerifiedUser,
+                                        contentDescription = "Selected",
+                                        tint = HFColors.StatusCyan,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+                if (error != null) { Spacer(Modifier.size(8.dp)); Text(error!!, color = HFColors.StatusRed, fontSize = 12.sp) }
+            }
+        },
+        confirmButton = {
+            androidx.compose.material3.TextButton(
+                onClick = {
+                    if (selected.isEmpty()) { onDismiss(); return@TextButton }
+                    busy = true; error = null
+                    scope.launch {
+                        when (val r = SharedStore.attachManualsToPlane(plane.id, plane.tailNumber, selected.toList())) {
+                            SharedStore.CreateResult.Success -> onDismiss()
+                            is SharedStore.CreateResult.Error -> { error = r.message; busy = false }
+                        }
+                    }
+                },
+                enabled = !busy
+            ) {
+                Text(
+                    if (busy) "Attaching…" else "Attach (${selected.size})",
+                    color = HFColors.StatusCyan, fontWeight = FontWeight.Bold
+                )
+            }
         },
         dismissButton = { androidx.compose.material3.TextButton(onClick = { if (!busy) onDismiss() }) { Text("Cancel") } }
     )

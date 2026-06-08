@@ -80,6 +80,32 @@ class HFCloudSyncService {
             .select { filter { eq("org_id", orgId) } }
             .decodeList()
 
+    // ── Audit trail (paper trail) ──
+    @kotlinx.serialization.Serializable
+    private data class NewAuditRow(
+        val org_id: String, val entity_type: String, val entity_id: String?,
+        val action: String, val actor_user_id: String?, val actor_name: String, val summary: String
+    )
+
+    suspend fun insertAuditEvent(
+        orgId: String, entityType: String, entityId: String?, action: String,
+        actorUserId: String?, actorName: String, summary: String
+    ) {
+        client.postgrest.from("hf_audit_log").insert(
+            NewAuditRow(orgId, entityType, entityId, action, actorUserId, actorName, summary)
+        )
+    }
+
+    suspend fun fetchAuditLog(orgId: String, limit: Int = 300): List<com.hangarflow.app.data.model.HFAuditEvent> =
+        client.postgrest
+            .from("hf_audit_log")
+            .select {
+                filter { eq("org_id", orgId) }
+                order("created_at", io.github.jan.supabase.postgrest.query.Order.DESCENDING)
+                limit(limit.toLong())
+            }
+            .decodeList()
+
     suspend fun fetchTasks(orgId: String): List<HFTask> =
         client.postgrest
             .from("hf_tasks")
@@ -508,6 +534,66 @@ class HFCloudSyncService {
             .select { filter { eq("org_id", orgId) } }
             .decodeList()
 
+    /** Admin approve/deny of a reimbursement. */
+    suspend fun updateReimbursementStatus(
+        reimbursementId: String, status: String, decidedByUserId: String, decidedByName: String
+    ) {
+        @kotlinx.serialization.Serializable
+        data class StatusPatch(
+            val status: String,
+            @kotlinx.serialization.SerialName("decided_by_user_id") val decidedByUserId: String,
+            @kotlinx.serialization.SerialName("decided_by_name") val decidedByName: String,
+            @kotlinx.serialization.SerialName("decided_at") val decidedAt: String,
+            @kotlinx.serialization.SerialName("updated_at") val updatedAt: String
+        )
+        val now = java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC).toString()
+        client.postgrest.from("hf_reimbursements")
+            .update(StatusPatch(status, decidedByUserId, decidedByName, now, now)) {
+                filter { eq("id", reimbursementId) }
+            }
+    }
+
+    /** Targeted UPDATE for admin time-off approve/deny (direct update keyed
+     *  by id — upsert would trip the requester-only INSERT RLS policy). */
+    suspend fun decideTimeOffRequestRow(
+        requestId: String, status: String,
+        decidedByUserId: String?, decidedByName: String?, decidedAt: String
+    ) {
+        @kotlinx.serialization.Serializable
+        data class DecisionPatch(
+            val status: String,
+            @kotlinx.serialization.SerialName("decided_by_user_id") val decidedByUserId: String?,
+            @kotlinx.serialization.SerialName("decided_by_name") val decidedByName: String?,
+            @kotlinx.serialization.SerialName("decided_at") val decidedAt: String,
+            @kotlinx.serialization.SerialName("updated_at") val updatedAt: String
+        )
+        client.postgrest.from("hf_time_off_requests")
+            .update(DecisionPatch(status, decidedByUserId, decidedByName, decidedAt, decidedAt)) {
+                filter { eq("id", requestId) }
+            }
+    }
+
+    /** Admin reject/restore of a time entry. */
+    suspend fun updateTimeEntryApproval(
+        timeEntryId: String, status: String,
+        decidedByUserId: String?, decidedByName: String?, rejectionReason: String?
+    ) {
+        @kotlinx.serialization.Serializable
+        data class ApprovalPatch(
+            @kotlinx.serialization.SerialName("approval_status") val approvalStatus: String,
+            @kotlinx.serialization.SerialName("decided_by_user_id") val decidedByUserId: String?,
+            @kotlinx.serialization.SerialName("decided_by_name") val decidedByName: String?,
+            @kotlinx.serialization.SerialName("decided_at") val decidedAt: String?,
+            @kotlinx.serialization.SerialName("rejection_reason") val rejectionReason: String?,
+            @kotlinx.serialization.SerialName("updated_at") val updatedAt: String
+        )
+        val now = java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC).toString()
+        client.postgrest.from("hf_time_entries")
+            .update(ApprovalPatch(status, decidedByUserId, decidedByName, now, rejectionReason, now)) {
+                filter { eq("id", timeEntryId) }
+            }
+    }
+
     /**
      * Insert a new row into `hf_squawks`. Returns the new row id so the
      * caller can correlate it with uploaded photos. Triggers an org
@@ -578,6 +664,27 @@ class HFCloudSyncService {
         )
         emitOrgEvent(orgId = orgId, sourceDevice = sourceDevice, eventType = "time_off_requested")
         return id
+    }
+
+    /** Pulls every PTO row for the org so admins can see pending +
+     *  decided requests and approve/deny them. */
+    suspend fun fetchTimeOffRequests(orgId: String): List<com.hangarflow.app.data.model.HFTimeOffRequest> =
+        client.postgrest.from("hf_time_off_requests")
+            .select { filter { eq("org_id", orgId) } }
+            .decodeList()
+
+    // ── Calendar events ──
+    suspend fun fetchCalendarEvents(orgId: String): List<com.hangarflow.app.data.model.HFCalendarEvent> =
+        client.postgrest.from("hf_calendar_events")
+            .select { filter { eq("org_id", orgId) } }
+            .decodeList()
+
+    suspend fun upsertCalendarEvent(event: com.hangarflow.app.data.model.HFCalendarEvent) {
+        client.postgrest.from("hf_calendar_events").upsert(event)
+    }
+
+    suspend fun deleteCalendarEvent(eventId: String) {
+        client.postgrest.from("hf_calendar_events").delete { filter { eq("id", eventId) } }
     }
 
     suspend fun createSquawk(
@@ -754,7 +861,9 @@ class HFCloudSyncService {
         val title: String,
         val category: String,
         val status: String,
-        val details: String
+        val details: String,
+        val created_by_user_id: String? = null,
+        val created_by_user_name: String? = null
     )
 
     /** Insert a work log row. Category/status are validated against the
@@ -765,7 +874,9 @@ class HFCloudSyncService {
         planeTailNumber: String,
         title: String,
         category: String,
-        details: String
+        details: String,
+        createdByUserId: String? = null,
+        createdByUserName: String? = null
     ): String {
         val id = java.util.UUID.randomUUID().toString()
         val row = NewWorkLogRow(
@@ -776,7 +887,9 @@ class HFCloudSyncService {
             title = title.trim(),
             category = category,
             status = "open",
-            details = details.trim()
+            details = details.trim(),
+            created_by_user_id = createdByUserId,
+            created_by_user_name = createdByUserName
         )
         client.postgrest.from("hf_work_logs").insert(row)
         return id

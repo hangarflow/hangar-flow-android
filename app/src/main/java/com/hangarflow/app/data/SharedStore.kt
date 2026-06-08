@@ -4,6 +4,7 @@ import com.hangarflow.app.auth.AuthManager
 import com.hangarflow.app.data.cloud.HFCloudSyncService
 import com.hangarflow.app.data.cloud.SupabaseClientProvider
 import com.hangarflow.app.data.cloud.TimeEntryService
+import com.hangarflow.app.data.model.HFAuditEvent
 import com.hangarflow.app.data.model.HFManual
 import com.hangarflow.app.data.model.HFPartLocation
 import com.hangarflow.app.data.model.HFPartRequest
@@ -489,6 +490,165 @@ object SharedStore {
         val details: String
     )
 
+    // ── Audit trail (paper trail) ──
+    /** Append an audit event, fire-and-forget. Actor defaults to the
+     *  current user. Never blocks or fails the caller. */
+    fun logAudit(entityType: String, entityId: String?, action: String, summary: String, actorName: String? = null) {
+        val orgId = bootstrappedOrgId ?: return
+        val me = _state.value.currentUser
+        scope.launch {
+            runCatching {
+                cloud.insertAuditEvent(orgId, entityType, entityId, action, me?.id, actorName ?: me?.displayName ?: "", summary)
+            }
+        }
+    }
+
+    /** Load the audit log (paper trail) for the Activity Log screen. */
+    suspend fun fetchAuditEvents(limit: Int = 300): List<HFAuditEvent> {
+        val orgId = bootstrappedOrgId ?: return emptyList()
+        return runCatching { cloud.fetchAuditLog(orgId, limit) }.getOrDefault(emptyList())
+    }
+
+    // ── Admin approval flows (time-off, reimbursement, time entry) ──
+
+    /** Admin approve/deny a PTO request. `approve=true` → approved,
+     *  else denied. Optimistic local update + cloud write + audit. */
+    fun decideTimeOffRequest(requestId: String, approve: Boolean) {
+        val orgId = bootstrappedOrgId ?: return
+        val me = _state.value.currentUser
+        val status = if (approve) "approved" else "denied"
+        val nowIso = java.time.Instant.now().toString()
+        _state.update { st ->
+            st.copy(timeOffRequests = st.timeOffRequests.map {
+                if (it.id == requestId) it.copy(
+                    status = status, decidedByUserId = me?.id,
+                    decidedByName = me?.displayName, decidedAt = nowIso
+                ) else it
+            })
+        }
+        scope.launch {
+            runCatching {
+                cloud.decideTimeOffRequestRow(requestId, status, me?.id, me?.displayName, nowIso)
+                cloud.emitOrgEvent(orgId, deviceId, "time_off_decided")
+            }.onFailure { t -> _state.update { it.copy(error = t.message) } }
+            logAudit("time_off", requestId, status, "Time-off request $status")
+            pullSnapshot(orgId)
+        }
+    }
+
+    /** Admin approve/deny a reimbursement. */
+    fun decideReimbursement(reimbursementId: String, approve: Boolean) {
+        val orgId = bootstrappedOrgId ?: return
+        val me = _state.value.currentUser
+        val status = if (approve) "approved" else "denied"
+        val nowIso = java.time.Instant.now().toString()
+        _state.update { st ->
+            st.copy(reimbursements = st.reimbursements.map {
+                if (it.id == reimbursementId) it.copy(
+                    status = status, decidedByUserId = me?.id,
+                    decidedByName = me?.displayName, decidedAt = nowIso
+                ) else it
+            })
+        }
+        scope.launch {
+            runCatching {
+                cloud.updateReimbursementStatus(reimbursementId, status, me?.id ?: "", me?.displayName ?: "")
+                cloud.emitOrgEvent(orgId, deviceId, "reimbursement_decided")
+            }.onFailure { t -> _state.update { it.copy(error = t.message) } }
+            logAudit("reimbursement", reimbursementId, status, "Reimbursement $status")
+            pullSnapshot(orgId)
+        }
+    }
+
+    /** Admin reject/restore a time entry. `reject=true` → rejected with
+     *  an optional reason; false restores it to approved. */
+    fun decideTimeEntry(timeEntryId: String, reject: Boolean, reason: String? = null) {
+        val orgId = bootstrappedOrgId ?: return
+        val me = _state.value.currentUser
+        val status = if (reject) "rejected" else "approved"
+        val nowIso = java.time.Instant.now().toString()
+        _state.update { st ->
+            st.copy(timeEntries = st.timeEntries.map {
+                if (it.id == timeEntryId) it.copy(
+                    approvalStatus = status, decidedByUserId = me?.id,
+                    decidedByName = me?.displayName, decidedAt = nowIso,
+                    rejectionReason = if (reject) reason else null
+                ) else it
+            })
+        }
+        scope.launch {
+            runCatching {
+                cloud.updateTimeEntryApproval(
+                    timeEntryId, status, me?.id, me?.displayName,
+                    if (reject) reason else null
+                )
+                cloud.emitOrgEvent(orgId, deviceId, "time_entry_decided")
+            }.onFailure { t -> _state.update { it.copy(error = t.message) } }
+            logAudit("time_entry", timeEntryId, status, "Time entry $status")
+            pullSnapshot(orgId)
+        }
+    }
+
+    // ── Calendar events ──
+
+    /** Admin-create a calendar event (org-wide or plane-scoped).
+     *  Optimistic local insert + cloud upsert + org event. */
+    suspend fun createCalendarEvent(
+        title: String,
+        description: String,
+        startDate: String,
+        endDate: String,
+        planeId: String?,
+        planeTailNumber: String?,
+        colorHex: String?,
+        eventKind: String = "general",
+        visibility: String = "public"
+    ): CreateResult {
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        val me = _state.value.currentUser
+        val authUserId = runCatching {
+            SupabaseClientProvider.client.auth.currentUserOrNull()?.id
+        }.getOrNull()
+        val event = com.hangarflow.app.data.model.HFCalendarEvent(
+            id = java.util.UUID.randomUUID().toString(),
+            orgId = orgId,
+            title = title.trim(),
+            description = description.trim(),
+            startDate = startDate,
+            endDate = endDate,
+            planeId = planeId,
+            planeTailNumber = planeTailNumber,
+            colorHex = colorHex,
+            eventKind = eventKind,
+            createdByUserId = authUserId ?: me?.id,
+            createdByUserName = me?.displayName ?: "Admin",
+            visibility = if (visibility in setOf("public", "admin_only", "personal")) visibility else "public"
+        )
+        return try {
+            cloud.upsertCalendarEvent(event)
+            _state.update { s -> s.copy(calendarEvents = (s.calendarEvents + event).sortedBy { it.startDate }) }
+            cloud.emitOrgEvent(orgId, deviceId, "calendar_event_created")
+            logAudit("calendar_event", event.id, "created", "Event \"${event.title}\" created")
+            pullSnapshot(orgId)
+            CreateResult.Success
+        } catch (t: Throwable) {
+            CreateResult.Error(t.message ?: "Couldn't save the event.")
+        }
+    }
+
+    /** Delete a calendar event. Optimistic local removal + cloud delete. */
+    suspend fun deleteCalendarEvent(eventId: String): CreateResult {
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        return try {
+            cloud.deleteCalendarEvent(eventId)
+            _state.update { s -> s.copy(calendarEvents = s.calendarEvents.filterNot { it.id == eventId }) }
+            cloud.emitOrgEvent(orgId, deviceId, "calendar_event_deleted")
+            CreateResult.Success
+        } catch (t: Throwable) {
+            CreateResult.Error(t.message ?: "Couldn't delete the event.")
+        }
+    }
+
     suspend fun createPlane(
         tailNumber: String,
         displayName: String,
@@ -503,6 +663,7 @@ object SharedStore {
         return try {
             cloud.createPlane(orgId, tailNumber, displayName, outlineHex)
             cloud.emitOrgEvent(orgId, deviceId, "plane_created")
+            logAudit("plane", null, "created", "Added plane ${tailNumber.trim().uppercase()}")
             pullSnapshot(orgId)
             CreateResult.Success
         } catch (t: Throwable) {
@@ -519,9 +680,11 @@ object SharedStore {
     ): CreateResult {
         val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded yet.")
         if (title.trim().isBlank()) return CreateResult.Error("Title is required.")
+        val me = _state.value.currentUser  // paper trail
         return try {
-            cloud.createWorkLog(orgId, planeId, planeTailNumber, title, category, details)
+            val wlId = cloud.createWorkLog(orgId, planeId, planeTailNumber, title, category, details, me?.id, me?.displayName)
             cloud.emitOrgEvent(orgId, deviceId, "work_log_created")
+            logAudit("work_log", wlId, "created", "Added work log \"${title.trim()}\" to ${planeTailNumber.uppercase()}")
             pullSnapshot(orgId)
             CreateResult.Success
         } catch (t: Throwable) {
@@ -804,9 +967,11 @@ object SharedStore {
         val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
         val valid = logs.filter { it.title.trim().isNotBlank() }
         if (valid.isEmpty()) return CreateResult.Error("Add at least one work log.")
+        val me = _state.value.currentUser  // paper trail
         return try {
             valid.forEach { d ->
-                cloud.createWorkLog(orgId, d.planeId, d.planeTailNumber, d.title, d.category, d.details)
+                val wlId = cloud.createWorkLog(orgId, d.planeId, d.planeTailNumber, d.title, d.category, d.details, me?.id, me?.displayName)
+                logAudit("work_log", wlId, "created", "Added work log \"${d.title.trim()}\" to ${d.planeTailNumber.uppercase()}")
             }
             cloud.emitOrgEvent(orgId, deviceId, "work_log_created")
             pullSnapshot(orgId)
@@ -885,6 +1050,8 @@ object SharedStore {
             // Reimbursements may not have the migration yet on older orgs.
             // Fail open so the rest of the snapshot loads.
             val reimbursements = runCatching { cloud.fetchReimbursements(orgId) }.getOrElse { emptyList() }
+            val timeOffRequests = runCatching { cloud.fetchTimeOffRequests(orgId) }.getOrElse { emptyList() }
+            val calendarEvents = runCatching { cloud.fetchCalendarEvents(orgId) }.getOrElse { emptyList() }
             val authUserId = runCatching {
                 SupabaseClientProvider.client.auth.currentUserOrNull()?.id
             }.getOrNull()
@@ -900,6 +1067,8 @@ object SharedStore {
                 partLocations = partLocations.sortedByDescending { it.updatedAt ?: "" },
                 tasks = tasks.sortedByDescending { it.updatedAt ?: "" },
                 reimbursements = reimbursements.sortedByDescending { it.createdAt ?: "" },
+                timeOffRequests = timeOffRequests.sortedByDescending { it.createdAt ?: "" },
+                calendarEvents = calendarEvents.sortedBy { it.startDate },
                 currentUser = me,
                 loading = false,
                 error = null
@@ -1011,6 +1180,8 @@ data class ShopState(
     val partLocations: List<HFPartLocation>,
     val tasks: List<HFTask> = emptyList(),
     val reimbursements: List<com.hangarflow.app.data.model.HFReimbursement> = emptyList(),
+    val timeOffRequests: List<com.hangarflow.app.data.model.HFTimeOffRequest> = emptyList(),
+    val calendarEvents: List<com.hangarflow.app.data.model.HFCalendarEvent> = emptyList(),
     val currentUser: HFUserProfile?,
     val loading: Boolean,
     val error: String?
@@ -1027,6 +1198,8 @@ data class ShopState(
             partLocations = emptyList(),
             tasks = emptyList(),
             reimbursements = emptyList(),
+            timeOffRequests = emptyList(),
+            calendarEvents = emptyList(),
             currentUser = null,
             loading = false,
             error = null

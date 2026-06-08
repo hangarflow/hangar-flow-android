@@ -515,6 +515,16 @@ private fun AssignedWorkLogRow(log: HFWorkLog, onClick: () -> Unit) {
                         )
                     }
                 }
+                // Paper trail — who logged (or imported) this work.
+                Spacer(Modifier.height(3.dp))
+                Text(
+                    if (log.isImportedRecord)
+                        "Imported by ${log.importSourceName?.takeIf { it.isNotBlank() } ?: "Imported"}"
+                    else
+                        "Added by ${log.createdByUserName?.takeIf { it.isNotBlank() } ?: "—"}",
+                    color = HFColors.OnSurface.copy(alpha = 0.50f),
+                    fontSize = 10.sp
+                )
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(8.dp).clip(CircleShape).background(status.color))
