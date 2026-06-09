@@ -924,6 +924,155 @@ class HFCloudSyncService {
         return resp.bodyAsText()
     }
 
+    // ---------- AI parts search (parts-search edge function) ----------
+
+    @kotlinx.serialization.Serializable
+    data class AIPartsSearchRequest(
+        val query: String,
+        @kotlinx.serialization.SerialName("plane_tail") val planeTail: String? = null,
+        @kotlinx.serialization.SerialName("aircraft_type") val aircraftType: String? = null
+    )
+
+    @kotlinx.serialization.Serializable
+    data class AIPartsSearchResult(
+        val answer: String = "",
+        val model: String? = null
+    )
+
+    /** Ask the AI parts assistant. Retrieval + Claude happen server-side
+     *  in the `parts-search` edge function; the Anthropic key never ships
+     *  in this APK. supabase-kt forwards the live session JWT. */
+    suspend fun aiPartsSearch(query: String, planeTail: String?, aircraftType: String?): AIPartsSearchResult {
+        val body = AIPartsSearchRequest(query = query.trim(), planeTail = planeTail, aircraftType = aircraftType)
+        val resp = client.functions.invoke(function = "parts-search", body = body)
+        return kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+            .decodeFromString(AIPartsSearchResult.serializer(), resp.bodyAsText())
+    }
+
+    // ---------- AI navigator (ai-navigate edge function) ----------
+
+    @kotlinx.serialization.Serializable
+    data class NavDestination(val key: String, val label: String, val hint: String? = null)
+
+    @kotlinx.serialization.Serializable
+    data class AINavigateRequest(val query: String, val destinations: List<NavDestination>)
+
+    @kotlinx.serialization.Serializable
+    data class AINavigateResult(val key: String? = null, val note: String = "")
+
+    /** Ask the AI navigator which screen to open. Routing only — the model
+     *  only ever sees the destination list (no web, no app data). */
+    suspend fun aiNavigate(query: String, destinations: List<NavDestination>): AINavigateResult {
+        val body = AINavigateRequest(query = query.trim(), destinations = destinations)
+        val resp = client.functions.invoke(function = "ai-navigate", body = body)
+        return kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+            .decodeFromString(AINavigateResult.serializer(), resp.bodyAsText())
+    }
+
+    // ---------- AI clock-out summary (clockout-summary edge function) ----------
+
+    @kotlinx.serialization.Serializable
+    data class ClockoutWorkLog(val title: String, val category: String? = null, val plane: String? = null, val details: String? = null, val minutes: Int? = null)
+
+    @kotlinx.serialization.Serializable
+    data class ClockoutSquawk(val title: String, val plane: String? = null, val status: String? = null)
+
+    @kotlinx.serialization.Serializable
+    data class ClockoutSummaryRequest(
+        @kotlinx.serialization.SerialName("tech_name") val techName: String,
+        @kotlinx.serialization.SerialName("minutes_worked") val minutesWorked: Int? = null,
+        @kotlinx.serialization.SerialName("work_logs") val workLogs: List<ClockoutWorkLog>,
+        val squawks: List<ClockoutSquawk>
+    )
+
+    @kotlinx.serialization.Serializable
+    data class ClockoutSummaryResult(val summary: String = "")
+
+    suspend fun clockoutSummary(techName: String, minutesWorked: Int?, workLogs: List<ClockoutWorkLog>, squawks: List<ClockoutSquawk>): ClockoutSummaryResult {
+        val body = ClockoutSummaryRequest(techName, minutesWorked, workLogs, squawks)
+        val resp = client.functions.invoke(function = "clockout-summary", body = body)
+        return kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+            .decodeFromString(ClockoutSummaryResult.serializer(), resp.bodyAsText())
+    }
+
+    // ---------- AI squawk triage (squawk-triage edge function) ----------
+
+    @kotlinx.serialization.Serializable
+    data class SquawkTriageRequest(
+        val title: String, val notes: String? = null, val category: String? = null,
+        @kotlinx.serialization.SerialName("plane_tail") val planeTail: String? = null,
+        @kotlinx.serialization.SerialName("aircraft_type") val aircraftType: String? = null
+    )
+
+    @kotlinx.serialization.Serializable
+    data class SquawkTriageResult(
+        @kotlinx.serialization.SerialName("ata_chapter") val ataChapter: String = "",
+        @kotlinx.serialization.SerialName("problem_statement") val problemStatement: String = "",
+        val parts: List<String> = emptyList(),
+        val severity: String = "Routine",
+        @kotlinx.serialization.SerialName("draft_title") val draftTitle: String = "",
+        val vague: Boolean = false,
+        val ask: String = "",
+        val note: String = ""
+    )
+
+    suspend fun squawkTriage(title: String, notes: String?, category: String?, planeTail: String?, aircraftType: String?): SquawkTriageResult {
+        val body = SquawkTriageRequest(title.trim(), notes, category, planeTail, aircraftType)
+        val resp = client.functions.invoke(function = "squawk-triage", body = body)
+        return kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+            .decodeFromString(SquawkTriageResult.serializer(), resp.bodyAsText())
+    }
+
+    // ---------- AI receipt extraction (receipt-extract edge function) ----------
+
+    @kotlinx.serialization.Serializable
+    data class ReceiptExtractRequest(
+        @kotlinx.serialization.SerialName("image_base64") val imageBase64: String,
+        @kotlinx.serialization.SerialName("media_type") val mediaType: String = "image/jpeg"
+    )
+
+    @kotlinx.serialization.Serializable
+    data class ReceiptExtractResult(
+        @kotlinx.serialization.SerialName("amount_cents") val amountCents: Int? = null,
+        val vendor: String = "",
+        val date: String = "",
+        val note: String = ""
+    )
+
+    suspend fun extractReceipt(imageBase64: String, mediaType: String): ReceiptExtractResult {
+        val body = ReceiptExtractRequest(imageBase64, mediaType)
+        val resp = client.functions.invoke(function = "receipt-extract", body = body)
+        return kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+            .decodeFromString(ReceiptExtractResult.serializer(), resp.bodyAsText())
+    }
+
+    // ---------- AI hours anomalies (hours-anomalies edge function) ----------
+
+    @kotlinx.serialization.Serializable
+    data class HoursAnomalyEntry(
+        val id: String,
+        @kotlinx.serialization.SerialName("user_name") val userName: String? = null,
+        @kotlinx.serialization.SerialName("entry_date") val entryDate: String? = null,
+        @kotlinx.serialization.SerialName("minutes_worked") val minutesWorked: Int? = null,
+        val notes: String? = null
+    )
+
+    @kotlinx.serialization.Serializable
+    data class HoursAnomaliesRequest(val entries: List<HoursAnomalyEntry>)
+
+    @kotlinx.serialization.Serializable
+    data class HoursFlag(val id: String, val reason: String = "", val severity: String = "info")
+
+    @kotlinx.serialization.Serializable
+    data class HoursAnomaliesResult(val flags: List<HoursFlag> = emptyList())
+
+    suspend fun hoursAnomalies(entries: List<HoursAnomalyEntry>): List<HoursFlag> {
+        if (entries.isEmpty()) return emptyList()
+        val resp = client.functions.invoke(function = "hours-anomalies", body = HoursAnomaliesRequest(entries))
+        return kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+            .decodeFromString(HoursAnomaliesResult.serializer(), resp.bodyAsText()).flags
+    }
+
     // ---------- Delete operations ----------
 
     suspend fun deletePlane(planeId: String) {

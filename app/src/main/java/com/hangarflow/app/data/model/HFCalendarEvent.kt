@@ -34,6 +34,11 @@ data class HFCalendarEvent(
     @SerialName("created_by_user_id") val createdByUserId: String? = null,
     @SerialName("created_by_user_name") val createdByUserName: String = "",
     val visibility: String = "public",
+    // Optional reminder: when set, fire-due-reminders pushes a notification
+    // to remindUserId at remindAt, then flips reminded=true. Admins/leads only.
+    @SerialName("remind_at") val remindAt: String? = null,
+    @SerialName("remind_user_id") val remindUserId: String? = null,
+    val reminded: Boolean = false,
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("updated_at") val updatedAt: String? = null
 )

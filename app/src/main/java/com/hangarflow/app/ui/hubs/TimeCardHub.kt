@@ -21,11 +21,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import com.hangarflow.app.data.cloud.HFCloudSyncService
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -96,6 +99,18 @@ private fun TimeCardHubContent(onRequestTimeOff: () -> Unit = {}) {
 
     val grouped = remember(entries) { entries.groupBy { it.entryDate.take(10) } }
     val periods = remember(entries) { computePeriodTotals(entries) }
+
+    // AI hours-anomaly review (admin only) — flags entries worth a look.
+    val anomCloud = remember { HFCloudSyncService() }
+    val anomScope = rememberCoroutineScope()
+    var anomalyFlags by remember { mutableStateOf<List<HFCloudSyncService.HoursFlag>>(emptyList()) }
+    LaunchedEffect(isAdmin, entries.size, selectedUserId) {
+        if (!isAdmin || entries.size < 2) { anomalyFlags = emptyList(); return@LaunchedEffect }
+        val payload = entries.take(120).map {
+            HFCloudSyncService.HoursAnomalyEntry(it.id, it.userName, it.entryDate, it.minutesWorked, it.notes)
+        }
+        anomalyFlags = runCatching { anomCloud.hoursAnomalies(payload) }.getOrDefault(emptyList())
+    }
 
     // Activity breakdown visible to admins: work logs signed off and
     // squawks filed/resolved by the selected user, bucketed by day.
@@ -235,6 +250,11 @@ private fun TimeCardHubContent(onRequestTimeOff: () -> Unit = {}) {
             isAdmin = isAdmin,
             myUserId = me?.id
         )
+
+        if (isAdmin && anomalyFlags.isNotEmpty()) {
+            Spacer(Modifier.size(16.dp))
+            HoursAnomalyBanner(flags = anomalyFlags, entries = entries)
+        }
 
         Spacer(Modifier.size(18.dp))
 
@@ -882,3 +902,29 @@ private fun shortTimeOf(instant: Instant): String = runCatching {
         .withZone(ZoneId.systemDefault())
         .format(instant)
 }.getOrDefault("")
+
+@Composable
+private fun HoursAnomalyBanner(flags: List<HFCloudSyncService.HoursFlag>, entries: List<HFTimeEntry>) {
+    val byId = remember(entries) { entries.associateBy { it.id } }
+    Column(
+        modifier = Modifier.fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(HFColors.StatusOrange.copy(alpha = 0.08f))
+            .border(1.dp, HFColors.StatusOrange.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Text(
+            "⚠️ ${flags.size} ${if (flags.size == 1) "entry" else "entries"} to double-check",
+            color = HFColors.StatusOrange, fontSize = 12.sp, fontWeight = FontWeight.Bold
+        )
+        flags.take(8).forEach { f ->
+            val e = byId[f.id]
+            val who = e?.userName?.takeIf { it.isNotBlank() } ?: "Entry"
+            val date = e?.entryDate?.take(10) ?: ""
+            val c = if (f.severity == "warn") HFColors.StatusRed else HFColors.OnSurface.copy(alpha = 0.75f)
+            Text("• $who${if (date.isNotBlank()) " ($date)" else ""}: ${f.reason}", color = c, fontSize = 11.sp)
+        }
+        Text("AI flags — verify before approving.", color = HFColors.OnSurface.copy(alpha = 0.4f), fontSize = 9.sp)
+    }
+}

@@ -65,6 +65,8 @@ private fun ScheduleHubContent(onRequestTimeOff: () -> Unit, onAddEvent: (LocalD
     val shopState by SharedStore.state.collectAsState()
     val authState by com.hangarflow.app.auth.AuthManager.state.collectAsState()
     val isAdmin = authState.isAdmin
+    // Admins and lead techs can drop calendar events / reminders.
+    val canManage = authState.isAdmin || authState.isLeadTech
     val scope = rememberCoroutineScope()
 
     val today = LocalDate.now()
@@ -129,7 +131,7 @@ private fun ScheduleHubContent(onRequestTimeOff: () -> Unit, onAddEvent: (LocalD
                     fontWeight = FontWeight.Bold
                 )
             }
-            if (isAdmin) {
+            if (canManage) {
                 Row(
                     modifier = Modifier
                         .weight(1f)
@@ -678,6 +680,13 @@ private fun AddCalendarEventSheet(
     var saving by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 
+    // Optional reminder: fire a push to the chosen teammate at a chosen
+    // date + hour. Defaults to "remind me" on the event's start date at 8am.
+    var remindOn by remember { mutableStateOf(false) }
+    var remindDate by remember { mutableStateOf(initialDate) }
+    var remindHour by remember { mutableStateOf(8) }
+    var remindUserAuthId by remember { mutableStateOf(shopState.currentUser?.authUserId) }
+
     val dateFmt = remember { DateTimeFormatter.ofPattern("EEE, MMM d") }
     val canSave = title.trim().isNotEmpty() && !saving
 
@@ -724,6 +733,40 @@ private fun AddCalendarEventSheet(
                     ScopeChip("Only me", visibility == "personal") { visibility = "personal" }
                 }
 
+                androidx.compose.material3.HorizontalDivider(color = HFColors.OnSurface.copy(alpha = 0.10f))
+
+                // Reminder: notify a teammate at a date + hour.
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("SEND A REMINDER", color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+                        Text("Push a notification when it's due.", color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 11.sp)
+                    }
+                    androidx.compose.material3.Switch(checked = remindOn, onCheckedChange = { remindOn = it })
+                }
+                if (remindOn) {
+                    Text("REMIND WHO", color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+                    Row(
+                        modifier = Modifier.horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        val meId = shopState.currentUser?.authUserId
+                        shopState.users.filter { it.isActive && !it.authUserId.isNullOrBlank() }.forEach { u ->
+                            val label = if (u.authUserId == meId) "${u.displayName} (me)" else u.displayName
+                            ScopeChip(label.ifBlank { "Teammate" }, remindUserAuthId == u.authUserId) { remindUserAuthId = u.authUserId }
+                        }
+                    }
+                    Text("REMIND ON", color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+                    DateStepperRow(remindDate, dateFmt) { remindDate = it }
+                    Text("AT", color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        StepChip("◄") { remindHour = (remindHour + 23) % 24 }
+                        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                            Text(formatHour(remindHour), color = HFColors.OnSurface, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        }
+                        StepChip("►") { remindHour = (remindHour + 1) % 24 }
+                    }
+                }
+
                 error?.let { Text(it, color = HFColors.StatusRed, fontSize = 11.sp, fontWeight = FontWeight.Medium) }
             }
         },
@@ -734,6 +777,11 @@ private fun AddCalendarEventSheet(
                     saving = true; error = null
                     val tail = planeTail
                     val planeId = tail?.let { t -> shopState.planes.firstOrNull { it.tailNumber == t }?.id }
+                    val remindAtIso = if (remindOn && !remindUserAuthId.isNullOrBlank()) {
+                        remindDate.atTime(remindHour, 0)
+                            .atZone(java.time.ZoneId.systemDefault())
+                            .toInstant().toString()
+                    } else null
                     scope.launch {
                         when (val r = SharedStore.createCalendarEvent(
                             title = title,
@@ -743,7 +791,9 @@ private fun AddCalendarEventSheet(
                             planeId = planeId,
                             planeTailNumber = tail,
                             colorHex = null,
-                            visibility = visibility
+                            visibility = visibility,
+                            remindAt = remindAtIso,
+                            remindUserId = if (remindAtIso != null) remindUserAuthId else null
                         )) {
                             SharedStore.CreateResult.Success -> onDismiss()
                             is SharedStore.CreateResult.Error -> { error = r.message; saving = false }
@@ -754,6 +804,17 @@ private fun AddCalendarEventSheet(
         },
         dismissButton = { androidx.compose.material3.TextButton(onClick = { if (!saving) onDismiss() }) { Text("Cancel") } }
     )
+}
+
+/** 24h hour int → friendly "8:00 AM" / "1:00 PM". */
+private fun formatHour(h: Int): String {
+    val hour12 = when {
+        h == 0 -> 12
+        h > 12 -> h - 12
+        else -> h
+    }
+    val ampm = if (h < 12) "AM" else "PM"
+    return "$hour12:00 $ampm"
 }
 
 @Composable

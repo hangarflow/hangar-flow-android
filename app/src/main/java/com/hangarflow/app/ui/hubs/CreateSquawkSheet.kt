@@ -88,6 +88,8 @@ fun CreateSquawkSheet(onDismiss: () -> Unit) {
     var needsParts by remember { mutableStateOf(false) }
     var requestedPart by remember { mutableStateOf("") }
     var urgency by remember { mutableStateOf("normal") }
+    var aiTriage by remember { mutableStateOf<HFCloudSyncService.SquawkTriageResult?>(null) }
+    var aiTriaging by remember { mutableStateOf(false) }
 
     val cameraLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.TakePicturePreview()
@@ -277,6 +279,36 @@ fun CreateSquawkSheet(onDismiss: () -> Unit) {
                 modifier = Modifier.fillMaxWidth().height(120.dp),
                 colors = hfFieldColors()
             )
+
+            // AI triage
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable(enabled = title.isNotBlank() && !aiTriaging) {
+                        aiTriaging = true
+                        scope.launch {
+                            val acType = selectedPlane?.aircraftType
+                            aiTriage = runCatching {
+                                cloud.squawkTriage(title, notes.ifBlank { null }, null, selectedPlane?.tailNumber, acType)
+                            }.getOrNull()
+                            aiTriaging = false
+                        }
+                    }
+                    .padding(vertical = 4.dp)
+            ) {
+                if (aiTriaging) {
+                    CircularProgressIndicator(modifier = Modifier.size(12.dp), strokeWidth = 2.dp, color = HFColors.StatusCyan)
+                    Spacer(Modifier.width(6.dp))
+                }
+                Text(
+                    if (aiTriaging) "Analyzing…" else "✨ Suggest with AI",
+                    color = HFColors.StatusCyan, fontSize = 12.sp, fontWeight = FontWeight.SemiBold
+                )
+            }
+            aiTriage?.let { tr ->
+                SquawkTriageCard(tr) { if (tr.draftTitle.isNotBlank()) title = tr.draftTitle }
+            }
 
             // Needs Parts block (matches iOS squawk builder)
             NeedsPartsSection(
@@ -624,5 +656,47 @@ private fun compressForUpload(bitmap: Bitmap): ByteArray {
     val out = ByteArrayOutputStream()
     scaled.compress(Bitmap.CompressFormat.JPEG, 72, out)
     return out.toByteArray()
+}
+
+@Composable
+private fun SquawkTriageCard(triage: HFCloudSyncService.SquawkTriageResult, onApplyTitle: () -> Unit) {
+    val sev = triage.severity.lowercase()
+    val sevColor = when {
+        sev.contains("aog") -> HFColors.StatusRed
+        sev.contains("expedite") -> HFColors.StatusOrange
+        else -> HFColors.StatusGreen
+    }
+    Column(
+        modifier = Modifier.fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(HFColors.OnSurface.copy(alpha = 0.05f))
+            .border(1.dp, HFColors.StatusCyan.copy(alpha = 0.25f), RoundedCornerShape(10.dp))
+            .padding(11.dp),
+        verticalArrangement = Arrangement.spacedBy(5.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("✨ AI Suggestion", color = HFColors.StatusCyan, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.weight(1f))
+            Text(
+                triage.severity, color = sevColor, fontSize = 10.sp, fontWeight = FontWeight.Bold,
+                modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(sevColor.copy(alpha = 0.15f)).padding(horizontal = 6.dp, vertical = 2.dp)
+            )
+        }
+        if (triage.problemStatement.isNotBlank()) Text(triage.problemStatement, color = HFColors.OnSurface.copy(alpha = 0.9f), fontSize = 12.sp)
+        if (triage.ataChapter.isNotBlank()) Text("ATA ${triage.ataChapter}", color = HFColors.StatusCyan.copy(alpha = 0.85f), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+        triage.parts.take(6).forEach { Text("• $it", color = HFColors.OnSurface.copy(alpha = 0.7f), fontSize = 10.sp) }
+        if (triage.vague && triage.ask.isNotBlank()) Text("⚠️ ${triage.ask}", color = HFColors.StatusYellow.copy(alpha = 0.85f), fontSize = 10.sp)
+        if (triage.note.isNotBlank()) Text(triage.note, color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 9.sp)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (triage.draftTitle.isNotBlank()) {
+                Text(
+                    "Use suggested title", color = HFColors.StatusCyan, fontSize = 10.sp, fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable(onClick = onApplyTitle).padding(horizontal = 4.dp, vertical = 2.dp)
+                )
+            }
+            Spacer(Modifier.weight(1f))
+            Text("Verify — AI can be wrong", color = HFColors.OnSurface.copy(alpha = 0.3f), fontSize = 9.sp)
+        }
+    }
 }
 

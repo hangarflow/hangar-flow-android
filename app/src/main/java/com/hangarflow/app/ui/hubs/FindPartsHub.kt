@@ -26,6 +26,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -66,6 +70,11 @@ fun FindPartsHub(restrictToPlaneTail: String? = null) {
     var restrictedTail by remember { mutableStateOf(restrictToPlaneTail) }
     val cloud = remember { HFCloudSyncService() }
     val scope = rememberCoroutineScope()
+
+    // AI parts assistant — local, ephemeral state.
+    var aiAnswer by remember { mutableStateOf<String?>(null) }
+    var aiLoading by remember { mutableStateOf(false) }
+    var aiError by remember { mutableStateOf<String?>(null) }
 
     // PDF state — same model as Desktop FindPartsScreen. We only swap the
     // file when it actually changes so navigating between sections in the
@@ -110,6 +119,8 @@ fun FindPartsHub(restrictToPlaneTail: String? = null) {
     }
 
     LaunchedEffect(query, orgId, restrictedTail) {
+        aiAnswer = null
+        aiError = null
         if (query.isBlank() || orgId == null) { hits = emptyList(); selectedHit = null; return@LaunchedEffect }
         delay(400)
         isSearching = true
@@ -181,6 +192,28 @@ fun FindPartsHub(restrictToPlaneTail: String? = null) {
                             .padding(horizontal = 8.dp, vertical = 3.dp)
                     )
                 }
+            }
+
+            // AI parts assistant — above the raw hits.
+            if (query.isNotBlank()) {
+                Spacer(Modifier.height(8.dp))
+                AIPartsPanel(
+                    query = query,
+                    answer = aiAnswer,
+                    loading = aiLoading,
+                    error = aiError,
+                    onAsk = {
+                        val tail = restrictedTail
+                        val acType = shopState.planes.firstOrNull { it.tailNumber.equals(tail, ignoreCase = true) }?.aircraftType
+                        aiLoading = true; aiError = null
+                        scope.launch {
+                            runCatching { cloud.aiPartsSearch(query, tail, acType) }
+                                .onSuccess { aiAnswer = it.answer; aiLoading = false }
+                                .onFailure { aiError = it.message ?: "AI search failed"; aiLoading = false }
+                        }
+                    },
+                    onClear = { aiAnswer = null }
+                )
             }
 
             if (isSearching || hits.isNotEmpty()) {
@@ -734,5 +767,98 @@ private fun <T> DropdownChooser(
                 )
             }
         }
+    }
+}
+
+// ----- AI parts assistant -----
+
+@Composable
+private fun AIPartsPanel(
+    query: String,
+    answer: String?,
+    loading: Boolean,
+    error: String?,
+    onAsk: () -> Unit,
+    onClear: () -> Unit
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(HFColors.OnSurface.copy(alpha = 0.05f))
+            .padding(10.dp)
+    ) {
+        when {
+            loading -> Row(verticalAlignment = Alignment.CenterVertically) {
+                CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp, color = HFColors.StatusCyan)
+                Spacer(Modifier.width(8.dp))
+                Text("Asking AI…", color = HFColors.OnSurface.copy(alpha = 0.7f), fontSize = 12.sp)
+            }
+            answer != null -> {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("✨ AI Answer", color = HFColors.StatusCyan, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.weight(1f))
+                    Text(
+                        "✕",
+                        color = HFColors.OnSurface.copy(alpha = 0.4f),
+                        fontSize = 13.sp,
+                        modifier = Modifier.clip(CircleShape).clickable(onClick = onClear).padding(4.dp)
+                    )
+                }
+                Spacer(Modifier.height(6.dp))
+                Box(Modifier.heightIn(max = 340.dp).verticalScroll(rememberScrollState())) {
+                    AIMarkdownText(answer)
+                }
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "Advisory — verify against the manual + serial effectivity before ordering.",
+                    color = HFColors.OnSurface.copy(alpha = 0.35f), fontSize = 9.sp
+                )
+            }
+            else -> Box(
+                Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
+                    .background(HFColors.StatusCyan.copy(alpha = 0.12f))
+                    .border(1.dp, HFColors.StatusCyan.copy(alpha = 0.40f), RoundedCornerShape(8.dp))
+                    .clickable(onClick = onAsk).padding(vertical = 9.dp, horizontal = 10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("✨ Ask AI", color = HFColors.StatusCyan, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+            }
+        }
+        if (error != null) {
+            Spacer(Modifier.height(4.dp))
+            Text(error, color = HFColors.StatusRed, fontSize = 10.sp)
+        }
+    }
+}
+
+/** Minimal line-based markdown renderer — ## headers, - bullets,
+ *  > callouts, --- rules, inline **bold**. Function avoids tables. */
+@Composable
+private fun AIMarkdownText(text: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        text.split("\n").forEach { raw ->
+            val line = raw.trim()
+            when {
+                line.isEmpty() -> Spacer(Modifier.height(2.dp))
+                line.startsWith("### ") -> Text(parseInlineBold(line.removePrefix("### ")), color = HFColors.OnSurface, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                line.startsWith("## ") -> Text(parseInlineBold(line.removePrefix("## ")), color = HFColors.OnSurface, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                line.startsWith("# ") -> Text(parseInlineBold(line.removePrefix("# ")), color = HFColors.OnSurface, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                line.startsWith("- ") || line.startsWith("* ") -> Row(verticalAlignment = Alignment.Top) {
+                    Text("•", color = HFColors.StatusCyan, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.width(5.dp))
+                    Text(parseInlineBold(line.drop(2)), color = HFColors.OnSurface.copy(alpha = 0.78f), fontSize = 11.sp)
+                }
+                line.startsWith("> ") -> Text(parseInlineBold(line.removePrefix("> ")), color = HFColors.StatusYellow, fontSize = 10.sp)
+                line.startsWith("---") -> Box(Modifier.fillMaxWidth().height(1.dp).background(HFColors.OnSurface.copy(alpha = 0.12f)))
+                else -> Text(parseInlineBold(line), color = HFColors.OnSurface.copy(alpha = 0.78f), fontSize = 11.sp)
+            }
+        }
+    }
+}
+
+private fun parseInlineBold(s: String): AnnotatedString = buildAnnotatedString {
+    s.split("**").forEachIndexed { idx, part ->
+        if (idx % 2 == 1) withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(part) }
+        else append(part)
     }
 }

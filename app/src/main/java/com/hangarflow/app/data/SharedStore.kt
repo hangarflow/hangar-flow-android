@@ -602,7 +602,9 @@ object SharedStore {
         planeTailNumber: String?,
         colorHex: String?,
         eventKind: String = "general",
-        visibility: String = "public"
+        visibility: String = "public",
+        remindAt: String? = null,
+        remindUserId: String? = null
     ): CreateResult {
         val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
         val me = _state.value.currentUser
@@ -622,7 +624,9 @@ object SharedStore {
             eventKind = eventKind,
             createdByUserId = authUserId ?: me?.id,
             createdByUserName = me?.displayName ?: "Admin",
-            visibility = if (visibility in setOf("public", "admin_only", "personal")) visibility else "public"
+            visibility = if (visibility in setOf("public", "admin_only", "personal")) visibility else "public",
+            remindAt = remindAt,
+            remindUserId = remindUserId
         )
         return try {
             cloud.upsertCalendarEvent(event)
@@ -647,6 +651,30 @@ object SharedStore {
         } catch (t: Throwable) {
             CreateResult.Error(t.message ?: "Couldn't delete the event.")
         }
+    }
+
+    /** Draft an end-of-shift summary for `userName` from the work logs they
+     *  completed today + squawks they filed today. Returns null if there's
+     *  nothing to summarize. */
+    suspend fun draftClockOutSummary(userName: String): String? {
+        val today = java.time.LocalDate.now().toString()
+        val st = _state.value
+        val myLogs = st.workLogs.filter {
+            it.status == "done" && it.assignedUserName == userName &&
+                (it.updatedAt ?: it.createdAt ?: "").startsWith(today)
+        }
+        val mySquawks = st.squawks.filter {
+            it.reportedByUserName == userName && (it.createdAt ?: "").startsWith(today)
+        }
+        if (myLogs.isEmpty() && mySquawks.isEmpty()) return null
+        val wl = myLogs.map {
+            HFCloudSyncService.ClockoutWorkLog(
+                title = it.title, category = it.category, plane = it.planeTailNumber,
+                details = it.details.ifBlank { null }, minutes = it.loggedMinutes.takeIf { m -> m > 0 }
+            )
+        }
+        val sq = mySquawks.map { HFCloudSyncService.ClockoutSquawk(it.title, it.planeTailNumber, it.status) }
+        return runCatching { cloud.clockoutSummary(userName, null, wl, sq) }.getOrNull()?.summary
     }
 
     suspend fun createPlane(

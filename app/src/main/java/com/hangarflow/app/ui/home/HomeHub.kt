@@ -2,6 +2,9 @@ package com.hangarflow.app.ui.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.material3.Text
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Box
@@ -71,15 +74,15 @@ import java.time.ZoneId
  * No tabs, no Material chrome. Cards open feature sheets.
  */
 @Composable
-fun HomeHub(onOpenHub: (HomeDestination) -> Unit) {
+fun HomeHub(onOpenHub: (HomeDestination) -> Unit, onOpenNavigator: () -> Unit = {}) {
     HFPullToRefreshHost {
-        HomeHubContent(onOpenHub = onOpenHub)
+        HomeHubContent(onOpenHub = onOpenHub, onOpenNavigator = onOpenNavigator)
     }
 }
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
-private fun HomeHubContent(onOpenHub: (HomeDestination) -> Unit) {
+private fun HomeHubContent(onOpenHub: (HomeDestination) -> Unit, onOpenNavigator: () -> Unit = {}) {
     val authState by AuthManager.state.collectAsState()
     val shopState by SharedStore.state.collectAsState()
     val activeShift by SharedStore.activeShift.collectAsState()
@@ -177,6 +180,19 @@ private fun HomeHubContent(onOpenHub: (HomeDestination) -> Unit) {
             modifier = Modifier.padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            // AI navigator — "What are you looking for?"
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(HFColors.StatusCyan.copy(alpha = 0.10f))
+                    .border(1.dp, HFColors.StatusCyan.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
+                    .clickable(onClick = onOpenNavigator)
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("✨  What are you looking for?", color = HFColors.StatusCyan, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+            }
             IOSLiveViewPanel(
                 userName = me?.displayName,
                 syncLabel = friendlySyncLabel(shopState.loading, shopState.error),

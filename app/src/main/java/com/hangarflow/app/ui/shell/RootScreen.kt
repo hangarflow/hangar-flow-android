@@ -12,6 +12,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import android.content.Context
 import com.hangarflow.app.auth.AuthManager
 import com.hangarflow.app.ui.auth.LoginScreen
 import com.hangarflow.app.ui.home.HomeDestination
@@ -42,13 +44,34 @@ fun RootScreen() {
                 )
 
             state.isSignedIn -> {
-                HomeHub(onOpenHub = { openHub = it })
+                val context = LocalContext.current
+                val prefs = remember { context.getSharedPreferences("hf_prefs", Context.MODE_PRIVATE) }
+                var aiAccepted by remember { mutableStateOf(prefs.getBoolean("aiNavDisclaimerAccepted", false)) }
+                var showAINav by remember { mutableStateOf(false) }
+                var showAINavDisclaimer by remember { mutableStateOf(false) }
+
+                HomeHub(
+                    onOpenHub = { openHub = it },
+                    onOpenNavigator = { if (aiAccepted) showAINav = true else showAINavDisclaimer = true }
+                )
                 openHub?.let { destination ->
                     HubSheetHost(
                         destination = destination,
                         onDismiss = { openHub = null }
                     )
                 }
+                AINavigatorHost(
+                    show = showAINav,
+                    showDisclaimer = showAINavDisclaimer,
+                    isElevated = state.isAdmin || state.isLeadTech,
+                    onDismiss = { showAINav = false },
+                    onDismissDisclaimer = { showAINavDisclaimer = false },
+                    onAcceptDisclaimer = {
+                        prefs.edit().putBoolean("aiNavDisclaimerAccepted", true).apply()
+                        aiAccepted = true; showAINavDisclaimer = false; showAINav = true
+                    },
+                    onNavigate = { dest -> showAINav = false; openHub = dest }
+                )
             }
 
             else -> LoginScreen()

@@ -83,6 +83,7 @@ fun ClockOutSheet(onDismiss: () -> Unit) {
     val cloud = remember { HFCloudSyncService() }
 
     var summary by remember { mutableStateOf("") }
+    var aiDrafting by remember { mutableStateOf(false) }
     val rows = remember { mutableStateListOf<PendingReimbursement>() }
     var editingPhotoFor by remember { mutableStateOf<String?>(null) }
     var submitting by remember { mutableStateOf(false) }
@@ -98,6 +99,27 @@ fun ClockOutSheet(onDismiss: () -> Unit) {
             if (bmp != null) {
                 val idx = rows.indexOfFirst { it.id == rowId }
                 if (idx >= 0) rows[idx] = rows[idx].copy(bitmap = bmp)
+                // AI pre-fill amount/vendor/date from the receipt photo.
+                scope.launch {
+                    val baos = java.io.ByteArrayOutputStream()
+                    bmp.compress(Bitmap.CompressFormat.JPEG, 78, baos)
+                    val b64 = android.util.Base64.encodeToString(baos.toByteArray(), android.util.Base64.NO_WRAP)
+                    val r = runCatching { cloud.extractReceipt(b64, "image/jpeg") }.getOrNull()
+                    if (r != null) {
+                        val i2 = rows.indexOfFirst { it.id == rowId }
+                        if (i2 >= 0) {
+                            var row = rows[i2]
+                            if (r.amountCents != null && row.amountText.isBlank()) {
+                                row = row.copy(amountText = "%.2f".format(r.amountCents / 100.0))
+                            }
+                            if (row.description.isBlank()) {
+                                val parts = listOfNotNull(r.vendor.ifBlank { null }, r.date.ifBlank { null })
+                                if (parts.isNotEmpty()) row = row.copy(description = parts.joinToString(" · "))
+                            }
+                            rows[i2] = row
+                        }
+                    }
+                }
             }
         }
     }
@@ -141,13 +163,40 @@ fun ClockOutSheet(onDismiss: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    "WHAT DID YOU WORK ON TODAY?",
-                    color = HFColors.OnSurface.copy(alpha = 0.55f),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.6.sp
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "WHAT DID YOU WORK ON TODAY?",
+                        color = HFColors.OnSurface.copy(alpha = 0.55f),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.6.sp,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable(enabled = !aiDrafting) {
+                                aiDrafting = true
+                                scope.launch {
+                                    val name = shopState.currentUser?.displayName ?: "Tech"
+                                    val draft = SharedStore.draftClockOutSummary(name)
+                                    if (draft != null) summary = draft else errorMessage = "No completed work found to summarize yet."
+                                    aiDrafting = false
+                                }
+                            }
+                            .padding(horizontal = 6.dp, vertical = 3.dp)
+                    ) {
+                        if (aiDrafting) {
+                            CircularProgressIndicator(modifier = Modifier.size(12.dp), strokeWidth = 2.dp, color = HFColors.StatusCyan)
+                            Spacer(Modifier.width(5.dp))
+                        }
+                        Text(
+                            if (aiDrafting) "Drafting…" else "✨ Draft with AI",
+                            color = HFColors.StatusCyan, fontSize = 12.sp, fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
                 OutlinedTextField(
                     value = summary,
                     onValueChange = { summary = it },
