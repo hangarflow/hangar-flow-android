@@ -104,6 +104,8 @@ private fun SquawksHubContent(
     val filters = listOf("All", "Open", "In Progress", "Waiting", "Resolved")
     var selectedFilter by remember { mutableStateOf("All") }
     var statusSheetFor by remember { mutableStateOf<HFSquawk?>(null) }
+    var deleteConfirmFor by remember { mutableStateOf<HFSquawk?>(null) }
+    val deleteScope = rememberCoroutineScope()
     val sheetState = rememberModalBottomSheetState()
 
     val filtered = remember(squawks, selectedFilter) {
@@ -182,6 +184,7 @@ private fun SquawksHubContent(
                     SquawkCard(
                         squawk = squawk,
                         onTapStatus = { statusSheetFor = squawk },
+                        onDelete = { deleteConfirmFor = squawk },
                         onOpenPhoto = onOpenPhoto
                     )
                 }
@@ -208,6 +211,32 @@ private fun SquawksHubContent(
                 }
             )
         }
+    }
+
+    deleteConfirmFor?.let { squawk ->
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { deleteConfirmFor = null },
+            containerColor = HFColors.Surface,
+            title = { Text("Delete squawk?", color = HFColors.StatusRed, fontWeight = FontWeight.Bold) },
+            text = {
+                Text(
+                    "\"${squawk.title.ifBlank { "Untitled squawk" }}\" will be removed for everyone. This can't be undone.",
+                    color = HFColors.OnSurface.copy(alpha = 0.8f)
+                )
+            },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = {
+                    val id = squawk.id
+                    deleteScope.launch { SharedStore.deleteSquawk(id) }
+                    deleteConfirmFor = null
+                }) { Text("Delete", color = HFColors.StatusRed, fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { deleteConfirmFor = null }) {
+                    Text("Cancel", color = HFColors.OnSurface.copy(alpha = 0.7f))
+                }
+            }
+        )
     }
 }
 
@@ -284,6 +313,7 @@ private fun SquawkFilterChip(label: String, isSelected: Boolean, onClick: () -> 
 private fun SquawkCard(
     squawk: HFSquawk,
     onTapStatus: () -> Unit,
+    onDelete: () -> Unit,
     onOpenPhoto: (paths: List<String>, index: Int) -> Unit
 ) {
     val (statusLabel, statusColor) = statusPresentation(squawk.status)
@@ -331,6 +361,17 @@ private fun SquawkCard(
                     .padding(horizontal = 4.dp, vertical = 2.dp)
             ) {
                 StatusBadge(color = statusColor, label = statusLabel)
+            }
+            Spacer(Modifier.width(6.dp))
+            // Anyone (including techs) can delete a squawk.
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(HFColors.StatusRed.copy(alpha = 0.12f))
+                    .clickable(onClick = onDelete)
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+            ) {
+                Text("Delete", color = HFColors.StatusRed, fontSize = 11.sp, fontWeight = FontWeight.Bold)
             }
         }
 
