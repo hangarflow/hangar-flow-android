@@ -38,6 +38,19 @@ data class HFWorkLog(
     /** Who logged this work (the "Added by" paper trail). */
     @SerialName("created_by_user_id") val createdByUserId: String? = null,
     @SerialName("created_by_user_name") val createdByUserName: String? = null,
+    // AI-organize enrichment (written server-side by organize-worklogs).
+    @SerialName("ai_recommended_parts") val aiRecommendedParts: List<HFAIRecommendedPart>? = null,
+    @SerialName("ai_related_reference_ids") val aiRelatedReferenceIds: List<String>? = null,
+    @SerialName("ai_enriched_at") val aiEnrichedAt: String? = null,
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("updated_at") val updatedAt: String? = null
+)
+
+/** One advisory part the AI thinks a work log needs. partNumber is null
+ *  when the AI couldn't confirm a real number (it never invents one). */
+@Serializable
+data class HFAIRecommendedPart(
+    @SerialName("part_number") val partNumber: String? = null,
+    val description: String = "",
+    val reason: String = ""
 )

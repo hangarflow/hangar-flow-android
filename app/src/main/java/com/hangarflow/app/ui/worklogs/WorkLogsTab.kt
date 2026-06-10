@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -444,6 +445,8 @@ private fun WorkLogLinkSheet(log: HFWorkLog, onDismiss: () -> Unit) {
                 }
             }
 
+            WorkLogAIOrganizeCard(log = log)
+
             Row(verticalAlignment = Alignment.CenterVertically) {
                 OutlinedTextField(
                     value = query,
@@ -527,3 +530,91 @@ private fun WorkLogLinkSheet(log: HFWorkLog, onDismiss: () -> Unit) {
         }
     }
 }
+
+/** AI-organize card: AI-recommended parts + an "Organize with AI" button
+ *  (admins / lead techs). The primary manual reference the AI picks is set
+ *  on the work log itself and shown in the linked row above. */
+@Composable
+private fun WorkLogAIOrganizeCard(log: HFWorkLog) {
+    val authState by AuthManager.state.collectAsState()
+    val aiEnabled by SharedStore.aiIndexingEnabled.collectAsState()
+    val organizing by SharedStore.isOrganizing.collectAsState()
+    val canOrganize = authState.isAdmin || authState.isLeadTech
+    val enriched = log.aiEnrichedAt != null
+    if (!(aiEnabled || enriched || canOrganize)) return
+
+    // Re-read the live log so parts/enriched update after an organize pass.
+    val liveLog by remember(log.id) {
+        derivedStateOf { SharedStore.state.value.workLogs.firstOrNull { it.id == log.id } ?: log }
+    }
+    val parts = liveLog.aiRecommendedParts ?: emptyList()
+    val scope = rememberCoroutineScope()
+    var status by remember(log.id) { mutableStateOf("") }
+
+    Column(
+        modifier = Modifier.fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(HFColors.StatusBlue.copy(alpha = 0.06f))
+            .androidx_border()
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("✨ AI ASSIST", color = HFColors.StatusBlue, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+            Spacer(Modifier.weight(1f))
+            if (canOrganize) {
+                Box(
+                    modifier = Modifier.clip(RoundedCornerShape(100.dp))
+                        .background(HFColors.StatusBlue.copy(alpha = 0.15f))
+                        .clickable(enabled = !organizing) {
+                            scope.launch {
+                                val n = SharedStore.organizeWorkLog(log.id)
+                                status = if (n > 0) "Updated by AI." else "No new matches found."
+                            }
+                        }
+                        .padding(horizontal = 10.dp, vertical = 5.dp)
+                ) {
+                    Text(
+                        if (organizing) "Working…" else if (enriched) "Re-run AI" else "Organize with AI",
+                        color = HFColors.StatusBlue, fontSize = 11.sp, fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+        if (parts.isNotEmpty()) {
+            Text("RECOMMENDED PARTS", color = HFColors.OnSurfaceMuted, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+            parts.forEach { p ->
+                Column(
+                    modifier = Modifier.fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(HFColors.OnSurface.copy(alpha = 0.05f))
+                        .padding(10.dp)
+                ) {
+                    Text(
+                        if (!p.partNumber.isNullOrBlank()) p.partNumber!! else p.description,
+                        color = HFColors.OnSurface, fontSize = 13.sp, fontWeight = FontWeight.SemiBold
+                    )
+                    if (!p.partNumber.isNullOrBlank() && p.description.isNotBlank()) {
+                        Text(p.description, color = HFColors.OnSurface.copy(alpha = 0.7f), fontSize = 11.sp)
+                    }
+                    if (p.reason.isNotBlank()) {
+                        Text(p.reason, color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 11.sp)
+                    }
+                }
+            }
+        } else {
+            Text(
+                if (enriched) "AI found no specific parts for this log."
+                else "Let AI link this log to the right manual reference and suggest parts.",
+                color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 12.sp
+            )
+        }
+        if (status.isNotBlank()) {
+            Text(status, color = HFColors.StatusBlue.copy(alpha = 0.85f), fontSize = 11.sp)
+        }
+    }
+}
+
+/** Subtle blue hairline border matching the AI card accent. */
+private fun Modifier.androidx_border(): Modifier =
+    this.border(1.dp, HFColors.StatusBlue.copy(alpha = 0.25f), RoundedCornerShape(14.dp))

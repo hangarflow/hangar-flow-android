@@ -949,6 +949,46 @@ class HFCloudSyncService {
             .decodeFromString(AIPartsSearchResult.serializer(), resp.bodyAsText())
     }
 
+    // ---------- AI organize (organize-worklogs edge function) ----------
+
+    @kotlinx.serialization.Serializable
+    data class OrganizeRequest(
+        @kotlinx.serialization.SerialName("worklog_id") val worklogId: String? = null,
+        val limit: Int = 25,
+    )
+    @kotlinx.serialization.Serializable
+    data class OrganizeResult(val enriched: Int = 0)
+
+    /** Run the AI organize pass. worklogId enriches one log; null = batch. */
+    suspend fun organizeWorkLogs(worklogId: String? = null, limit: Int = 25): Int {
+        val resp = client.functions.invoke(
+            function = "organize-worklogs",
+            body = OrganizeRequest(worklogId = worklogId, limit = limit),
+        )
+        return kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+            .decodeFromString(OrganizeResult.serializer(), resp.bodyAsText()).enriched
+    }
+
+    // ---------- Org AI-indexing toggle (organizations.ai_indexing_enabled) ----------
+
+    @kotlinx.serialization.Serializable
+    private data class OrgAIFlagRow(
+        @kotlinx.serialization.SerialName("ai_indexing_enabled") val aiIndexingEnabled: Boolean? = null,
+    )
+
+    suspend fun fetchAIIndexingEnabled(orgId: String): Boolean =
+        client.postgrest.from("organizations")
+            .select(io.github.jan.supabase.postgrest.query.Columns.list("ai_indexing_enabled")) {
+                filter { eq("id", orgId) }
+            }
+            .decodeList<OrgAIFlagRow>()
+            .firstOrNull()?.aiIndexingEnabled ?: false
+
+    suspend fun setAIIndexingEnabled(orgId: String, enabled: Boolean) {
+        client.postgrest.from("organizations")
+            .update(mapOf("ai_indexing_enabled" to enabled)) { filter { eq("id", orgId) } }
+    }
+
     // ---------- AI navigator (ai-navigate edge function) ----------
 
     @kotlinx.serialization.Serializable

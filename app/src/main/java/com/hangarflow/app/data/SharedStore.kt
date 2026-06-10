@@ -106,6 +106,36 @@ object SharedStore {
         scope.launch { pullSnapshot(orgId) }
     }
 
+    // AI organize (work logs)
+    private val _aiIndexingEnabled = MutableStateFlow(false)
+    val aiIndexingEnabled: StateFlow<Boolean> = _aiIndexingEnabled.asStateFlow()
+    private val _isOrganizing = MutableStateFlow(false)
+    val isOrganizing: StateFlow<Boolean> = _isOrganizing.asStateFlow()
+
+    /** Run the AI organize pass for one work log, then re-pull so the new
+     *  reference link + recommended parts appear. Returns count enriched. */
+    suspend fun organizeWorkLog(id: String): Int {
+        val orgId = bootstrappedOrgId ?: return 0
+        _isOrganizing.value = true
+        val n = try { cloud.organizeWorkLogs(worklogId = id) } catch (t: Throwable) { 0 }
+        _isOrganizing.value = false
+        runCatching { pullSnapshot(orgId) }
+        return n
+    }
+
+    /** Load the org's AI-indexing toggle into [aiIndexingEnabled]. */
+    suspend fun loadAIIndexingFlag() {
+        val orgId = bootstrappedOrgId ?: return
+        runCatching { cloud.fetchAIIndexingEnabled(orgId) }.getOrNull()?.let { _aiIndexingEnabled.value = it }
+    }
+
+    /** Flip the org's AI-indexing toggle (admin). */
+    suspend fun setAIIndexing(enabled: Boolean) {
+        val orgId = bootstrappedOrgId ?: return
+        _aiIndexingEnabled.value = enabled
+        runCatching { cloud.setAIIndexingEnabled(orgId, enabled) }
+    }
+
     /**
      * Optimistically flip a work log's status in local state, push the
      * change to Supabase, then emit an org event so other devices

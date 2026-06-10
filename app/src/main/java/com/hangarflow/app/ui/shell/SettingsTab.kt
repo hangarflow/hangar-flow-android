@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -17,8 +18,10 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -26,7 +29,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.hangarflow.app.auth.AuthManager
+import com.hangarflow.app.data.SharedStore
 import com.hangarflow.app.ui.theme.HFColors
+import kotlinx.coroutines.launch
 
 @Composable
 fun SettingsTab() {
@@ -56,6 +61,32 @@ fun SettingsTab() {
         SettingsCard(title = "Sync") {
             SettingsRow(label = "Backend", value = "Connected")
             SettingsRow(label = "Realtime", value = "Pending (Phase 5)")
+        }
+
+        if (state.isAdmin) {
+            Spacer(Modifier.height(16.dp))
+            val aiEnabled by SharedStore.aiIndexingEnabled.collectAsState()
+            val aiScope = rememberCoroutineScope()
+            LaunchedEffect(state.orgId) { SharedStore.loadAIIndexingFlag() }
+            SettingsCard(title = "AI") {
+                androidx.compose.foundation.layout.Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("AI indexing", color = HFColors.OnSurface, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            "Let AI link work logs to manual references and suggest parts. Off keeps system (keyword) indexing only.",
+                            color = HFColors.OnSurfaceMuted, fontSize = 12.sp
+                        )
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    androidx.compose.material3.Switch(
+                        checked = aiEnabled,
+                        onCheckedChange = { v -> aiScope.launch { SharedStore.setAIIndexing(v) } }
+                    )
+                }
+            }
         }
 
         Spacer(Modifier.height(24.dp))
