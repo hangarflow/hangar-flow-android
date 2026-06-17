@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -52,6 +51,43 @@ import com.hangarflow.app.auth.AuthManager
 import com.hangarflow.app.data.cloud.HFCloudSyncService
 import kotlinx.coroutines.launch
 
+/**
+ * Source bubbles for the Work Logs list — slice items by where they
+ * came from so a tech can read each channel on its own:
+ *   All · Due List · Work Card · Inspections
+ * Mirrors the Desktop/macOS WorkLogSource filter.
+ */
+private enum class WorkLogSource(val label: String) {
+    ALL("All"),
+    DUE_LIST("Due List"),
+    WORK_CARD("Work Card"),
+    INSPECTIONS("Inspections");
+
+    fun matches(wl: HFWorkLog): Boolean = when (this) {
+        ALL -> true
+        INSPECTIONS -> isInspection(wl)
+        DUE_LIST -> isDueList(wl)
+        // Work-card items that aren't due-list rows and aren't the
+        // inspection package parents — the loose tasks off the work card.
+        WORK_CARD -> wl.isImportedRecord && !isDueList(wl) && !isInspection(wl)
+    }
+
+    companion object {
+        private val INTERVAL_RE = Regex("""\b\d{1,4}\s*-?\s*(hr|hrs|hour|hours|fh)\b""", RegexOption.IGNORE_CASE)
+
+        fun isInspection(wl: HFWorkLog): Boolean {
+            if (com.hangarflow.app.util.HFInspectionKind.fromTitle(wl.title) != null) return true
+            val t = wl.title.lowercase()
+            return t.contains("inspection") || t.contains("package") || INTERVAL_RE.containsMatchIn(t)
+        }
+
+        fun isDueList(wl: HFWorkLog): Boolean {
+            val hay = "${wl.importSourceName ?: ""} ${wl.details} ${wl.title}".lowercase()
+            return hay.contains("due list") || hay.contains("due items") || hay.contains("due-list")
+        }
+    }
+}
+
 @Composable
 fun WorkLogsTab() {
     // Work Logs | Squawks segment — admins want a "punch list" Squawks view
@@ -71,29 +107,37 @@ fun WorkLogsTab() {
 
 @Composable
 private fun WorkLogsViewToggle(viewMode: String, onChange: (String) -> Unit) {
+    // iOS-style segmented control: a single rounded track holding two
+    // equal-width segments; the active one rides on a solid white pill.
     Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(HFColors.OnSurface.copy(alpha = 0.06f))
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        ViewToggleChip("Work Logs", viewMode == "worklogs", HFColors.StatusGreen) { onChange("worklogs") }
-        ViewToggleChip("Squawks", viewMode == "squawks", HFColors.StatusOrange) { onChange("squawks") }
+        ViewToggleChip("Work Logs", viewMode == "worklogs", Modifier.weight(1f)) { onChange("worklogs") }
+        ViewToggleChip("Squawks", viewMode == "squawks", Modifier.weight(1f)) { onChange("squawks") }
     }
 }
 
 @Composable
-private fun ViewToggleChip(label: String, selected: Boolean, accent: Color, onClick: () -> Unit) {
+private fun ViewToggleChip(label: String, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(20.dp))
-            .background(if (selected) accent else HFColors.OnSurface.copy(alpha = 0.06f))
+        modifier = modifier
+            .clip(RoundedCornerShape(9.dp))
+            .background(if (selected) HFColors.BrandWhite else Color.Transparent)
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .padding(vertical = 8.dp),
+        contentAlignment = Alignment.Center
     ) {
         Text(
             label,
-            color = if (selected) HFColors.BrandInk else HFColors.OnSurface.copy(alpha = 0.75f),
+            color = if (selected) HFColors.BrandInk else HFColors.OnSurface.copy(alpha = 0.65f),
             fontSize = 13.sp,
-            fontWeight = FontWeight.Bold
+            fontWeight = FontWeight.SemiBold
         )
     }
 }
@@ -103,9 +147,13 @@ private fun WorkLogsContent() {
     val state by SharedStore.state.collectAsState()
     var statusFilter by remember { mutableStateOf(HFStatusFilter.All) }
     var categoryFilter by remember { mutableStateOf<HFWorkCategory?>(null) }
+    var sourceFilter by remember { mutableStateOf(WorkLogSource.ALL) }
     var linkingLog by remember { mutableStateOf<HFWorkLog?>(null) }
 
-    val filtered = remember(state.workLogs, statusFilter, categoryFilter) {
+    // Everything except the source bubble — feeds both the bubble counts
+    // and (after the source predicate) the final list, so each bubble can
+    // preview how many it WOULD show.
+    val preSource = remember(state.workLogs, statusFilter, categoryFilter) {
         state.workLogs.filter { log ->
             val status = HFWorkLogStatus.fromRaw(log.status)
             val category = HFWorkCategory.fromRaw(log.category)
@@ -114,20 +162,41 @@ private fun WorkLogsContent() {
         }
     }
 
+    val filtered = remember(preSource, sourceFilter) {
+        preSource.filter { log -> sourceFilter.matches(log) }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 20.dp, vertical = 16.dp)
+            .padding(horizontal = 16.dp, vertical = 16.dp)
     ) {
         WorkLogsHeader(total = filtered.size, overall = state.workLogs.size)
+        Spacer(Modifier.height(14.dp))
+
+        FilterSectionLabel("Source")
+        Spacer(Modifier.height(6.dp))
+        SourceFilterRow(
+            selected = sourceFilter,
+            counts = WorkLogSource.entries.associateWith { src ->
+                if (src == WorkLogSource.ALL) preSource.size else preSource.count { src.matches(it) }
+            },
+            onSelect = { sourceFilter = it }
+        )
         Spacer(Modifier.height(12.dp))
+
+        FilterSectionLabel("Status")
+        Spacer(Modifier.height(6.dp))
         StatusFilterRow(selected = statusFilter, onSelect = { statusFilter = it })
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(12.dp))
+
+        FilterSectionLabel("Category")
+        Spacer(Modifier.height(6.dp))
         CategoryFilterRow(
             selected = categoryFilter,
             onSelect = { categoryFilter = it }
         )
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(14.dp))
 
         if (filtered.isEmpty()) {
             EmptyWorkLogs(
@@ -159,17 +228,29 @@ private fun WorkLogsHeader(total: Int, overall: Int) {
         Text(
             "Work Logs",
             color = HFColors.OnSurface,
-            fontSize = 22.sp,
+            fontSize = 28.sp,
             fontWeight = FontWeight.Bold
         )
-        Spacer(Modifier.size(10.dp))
+        Spacer(Modifier.weight(1f))
         Text(
             if (total == overall) "$total" else "$total / $overall",
-            color = HFColors.OnSurfaceMuted,
+            color = HFColors.OnSurface.copy(alpha = 0.45f),
             fontSize = 13.sp,
             fontWeight = FontWeight.SemiBold
         )
     }
+}
+
+/** iOS-style uppercase section caption above each filter row. */
+@Composable
+private fun FilterSectionLabel(text: String) {
+    Text(
+        text = text.uppercase(),
+        color = HFColors.OnSurface.copy(alpha = 0.55f),
+        fontSize = 10.sp,
+        fontWeight = FontWeight.Bold,
+        letterSpacing = 1.0.sp
+    )
 }
 
 @Composable
@@ -220,20 +301,42 @@ private fun CategoryFilterRow(
 }
 
 @Composable
+private fun SourceFilterRow(
+    selected: WorkLogSource,
+    counts: Map<WorkLogSource, Int>,
+    onSelect: (WorkLogSource) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        WorkLogSource.entries.forEach { src ->
+            FilterPill(
+                label = "${src.label} · ${counts[src] ?: 0}",
+                isSelected = src == selected,
+                onClick = { onSelect(src) }
+            )
+        }
+    }
+}
+
+@Composable
 private fun FilterPill(
     label: String,
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    val bg = if (isSelected) HFColors.BrandWhite else HFColors.SurfaceElevated
+    val bg = if (isSelected) HFColors.BrandWhite else HFColors.OnSurface.copy(alpha = 0.06f)
     val fg = if (isSelected) HFColors.BrandInk else HFColors.OnSurface
-    val border = if (isSelected) HFColors.BrandWhite else HFColors.OutlineSubtle
+    val border = if (isSelected) HFColors.BrandWhite else HFColors.OnSurface.copy(alpha = 0.10f)
 
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(10.dp))
             .background(bg)
-            .border(1.dp, border, RoundedCornerShape(12.dp))
+            .border(1.dp, border, RoundedCornerShape(10.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
@@ -250,98 +353,217 @@ private fun FilterPill(
 private fun WorkLogCard(log: HFWorkLog, onClick: () -> Unit = {}) {
     val status = HFWorkLogStatus.fromRaw(log.status)
     val category = HFWorkCategory.fromRaw(log.category)
+    val isPinned = !log.pinnedAt.isNullOrBlank()
 
+    // iOS work-log card anatomy:
+    //   meta row → ATA/ref pill · solid status pill · spacer · pin · updated date
+    //   title    → 16sp semibold white
+    //   bottom   → green page badge · neutral badges · spacer · chevron
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(HFColors.SurfaceElevated)
-            .border(1.dp, HFColors.OutlineSubtle, RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(18.dp))
+            .background(
+                if (isPinned) HFColors.StatusOrange.copy(alpha = 0.08f)
+                else HFColors.OnSurface.copy(alpha = 0.06f)
+            )
+            .border(
+                1.dp,
+                if (isPinned) HFColors.StatusOrange.copy(alpha = 0.35f)
+                else HFColors.OnSurface.copy(alpha = 0.10f),
+                RoundedCornerShape(18.dp)
+            )
             .clickable(onClick = onClick)
-            .padding(14.dp)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Row(verticalAlignment = Alignment.Top) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    text = log.title.ifBlank { "Untitled work log" },
-                    color = HFColors.OnSurface,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 2
-                )
-                Spacer(Modifier.height(4.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    MetaPill(
-                        text = log.planeTailNumber.ifBlank { "No tail" },
-                        color = HFColors.OnSurfaceMuted
-                    )
-                    Spacer(Modifier.size(6.dp))
-                    MetaPill(text = category.label, color = HFColors.OnSurfaceMuted)
-                    if (!log.assignedUserName.isNullOrBlank()) {
-                        Spacer(Modifier.size(6.dp))
-                        MetaPill(text = log.assignedUserName, color = HFColors.StatusCyan)
-                    }
-                }
+        // Meta row
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            val ata = (log.sourceAtaCode?.takeIf { it.isNotBlank() }
+                ?: log.referenceCode?.takeIf { it.isNotBlank() })
+            if (ata != null) {
+                NeutralPill(text = ata)
+                Spacer(Modifier.size(8.dp))
             }
-            StatusDot(color = status.color, label = status.label)
+            SolidStatusPill(color = status.color, label = status.label)
+            Spacer(Modifier.weight(1f))
+            // Pin / unpin toggle — pinned logs float to the top of the list.
+            // Mirrors the Desktop pin affordance (any org member can pin).
+            PinToggle(isPinned = isPinned) {
+                SharedStore.setWorkLogPinned(log.id, !isPinned)
+            }
+            val updated = formatUpdatedDate(log.updatedAt)
+            if (updated != null) {
+                Spacer(Modifier.size(8.dp))
+                Text(
+                    updated,
+                    color = HFColors.OnSurface.copy(alpha = 0.45f),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
         }
 
+        // Title
+        Text(
+            text = log.title.ifBlank { "Untitled work log" },
+            color = HFColors.OnSurface,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 3
+        )
+
         if (log.details.isNotBlank()) {
-            Spacer(Modifier.height(8.dp))
             Text(
                 text = log.details,
-                color = HFColors.OnSurfaceMuted,
+                color = HFColors.OnSurface.copy(alpha = 0.68f),
                 fontSize = 12.sp,
                 maxLines = 3
             )
         }
 
-        if (log.loggedMinutes > 0) {
-            Spacer(Modifier.height(8.dp))
+        // Bottom row — badges + chevron
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            log.manualPageStart?.takeIf { it > 0 }?.let { page ->
+                GreenPageBadge(page = page)
+                Spacer(Modifier.size(8.dp))
+            }
+            NeutralBadge(text = log.planeTailNumber.ifBlank { "No tail" })
+            Spacer(Modifier.size(8.dp))
+            NeutralBadge(text = category.label)
+            if (!log.assignedUserName.isNullOrBlank()) {
+                Spacer(Modifier.size(8.dp))
+                CyanBadge(text = log.assignedUserName)
+            }
+            if (log.loggedMinutes > 0) {
+                Spacer(Modifier.size(8.dp))
+                NeutralBadge(text = formatMinutes(log.loggedMinutes))
+            }
+            Spacer(Modifier.weight(1f))
             Text(
-                text = formatMinutes(log.loggedMinutes),
-                color = HFColors.OnSurfaceFaint,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold
+                "›",
+                color = HFColors.OnSurface.copy(alpha = 0.36f),
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold
             )
         }
     }
 }
 
+/** Pin / unpin toggle shown in the work-log card meta row. Pinned →
+ *  solid orange capsule; unpinned → subtle outline. Has its own
+ *  clickable so tapping it doesn't open the card's link sheet. */
 @Composable
-private fun MetaPill(text: String, color: Color) {
+private fun PinToggle(isPinned: Boolean, onToggle: () -> Unit) {
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(6.dp))
-            .background(color.copy(alpha = 0.12f))
-            .padding(horizontal = 6.dp, vertical = 2.dp)
+            .clip(RoundedCornerShape(100.dp))
+            .background(
+                if (isPinned) HFColors.StatusOrange.copy(alpha = 0.18f)
+                else HFColors.OnSurface.copy(alpha = 0.06f)
+            )
+            .border(
+                1.dp,
+                if (isPinned) HFColors.StatusOrange.copy(alpha = 0.45f)
+                else HFColors.OnSurface.copy(alpha = 0.12f),
+                RoundedCornerShape(100.dp)
+            )
+            .clickable(onClick = onToggle)
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        contentAlignment = Alignment.Center
     ) {
         Text(
-            text,
-            color = color,
+            if (isPinned) "📌 Pinned" else "📌 Pin",
+            color = if (isPinned) HFColors.StatusOrange else HFColors.OnSurface.copy(alpha = 0.6f),
             fontSize = 10.sp,
-            fontWeight = FontWeight.SemiBold
+            fontWeight = FontWeight.Bold
         )
     }
 }
 
+/** Capsule pill, white@8% fill, white text — the iOS ATA/ref code pill. */
 @Composable
-private fun StatusDot(color: Color, label: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            modifier = Modifier
-                .size(8.dp)
-                .clip(CircleShape)
-                .background(color)
-        )
-        Spacer(Modifier.size(6.dp))
-        Text(
-            label,
-            color = color,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.SemiBold
-        )
+private fun NeutralPill(text: String) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(100.dp))
+            .background(HFColors.OnSurface.copy(alpha = 0.08f))
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(text, color = HFColors.OnSurface, fontSize = 11.sp, fontWeight = FontWeight.Bold)
     }
+}
+
+/** Solid status-colored capsule with black text — the iOS status pill. */
+@Composable
+private fun SolidStatusPill(color: Color, label: String) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(100.dp))
+            .background(color)
+            .padding(horizontal = 8.dp, vertical = 3.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(label, color = HFColors.BrandInk, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+/** Green page-jump badge — book glyph + monospaced page number. */
+@Composable
+private fun GreenPageBadge(page: Int) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(100.dp))
+            .background(HFColors.StatusGreen.copy(alpha = 0.18f))
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text("📖 p. $page", color = HFColors.StatusGreen, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+/** Neutral capsule badge — white@8% fill, muted white text. */
+@Composable
+private fun NeutralBadge(text: String) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(100.dp))
+            .background(HFColors.OnSurface.copy(alpha = 0.08f))
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(text, color = HFColors.OnSurface.copy(alpha = 0.72f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+/** Cyan accent badge — used for the assigned-tech name. */
+@Composable
+private fun CyanBadge(text: String) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(100.dp))
+            .background(HFColors.StatusCyan.copy(alpha = 0.16f))
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(text, color = HFColors.StatusCyan, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+/** Abbreviated "MMM d" from the ISO updated_at, mirroring the iOS
+ *  right-aligned date stamp. Returns null when there's no usable date. */
+private fun formatUpdatedDate(iso: String?): String? {
+    val raw = iso?.takeIf { it.isNotBlank() } ?: return null
+    // Expect "YYYY-MM-DD..." — pull month/day without pulling in a parser.
+    val datePart = raw.take(10)
+    val bits = datePart.split("-")
+    if (bits.size < 3) return null
+    val month = bits[1].toIntOrNull() ?: return null
+    val day = bits[2].toIntOrNull() ?: return null
+    val names = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+    if (month < 1 || month > 12) return null
+    return "${names[month - 1]} $day"
 }
 
 @Composable
@@ -444,6 +666,12 @@ private fun WorkLogLinkSheet(log: HFWorkLog, onDismiss: () -> Unit) {
                     )
                 }
             }
+
+            // Inspection-checklist panel — surfaces tagged checklist items
+            // (e.g. 200hr inspection) for the plane's attached manuals.
+            // Self-hides if the title isn't an inspection or no tagged refs
+            // exist for the plane.
+            InspectionChecklistPanel(workLog = log)
 
             WorkLogAIOrganizeCard(log = log)
 

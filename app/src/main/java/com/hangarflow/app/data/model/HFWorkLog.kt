@@ -42,8 +42,27 @@ data class HFWorkLog(
     @SerialName("ai_recommended_parts") val aiRecommendedParts: List<HFAIRecommendedPart>? = null,
     @SerialName("ai_related_reference_ids") val aiRelatedReferenceIds: List<String>? = null,
     @SerialName("ai_enriched_at") val aiEnrichedAt: String? = null,
+    /** Inspection-checklist sign-off state. One entry per checked-off
+     *  manual-reference item. Persisted in the `checklist_state` JSONB
+     *  column so every device sees the same progress. */
+    @SerialName("checklist_state") val checklistState: List<HFChecklistEntry>? = null,
+    /** When set, the log floats to the top of the Work Logs list.
+     *  Pin → now() ISO timestamp; unpin → null. */
+    @SerialName("pinned_at") val pinnedAt: String? = null,
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("updated_at") val updatedAt: String? = null
+)
+
+/** One sign-off line on an inspection checklist — which reference was
+ *  checked, by whom, and when. `refId` keys back to the
+ *  `hf_manual_references.id` the checklist row was built from. */
+@Serializable
+data class HFChecklistEntry(
+    @SerialName("ref_id") val refId: String,
+    val done: Boolean = false,
+    val by: String = "",
+    val initials: String = "",
+    val at: String? = null
 )
 
 /** One advisory part the AI thinks a work log needs. partNumber is null

@@ -97,70 +97,47 @@ private fun ScheduleHubContent(onRequestTimeOff: () -> Unit, onAddEvent: (LocalD
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp)
     ) {
-        Spacer(Modifier.height(18.dp))
+        Spacer(Modifier.height(20.dp))
         Text("Schedule", color = HFColors.OnSurface, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(2.dp))
         Text(
             "Plane arrivals, RTS deadlines, and time-off.",
-            color = HFColors.OnSurface.copy(alpha = 0.68f),
+            color = HFColors.OnSurface.copy(alpha = 0.55f),
             fontSize = 13.sp,
             fontWeight = FontWeight.Medium
         )
 
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(16.dp))
         StatsStrip(month = monthAnchor, plane = shopState.planes)
 
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(12.dp))
         // Top actions: every tech can request PTO; admins can also drop a
         // calendar event on the selected day right from the calendar.
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(HFColors.OnSurface.copy(alpha = 0.04f))
-                    .border(1.dp, HFColors.StatusBlue.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
-                    .clickable { onRequestTimeOff() }
-                    .padding(vertical = 12.dp),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    if (isAdmin) "Mark Time Off" else "Request Time Off",
-                    color = HFColors.StatusBlue,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+            ActionButton(
+                label = if (isAdmin) "Mark Time Off" else "Request Time Off",
+                accent = HFColors.StatusBlue,
+                modifier = Modifier.weight(1f),
+                onClick = onRequestTimeOff
+            )
             if (canManage) {
-                Row(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(HFColors.OnSurface.copy(alpha = 0.04f))
-                        .border(1.dp, HFColors.StatusYellow.copy(alpha = 0.40f), RoundedCornerShape(12.dp))
-                        .clickable { onAddEvent(selectedDay ?: today) }
-                        .padding(vertical = 12.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        "Add Event",
-                        color = HFColors.StatusYellow,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                ActionButton(
+                    label = "Add Event",
+                    accent = HFColors.StatusBlue,
+                    modifier = Modifier.weight(1f),
+                    onClick = { onAddEvent(selectedDay ?: today) }
+                )
             }
         }
 
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(16.dp))
         MonthNav(
             monthLabel = monthAnchor.format(monthFormatter),
             onPrev = { monthAnchor = monthAnchor.minusMonths(1) },
             onNext = { monthAnchor = monthAnchor.plusMonths(1) }
         )
 
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(12.dp))
         CalendarGrid(
             month = monthAnchor,
             today = today,
@@ -170,33 +147,48 @@ private fun ScheduleHubContent(onRequestTimeOff: () -> Unit, onAddEvent: (LocalD
         )
 
         selectedDay?.let { day ->
-            Spacer(Modifier.height(18.dp))
-            Text(
-                day.format(dayLongFormatter),
-                color = HFColors.OnSurface,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(Modifier.height(8.dp))
-            val events = planeEvents[day].orEmpty()
+            Spacer(Modifier.height(16.dp))
+            val planeDayEvents = planeEvents[day].orEmpty()
             val dayCalendarEvents = calendarByDay[day].orEmpty()
-            if (events.isEmpty() && dayCalendarEvents.isEmpty()) {
+            val arrivals = planeDayEvents.filter { it.kind == PlaneEventKind.Arrival }
+            val deadlines = planeDayEvents.filter { it.kind == PlaneEventKind.Deadline }
+            // Single bordered "day card" with colored sub-groups, mirroring iOS.
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(HFColors.OnSurface.copy(alpha = 0.04f))
+                    .border(1.dp, HFColors.OnSurface.copy(alpha = 0.08f), RoundedCornerShape(14.dp))
+                    .padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 Text(
-                    "Nothing on this day.",
-                    color = HFColors.OnSurface.copy(alpha = 0.55f),
-                    fontSize = 13.sp
+                    day.format(dayLongFormatter),
+                    color = HFColors.OnSurface,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold
                 )
-            } else {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    dayCalendarEvents.forEach { ev ->
-                        CalendarEventRow(
-                            event = ev,
-                            canDelete = isAdmin,
-                            scope = scope
-                        )
+                DayGroup(title = "EVENTS (${dayCalendarEvents.size})", accent = HFColors.StatusBlue) {
+                    if (dayCalendarEvents.isEmpty()) {
+                        EmptyGroupText("No admin events.")
+                    } else {
+                        dayCalendarEvents.forEach { ev ->
+                            CalendarEventRow(event = ev, canDelete = isAdmin, scope = scope)
+                        }
                     }
-                    events.forEach { event ->
-                        EventRow(event)
+                }
+                DayGroup(title = "DROP-OFFS (${arrivals.size})", accent = HFColors.StatusGreen) {
+                    if (arrivals.isEmpty()) {
+                        EmptyGroupText("No drop-offs.")
+                    } else {
+                        arrivals.forEach { EventRow(it) }
+                    }
+                }
+                DayGroup(title = "RTS DEADLINES (${deadlines.size})", accent = HFColors.StatusRed) {
+                    if (deadlines.isEmpty()) {
+                        EmptyGroupText("No RTS deadlines.")
+                    } else {
+                        deadlines.forEach { EventRow(it) }
                     }
                 }
             }
@@ -233,7 +225,7 @@ private fun TimeOffSection(
     if (isAdmin && pending.isNotEmpty()) {
         Text(
             "PENDING TIME-OFF (${pending.size})",
-            color = HFColors.StatusOrange, fontSize = 11.sp,
+            color = HFColors.StatusYellow, fontSize = 11.sp,
             fontWeight = FontWeight.Bold, letterSpacing = 0.8.sp
         )
         Spacer(Modifier.height(8.dp))
@@ -264,9 +256,9 @@ private fun TimeOffRow(
     showActions: Boolean
 ) {
     val statusColor = when (req.status) {
-        "approved" -> HFColors.StatusGreen
+        "approved" -> HFColors.StatusBlue
         "denied" -> HFColors.StatusRed
-        else -> HFColors.StatusOrange
+        else -> HFColors.StatusYellow
     }
     val range = remember(req.startDate, req.endDate) {
         val s = parseDate(req.startDate)
@@ -280,24 +272,40 @@ private fun TimeOffRow(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.04f))
-            .border(1.dp, statusColor.copy(alpha = 0.35f), RoundedCornerShape(10.dp))
-            .padding(12.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(HFColors.OnSurface.copy(alpha = 0.03f))
+            .padding(8.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .width(3.dp)
+                    .height(if (req.reason.isNotBlank()) 34.dp else 28.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(statusColor)
+            )
+            Spacer(Modifier.width(8.dp))
             Column(Modifier.weight(1f)) {
-                Text(req.userName, color = HFColors.OnSurface, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                Text(range, color = HFColors.OnSurface.copy(alpha = 0.70f), fontSize = 12.sp, fontWeight = FontWeight.Medium)
-                if (req.reason.isNotBlank()) {
-                    Text(req.reason, color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 11.sp)
+                Text(req.userName, color = HFColors.OnSurface, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.height(2.dp))
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(100.dp))
+                            .background(statusColor.copy(alpha = 0.18f))
+                            .padding(horizontal = 6.dp, vertical = 1.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            req.status.replaceFirstChar { it.uppercase() },
+                            color = statusColor, fontSize = 9.sp, fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Text(range, color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 10.sp, fontWeight = FontWeight.Medium)
                 }
-            }
-            if (!showActions) {
-                Text(
-                    req.status.replaceFirstChar { it.uppercase() },
-                    color = statusColor, fontSize = 11.sp, fontWeight = FontWeight.Bold
-                )
+                if (req.reason.isNotBlank()) {
+                    Text(req.reason, color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 10.sp, maxLines = 1)
+                }
             }
         }
         if (showActions) {
@@ -315,14 +323,48 @@ private fun TimeOffRow(
 }
 
 @Composable
+private fun ActionButton(label: String, accent: Color, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(100.dp))
+            .background(accent.copy(alpha = 0.16f))
+            .clickable(onClick = onClick)
+            .padding(vertical = 11.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(label, color = accent, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+/** A small colored uppercase header followed by its rows, matching the
+ *  iOS day-section sub-groups (EVENTS / DROP-OFFS / RTS / TIME OFF). */
+@Composable
+private fun DayGroup(title: String, accent: Color, content: @Composable () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+        Text(
+            title,
+            color = accent,
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 0.8.sp
+        )
+        content()
+    }
+}
+
+@Composable
+private fun EmptyGroupText(text: String) {
+    Text(text, color = HFColors.OnSurface.copy(alpha = 0.40f), fontSize = 11.sp)
+}
+
+@Composable
 private fun DecisionButton(label: String, accent: Color, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(9.dp))
-            .background(accent.copy(alpha = 0.14f))
-            .border(1.dp, accent.copy(alpha = 0.55f), RoundedCornerShape(9.dp))
+            .clip(RoundedCornerShape(100.dp))
+            .background(accent.copy(alpha = 0.15f))
             .clickable { onClick() }
-            .padding(vertical = 9.dp),
+            .padding(vertical = 8.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(label, color = accent, fontSize = 12.sp, fontWeight = FontWeight.Bold)
@@ -344,9 +386,9 @@ private fun StatsStrip(month: YearMonth, plane: List<HFPlane>) {
     }
 
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        StatTile(label = "DROP-OFFS", value = dropOffs.toString(), accent = HFColors.StatusBlue, modifier = Modifier.weight(1f))
-        StatTile(label = "RTS DEADLINES", value = rtsDue.toString(), accent = HFColors.StatusOrange, modifier = Modifier.weight(1f))
-        StatTile(label = "ON THE LINE", value = onLine.toString(), accent = HFColors.StatusGreen, modifier = Modifier.weight(1f))
+        StatTile(label = "DROP-OFFS", value = dropOffs.toString(), accent = HFColors.StatusGreen, modifier = Modifier.weight(1f))
+        StatTile(label = "RTS", value = rtsDue.toString(), accent = HFColors.StatusRed, modifier = Modifier.weight(1f))
+        StatTile(label = "ON THE LINE", value = onLine.toString(), accent = HFColors.StatusBlue, modifier = Modifier.weight(1f))
     }
 }
 
@@ -354,44 +396,44 @@ private fun StatsStrip(month: YearMonth, plane: List<HFPlane>) {
 private fun StatTile(label: String, value: String, accent: Color, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(12.dp))
             .background(HFColors.OnSurface.copy(alpha = 0.04f))
-            .border(1.dp, accent.copy(alpha = 0.40f), RoundedCornerShape(14.dp))
-            .padding(12.dp)
+            .border(1.dp, HFColors.OnSurface.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
+            .padding(10.dp)
     ) {
-        Text(value, color = HFColors.OnSurface, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(4.dp))
         Text(label, color = accent, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.8.sp)
+        Spacer(Modifier.height(4.dp))
+        Text(value, color = HFColors.OnSurface, fontSize = 22.sp, fontWeight = FontWeight.Bold)
     }
 }
 
 @Composable
 private fun MonthNav(monthLabel: String, onPrev: () -> Unit, onNext: () -> Unit) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             modifier = Modifier
-                .size(32.dp)
+                .size(30.dp)
                 .clip(CircleShape)
-                .background(HFColors.OnSurface.copy(alpha = 0.10f))
+                .background(HFColors.OnSurface.copy(alpha = 0.06f))
                 .clickable { onPrev() },
             contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Previous month", tint = HFColors.OnSurface, modifier = Modifier.size(18.dp))
+            Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Previous month", tint = HFColors.OnSurface, modifier = Modifier.size(15.dp))
         }
-        Text(monthLabel, color = HFColors.OnSurface, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        Text(monthLabel, color = HFColors.OnSurface, fontSize = 15.sp, fontWeight = FontWeight.Bold)
         Box(
             modifier = Modifier
-                .size(32.dp)
+                .size(30.dp)
                 .clip(CircleShape)
-                .background(HFColors.OnSurface.copy(alpha = 0.10f))
+                .background(HFColors.OnSurface.copy(alpha = 0.06f))
                 .clickable { onNext() },
             contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.AutoMirrored.Outlined.ArrowForward, contentDescription = "Next month", tint = HFColors.OnSurface, modifier = Modifier.size(18.dp))
+            Icon(Icons.AutoMirrored.Outlined.ArrowForward, contentDescription = "Next month", tint = HFColors.OnSurface, modifier = Modifier.size(15.dp))
         }
     }
 }
@@ -404,12 +446,12 @@ private fun CalendarGrid(
     eventDays: Set<LocalDate>,
     onSelect: (LocalDate) -> Unit
 ) {
-    // Weekday header (Sun-first, matching iOS calendar)
+    // Weekday header (Sun-first, single-letter, matching iOS calendar)
     Row(modifier = Modifier.fillMaxWidth()) {
-        listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat").forEach { dayLabel ->
+        listOf("S", "M", "T", "W", "T", "F", "S").forEach { dayLabel ->
             Text(
                 dayLabel,
-                color = HFColors.OnSurface.copy(alpha = 0.55f),
+                color = HFColors.OnSurface.copy(alpha = 0.45f),
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
@@ -417,7 +459,7 @@ private fun CalendarGrid(
             )
         }
     }
-    Spacer(Modifier.height(6.dp))
+    Spacer(Modifier.height(4.dp))
 
     val firstOfMonth = month.atDay(1)
     // Sunday-leading offset: DayOfWeek.SUNDAY = 7 (ISO), so we compute
@@ -432,10 +474,13 @@ private fun CalendarGrid(
         if (dayOfMonth in 1..daysInMonth) month.atDay(dayOfMonth) else null
     }
     cells.chunked(7).forEach { row ->
-        Row(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
             row.forEach { date ->
                 Box(
-                    modifier = Modifier.weight(1f).aspectRatio(1f).padding(2.dp),
+                    modifier = Modifier.weight(1f).height(52.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     if (date != null) {
@@ -456,14 +501,13 @@ private fun CalendarGrid(
 @Composable
 private fun DayCell(date: LocalDate, isToday: Boolean, isSelected: Boolean, hasEvents: Boolean, onClick: () -> Unit) {
     val bg = when {
-        isSelected -> HFColors.StatusBlue.copy(alpha = 0.30f)
-        isToday -> HFColors.OnSurface.copy(alpha = 0.10f)
-        else -> Color.Transparent
+        isSelected -> HFColors.OnSurface.copy(alpha = 0.12f)
+        else -> HFColors.OnSurface.copy(alpha = 0.03f)
     }
     val border = when {
-        isSelected -> HFColors.StatusBlue
-        isToday -> HFColors.StatusBlue.copy(alpha = 0.50f)
-        else -> HFColors.OnSurface.copy(alpha = 0.08f)
+        isSelected -> HFColors.OnSurface.copy(alpha = 0.30f)
+        isToday -> HFColors.StatusBlue.copy(alpha = 0.45f)
+        else -> HFColors.OnSurface.copy(alpha = 0.06f)
     }
     Column(
         modifier = Modifier
@@ -478,18 +522,20 @@ private fun DayCell(date: LocalDate, isToday: Boolean, isSelected: Boolean, hasE
     ) {
         Text(
             date.dayOfMonth.toString(),
-            color = HFColors.OnSurface,
-            fontSize = 13.sp,
-            fontWeight = if (isToday || isSelected) FontWeight.Bold else FontWeight.Medium
+            color = if (isToday) HFColors.StatusBlue else HFColors.OnSurface,
+            fontSize = 11.sp,
+            fontWeight = if (isToday) FontWeight.Bold else FontWeight.SemiBold
         )
-        if (hasEvents) {
-            Spacer(Modifier.height(3.dp))
-            Box(
-                modifier = Modifier
-                    .size(5.dp)
-                    .clip(CircleShape)
-                    .background(HFColors.StatusOrange)
-            )
+        Spacer(Modifier.height(2.dp))
+        Box(modifier = Modifier.height(6.dp), contentAlignment = Alignment.Center) {
+            if (hasEvents) {
+                Box(
+                    modifier = Modifier
+                        .size(4.dp)
+                        .clip(CircleShape)
+                        .background(HFColors.StatusBlue)
+                )
+            }
         }
     }
 }
@@ -497,36 +543,36 @@ private fun DayCell(date: LocalDate, isToday: Boolean, isSelected: Boolean, hasE
 @Composable
 private fun EventRow(event: PlaneScheduleEvent) {
     val accent = when (event.kind) {
-        PlaneEventKind.Arrival -> HFColors.StatusBlue
-        PlaneEventKind.Deadline -> HFColors.StatusOrange
+        PlaneEventKind.Arrival -> HFColors.StatusGreen
+        PlaneEventKind.Deadline -> HFColors.StatusRed
     }
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.04f))
-            .border(1.dp, accent.copy(alpha = 0.35f), RoundedCornerShape(10.dp))
-            .padding(12.dp),
+            .clip(RoundedCornerShape(8.dp))
+            .background(HFColors.OnSurface.copy(alpha = 0.03f))
+            .padding(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             modifier = Modifier
-                .size(8.dp)
-                .clip(CircleShape)
+                .width(3.dp)
+                .height(22.dp)
+                .clip(RoundedCornerShape(2.dp))
                 .background(accent)
         )
-        Spacer(Modifier.width(10.dp))
+        Spacer(Modifier.width(8.dp))
         Column(Modifier.weight(1f)) {
             Text(
                 event.title,
                 color = HFColors.OnSurface,
-                fontSize = 14.sp,
+                fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold
             )
             Text(
                 event.subtitle,
-                color = accent,
-                fontSize = 11.sp,
+                color = HFColors.OnSurface.copy(alpha = 0.55f),
+                fontSize = 10.sp,
                 fontWeight = FontWeight.Medium
             )
         }
@@ -612,48 +658,49 @@ private fun CalendarEventRow(
     canDelete: Boolean,
     scope: kotlinx.coroutines.CoroutineScope
 ) {
-    val accent = HFColors.StatusYellow
+    val accent = HFColors.StatusBlue
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .background(accent.copy(alpha = 0.06f))
-            .border(1.dp, accent.copy(alpha = 0.40f), RoundedCornerShape(10.dp))
-            .padding(12.dp),
+            .clip(RoundedCornerShape(8.dp))
+            .background(HFColors.OnSurface.copy(alpha = 0.03f))
+            .padding(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             modifier = Modifier
-                .size(8.dp)
-                .clip(CircleShape)
+                .width(3.dp)
+                .height(22.dp)
+                .clip(RoundedCornerShape(2.dp))
                 .background(accent)
         )
-        Spacer(Modifier.width(10.dp))
+        Spacer(Modifier.width(8.dp))
         Column(Modifier.weight(1f)) {
-            Text(event.title, color = HFColors.OnSurface, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Text(event.title, color = HFColors.OnSurface, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 2)
             val sub = listOfNotNull(
                 event.planeTailNumber?.takeIf { it.isNotBlank() } ?: "Org-wide",
                 event.description.takeIf { it.isNotBlank() }
             ).joinToString(" · ")
             if (sub.isNotBlank()) {
-                Text(sub, color = accent, fontSize = 11.sp, fontWeight = FontWeight.Medium, maxLines = 2)
+                Text(sub, color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 10.sp, fontWeight = FontWeight.Medium, maxLines = 2)
             }
             if (event.visibility != "public") {
                 Text(
                     if (event.visibility == "admin_only") "Admins only" else "Personal",
-                    color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 10.sp, fontWeight = FontWeight.Medium
+                    color = HFColors.OnSurface.copy(alpha = 0.45f), fontSize = 9.sp, fontWeight = FontWeight.Medium
                 )
             }
         }
         if (canDelete) {
+            Spacer(Modifier.width(6.dp))
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
-                    .background(HFColors.StatusRed.copy(alpha = 0.12f))
                     .clickable { scope.launch { SharedStore.deleteCalendarEvent(event.id) } }
-                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                contentAlignment = Alignment.Center
             ) {
-                Text("Delete", color = HFColors.StatusRed, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Text("Delete", color = HFColors.StatusRed.copy(alpha = 0.85f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
             }
         }
     }

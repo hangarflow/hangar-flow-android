@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -16,6 +17,7 @@ import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -47,6 +49,7 @@ import java.io.File
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
+// iOS-parity Find Parts: single scrolling column, AI-driven cards.
 private enum class OrderUrgency(val raw: String, val label: String, val color: Color) {
     AOG("aog", "AOG", HFColors.StatusRed),
     Routine("normal", "Routine", HFColors.StatusBlue),
@@ -75,6 +78,11 @@ fun FindPartsHub(restrictToPlaneTail: String? = null) {
     var aiAnswer by remember { mutableStateOf<String?>(null) }
     var aiLoading by remember { mutableStateOf(false) }
     var aiError by remember { mutableStateOf<String?>(null) }
+    // Structured AI part finder (Pass-2 flow) — the primary result.
+    var aiFindResults by remember { mutableStateOf<List<HFCloudSyncService.AIPartCandidate>>(emptyList()) }
+    var aiFindNote by remember { mutableStateOf("") }
+    var aiFindRan by remember { mutableStateOf(false) }
+    var orderedFindIds by remember { mutableStateOf(setOf<String>()) }
 
     // PDF state — same model as Desktop FindPartsScreen. We only swap the
     // file when it actually changes so navigating between sections in the
@@ -121,9 +129,20 @@ fun FindPartsHub(restrictToPlaneTail: String? = null) {
     LaunchedEffect(query, orgId, restrictedTail) {
         aiAnswer = null
         aiError = null
+        aiFindResults = emptyList(); aiFindNote = ""; aiFindRan = false
         if (query.isBlank() || orgId == null) { hits = emptyList(); selectedHit = null; return@LaunchedEffect }
-        delay(400)
+        delay(450)
         isSearching = true
+
+        // Structured AI part finder (plane-scoped) — the primary result.
+        run {
+            val plane = shopState.planes.firstOrNull { it.tailNumber.equals(restrictedTail, ignoreCase = true) }
+            aiLoading = true
+            runCatching { cloud.aiPartsFind(query, plane?.id, restrictedTail, plane?.aircraftType) }
+                .onSuccess { aiFindResults = it.parts; aiFindNote = it.note; aiFindRan = true }
+                .onFailure { aiError = it.message ?: "AI find failed"; aiFindRan = true }
+            aiLoading = false
+        }
         val raw = runCatching {
             cloud.searchManualReferences(orgId, query, restrictToPlaneTail = restrictedTail)
         }.getOrElse { emptyList() }
@@ -141,142 +160,204 @@ fun FindPartsHub(restrictToPlaneTail: String? = null) {
         isSearching = false
     }
 
-    Row(modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp)) {
-        // LEFT — search + results list
-        Column(modifier = Modifier.width(330.dp).fillMaxHeight().padding(end = 10.dp)) {
-            OutlinedTextField(
-                value = query, onValueChange = { query = it }, singleLine = true,
-                placeholder = { Text("Part, ATA, P/N…", color = HFColors.OnSurface.copy(alpha = 0.45f), fontSize = 13.sp) },
-                modifier = Modifier.fillMaxWidth(),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
-                    unfocusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
-                    focusedBorderColor = HFColors.OnSurface.copy(alpha = 0.25f),
-                    unfocusedBorderColor = HFColors.OnSurface.copy(alpha = 0.10f),
-                    focusedTextColor = HFColors.OnSurface,
-                    unfocusedTextColor = HFColors.OnSurface,
-                    cursorColor = HFColors.OnSurface
-                )
+    // Resolve an AI reference to one of the raw manual hits (fetched in the
+    // background) so "Verify in manual" can open the real PDF page — mirrors
+    // iOS's matchingManualResult(for:).
+    fun matchingHit(ref: HFCloudSyncService.AIPartReference): HFCloudSyncService.ManualSearchHit? {
+        val code = ref.code?.trim()?.lowercase().orEmpty()
+        val title = ref.title.trim().lowercase()
+        if (code.isNotEmpty()) {
+            hits.firstOrNull { (it.referenceCode?.trim()?.lowercase().orEmpty()) == code }?.let { return it }
+        }
+        if (title.isNotEmpty()) {
+            hits.firstOrNull {
+                val t = it.title?.lowercase().orEmpty()
+                t.contains(title) || (t.isNotEmpty() && title.contains(t))
+            }?.let { return it }
+        }
+        return null
+    }
+
+    // iOS look: near-black canvas, single scrolling column, only the search
+    // bar pinned at the top.
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(HFColors.Background)
+    ) {
+        // Pinned search bar — rounded translucent field with a leading glass
+        // icon and a trailing clear button. (iOS HFFindPartsView search bar.)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .padding(top = 12.dp, bottom = 8.dp)
+                .clip(RoundedCornerShape(14.dp))
+                .background(HFColors.OnSurface.copy(alpha = 0.08f))
+                .padding(horizontal = 14.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                Icons.Outlined.Search, null,
+                tint = HFColors.OnSurface.copy(alpha = 0.5f),
+                modifier = Modifier.size(18.dp)
             )
-
-            // Plane-scope chip — shown only when the search is restricted
-            // to a single plane (entry from plane detail). Lets the tech
-            // broaden to org-wide mid-flight without leaving the screen.
-            restrictedTail?.let { tail ->
-                Spacer(Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(Color(0xFF00CCDD).copy(alpha = 0.12f))
-                        .border(1.dp, Color(0xFF00CCDD).copy(alpha = 0.40f), RoundedCornerShape(10.dp))
-                        .padding(horizontal = 10.dp, vertical = 7.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Searching only $tail",
-                        color = HFColors.OnSurface.copy(alpha = 0.85f),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Text(
-                        text = "Search all  ✕",
-                        color = HFColors.OnSurface,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .background(HFColors.OnSurface.copy(alpha = 0.12f))
-                            .clickable { restrictedTail = null }
-                            .padding(horizontal = 8.dp, vertical = 3.dp)
-                    )
-                }
-            }
-
-            // AI parts assistant — above the raw hits.
-            if (query.isNotBlank()) {
-                Spacer(Modifier.height(8.dp))
-                AIPartsPanel(
-                    query = query,
-                    answer = aiAnswer,
-                    loading = aiLoading,
-                    error = aiError,
-                    onAsk = {
-                        val tail = restrictedTail
-                        val acType = shopState.planes.firstOrNull { it.tailNumber.equals(tail, ignoreCase = true) }?.aircraftType
-                        aiLoading = true; aiError = null
-                        scope.launch {
-                            runCatching { cloud.aiPartsSearch(query, tail, acType) }
-                                .onSuccess { aiAnswer = it.answer; aiLoading = false }
-                                .onFailure { aiError = it.message ?: "AI search failed"; aiLoading = false }
-                        }
-                    },
-                    onClear = { aiAnswer = null }
-                )
-            }
-
-            if (isSearching || hits.isNotEmpty()) {
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    if (isSearching) "Searching…" else "${hits.size} results",
-                    color = HFColors.OnSurface.copy(alpha = 0.45f), fontSize = 10.sp, fontWeight = FontWeight.SemiBold
-                )
-            }
-            Spacer(Modifier.height(8.dp))
-
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(0.dp)) {
-                items(hits, key = { it.id }) { hit ->
-                    val isSelected = hit.id == selectedHit?.id
-                    val partCount = remember(hit.id) { extractPartNumbers(hit.bodyText).size }
-                    Column(
-                        modifier = Modifier.fillMaxWidth()
-                            .background(if (isSelected) HFColors.OnSurface.copy(alpha = 0.10f) else Color.Transparent)
-                            .clickable { selectedHit = hit }
-                            .padding(horizontal = 10.dp, vertical = 10.dp)
-                    ) {
+            Spacer(Modifier.width(10.dp))
+            BasicTextField(
+                value = query,
+                onValueChange = { query = it },
+                singleLine = true,
+                textStyle = androidx.compose.ui.text.TextStyle(
+                    color = HFColors.OnSurface, fontSize = 16.sp, fontWeight = FontWeight.Medium
+                ),
+                cursorBrush = androidx.compose.ui.graphics.SolidColor(HFColors.OnSurface),
+                modifier = Modifier.weight(1f),
+                decorationBox = { inner ->
+                    if (query.isEmpty()) {
                         Text(
-                            hit.title ?: hit.referenceCode ?: "Result",
-                            color = HFColors.OnSurface, fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold, maxLines = 2
+                            "Search manuals for parts, components…",
+                            color = HFColors.OnSurface.copy(alpha = 0.4f),
+                            fontSize = 16.sp, fontWeight = FontWeight.Medium, maxLines = 1
                         )
-                        Spacer(Modifier.height(5.dp))
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            hit.referenceCode?.let {
-                                AtaChip(it); Spacer(Modifier.width(5.dp))
-                            }
-                            hit.pageStart?.let {
-                                MetaChip("p.$it"); Spacer(Modifier.width(5.dp))
-                            }
-                            hit.planeTailNumber?.let {
-                                MetaChip(it); Spacer(Modifier.width(5.dp))
-                            }
-                            if (partCount > 0) MetaChip("$partCount parts")
-                        }
                     }
-                    Box(Modifier.fillMaxWidth().height(1.dp).background(HFColors.OnSurface.copy(alpha = 0.06f)))
+                    inner()
+                }
+            )
+            if (query.isNotEmpty()) {
+                Spacer(Modifier.width(8.dp))
+                Box(
+                    Modifier.size(24.dp).clip(CircleShape).clickable { query = "" },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Outlined.Close, null,
+                        tint = HFColors.OnSurface.copy(alpha = 0.4f),
+                        modifier = Modifier.size(16.dp)
+                    )
                 }
             }
         }
 
-        Box(Modifier.width(1.dp).fillMaxHeight().background(HFColors.OnSurface.copy(alpha = 0.08f)))
-
-        // RIGHT — detail card + PDF viewer
-        Column(modifier = Modifier.weight(1f).fillMaxHeight().padding(start = 10.dp)) {
-            val hit = selectedHit
-            if (hit == null) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Search and select a result", color = HFColors.OnSurface.copy(alpha = 0.40f), fontSize = 13.sp)
+        // Plane-scope chip — airplane glyph + "Search all" capsule. Shown
+        // only when restricted to a single plane.
+        restrictedTail?.let { tail ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .padding(bottom = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("✈", color = HFColors.OnSurface.copy(alpha = 0.6f), fontSize = 13.sp)
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    "Searching only $tail",
+                    color = HFColors.OnSurface.copy(alpha = 0.85f),
+                    fontSize = 13.sp, fontWeight = FontWeight.Medium
+                )
+                Spacer(Modifier.weight(1f))
+                Row(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(HFColors.OnSurface.copy(alpha = 0.12f))
+                        .clickable { restrictedTail = null }
+                        .padding(horizontal = 10.dp, vertical = 5.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Search all", color = HFColors.OnSurface, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Spacer(Modifier.width(4.dp))
+                    Text("✕", color = HFColors.OnSurface, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
-            } else {
-                val planeTail = hit.planeTailNumber ?: ""
-                val plane = shopState.planes.firstOrNull { it.tailNumber.equals(planeTail, ignoreCase = true) }
-                val partNumbers = remember(hit.id) { extractPartNumbers(hit.bodyText) }
+            }
+        }
 
-                // Header card
+        // Single scrolling body — AI finder is the only result surface.
+        if (query.isBlank()) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.padding(horizontal = 32.dp)
+                ) {
+                    Icon(
+                        Icons.Outlined.Search, null,
+                        tint = HFColors.OnSurface.copy(alpha = 0.2f),
+                        modifier = Modifier.size(48.dp)
+                    )
+                    Text(
+                        "Find a part with AI",
+                        color = HFColors.OnSurface.copy(alpha = 0.6f),
+                        fontSize = 17.sp, fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        "Type a component name like \"generator\", \"oil filter\", or \"landing gear\" and the AI finds the part number + manual reference.",
+                        color = HFColors.OnSurface.copy(alpha = 0.35f),
+                        fontSize = 13.sp,
+                        lineHeight = 18.sp,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                }
+            }
+        } else {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp)
+            ) {
+                StructuredPartsFinder(
+                    loading = aiLoading,
+                    error = aiError,
+                    ran = aiFindRan,
+                    results = aiFindResults,
+                    note = aiFindNote,
+                    orderedIds = orderedFindIds,
+                    onVerify = { ref -> matchingHit(ref)?.let { selectedHit = it } },
+                    onOrder = { part ->
+                        val key = (part.partNumber ?: "") + "·" + part.partName
+                        orderedFindIds = orderedFindIds + key
+                        val oid = orgId ?: return@StructuredPartsFinder
+                        val plane = shopState.planes.firstOrNull { it.tailNumber.equals(restrictedTail, ignoreCase = true) }
+                        scope.launch {
+                            runCatching {
+                                cloud.createPartRequest(
+                                    orgId = oid, squawkId = null, planeId = plane?.id,
+                                    planeTailNumber = restrictedTail, title = part.partName,
+                                    requestedPart = part.partNumber ?: part.partName, urgency = "normal",
+                                    requestedBy = shopState.currentUser?.displayName, notes = part.note
+                                )
+                                cloud.emitOrgEvent(oid, SharedStore.deviceIdentifier(), "part_request_created")
+                                SharedStore.refresh()
+                            }
+                        }
+                    }
+                )
+            }
+        }
+    }
+
+    // "Verify in manual" — full-screen PDF overlay (iOS opens this as a
+    // fullScreenCover). Selecting an AI reference resolves to the matching
+    // raw manual hit, which drives the existing loadPdfFor(...) flow.
+    selectedHit?.let { hit ->
+        val planeTail = hit.planeTailNumber ?: ""
+        val plane = shopState.planes.firstOrNull { it.tailNumber.equals(planeTail, ignoreCase = true) }
+        val partNumbers = remember(hit.id) { extractPartNumbers(hit.bodyText) }
+        Dialog(
+            onDismissRequest = { selectedHit = null },
+            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(HFColors.Background)
+                    .padding(16.dp)
+            ) {
+                // Header card — title + meta + close + Order Part
                 Column(
                     modifier = Modifier.fillMaxWidth()
-                        .background(HFColors.OnSurface.copy(alpha = 0.06f), RoundedCornerShape(10.dp))
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(HFColors.OnSurface.copy(alpha = 0.06f))
                         .padding(horizontal = 14.dp, vertical = 12.dp)
                 ) {
                     Row(verticalAlignment = Alignment.Top) {
@@ -285,7 +366,7 @@ fun FindPartsHub(restrictToPlaneTail: String? = null) {
                                 hit.title ?: "Reference",
                                 color = HFColors.OnSurface, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 2
                             )
-                            Spacer(Modifier.height(4.dp))
+                            Spacer(Modifier.height(6.dp))
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 hit.referenceCode?.let {
                                     AtaChip(it); Spacer(Modifier.width(6.dp))
@@ -304,20 +385,30 @@ fun FindPartsHub(restrictToPlaneTail: String? = null) {
                                 }
                             }
                         }
-                        Spacer(Modifier.width(12.dp))
-                        // Order Part button — iOS-style black fill + green outline
+                        Spacer(Modifier.width(10.dp))
                         Box(
-                            Modifier.clip(RoundedCornerShape(10.dp))
-                                .background(Color.Black)
-                                .border(2.dp, HFColors.StatusGreen, RoundedCornerShape(10.dp))
-                                .clickable { showOrderDialog = true }
-                                .padding(horizontal = 14.dp, vertical = 10.dp)
+                            Modifier.size(30.dp).clip(CircleShape)
+                                .background(HFColors.OnSurface.copy(alpha = 0.08f))
+                                .clickable { selectedHit = null },
+                            contentAlignment = Alignment.Center
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Outlined.ShoppingCart, null, tint = Color.White, modifier = Modifier.size(14.dp))
-                                Spacer(Modifier.width(8.dp))
-                                Text("Order Part", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            }
+                            Icon(Icons.Outlined.Close, null, tint = HFColors.OnSurface.copy(alpha = 0.7f), modifier = Modifier.size(16.dp))
+                        }
+                    }
+                    Spacer(Modifier.height(12.dp))
+                    Box(
+                        Modifier.fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color.Black)
+                            .border(2.dp, HFColors.StatusGreen, RoundedCornerShape(10.dp))
+                            .clickable { showOrderDialog = true }
+                            .padding(vertical = 10.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Outlined.ShoppingCart, null, tint = Color.White, modifier = Modifier.size(14.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Order Part", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -327,8 +418,9 @@ fun FindPartsHub(restrictToPlaneTail: String? = null) {
                 // PDF — fills the rest. No text fallback.
                 Box(
                     modifier = Modifier.fillMaxSize()
-                        .background(HFColors.OnSurface.copy(alpha = 0.06f), RoundedCornerShape(10.dp))
-                        .border(1.dp, HFColors.OnSurface.copy(alpha = 0.08f), RoundedCornerShape(10.dp))
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(HFColors.OnSurface.copy(alpha = 0.06f))
+                        .border(1.dp, HFColors.OnSurface.copy(alpha = 0.08f), RoundedCornerShape(14.dp))
                 ) {
                     when {
                         pdfLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -349,7 +441,8 @@ fun FindPartsHub(restrictToPlaneTail: String? = null) {
                                 Text(
                                     pdfUnavailable ?: "Upload the manual on this plane (Manuals → Add) so techs can see diagrams and part assemblies here.",
                                     color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 12.sp,
-                                    lineHeight = 17.sp
+                                    lineHeight = 17.sp,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
                                 )
                             }
                         }
@@ -771,6 +864,136 @@ private fun <T> DropdownChooser(
 }
 
 // ----- AI parts assistant -----
+
+/** AI-driven structured Find Parts results — part name + number + the manual
+ *  reference to verify, with "Order this part". Mirrors iOS/macOS/Compose. */
+@Composable
+private fun StructuredPartsFinder(
+    loading: Boolean,
+    error: String?,
+    ran: Boolean,
+    results: List<HFCloudSyncService.AIPartCandidate>,
+    note: String,
+    orderedIds: Set<String>,
+    onVerify: (HFCloudSyncService.AIPartReference) -> Unit,
+    onOrder: (HFCloudSyncService.AIPartCandidate) -> Unit,
+) {
+    Column {
+        when {
+            loading -> Row(verticalAlignment = Alignment.CenterVertically) {
+                CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp, color = HFColors.StatusCyan)
+                Spacer(Modifier.width(8.dp))
+                Text("Finding the part…", color = HFColors.OnSurface.copy(alpha = 0.7f), fontSize = 13.sp)
+            }
+            error != null -> Text(error, color = HFColors.StatusRed, fontSize = 12.sp)
+            ran && results.isEmpty() -> Text(
+                note.ifBlank { "No matching part found for this aircraft. Try different words." },
+                color = HFColors.OnSurface.copy(alpha = 0.6f), fontSize = 13.sp
+            )
+            ran -> {
+                results.forEach { part ->
+                    val key = (part.partNumber ?: "") + "·" + part.partName
+                    StructuredPartCard(part, orderedIds.contains(key), onVerify = onVerify) { onOrder(part) }
+                    Spacer(Modifier.height(10.dp))
+                }
+                Text(
+                    "AI-assisted — verify against the manual reference before ordering.",
+                    color = HFColors.OnSurface.copy(alpha = 0.4f), fontSize = 11.sp
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun StructuredPartCard(
+    part: HFCloudSyncService.AIPartCandidate,
+    ordered: Boolean,
+    onVerify: (HFCloudSyncService.AIPartReference) -> Unit,
+    onOrder: () -> Unit,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(HFColors.OnSurface.copy(alpha = 0.06f))
+            .border(1.dp, HFColors.StatusCyan.copy(alpha = 0.22f), RoundedCornerShape(16.dp))
+            .padding(14.dp)
+    ) {
+        // Name + number on the left, IN STOCK badge on the right.
+        Row(verticalAlignment = Alignment.Top) {
+            Column(Modifier.weight(1f)) {
+                Text(part.partName, color = HFColors.OnSurface, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(2.dp))
+                if (!part.partNumber.isNullOrBlank()) {
+                    Text(
+                        part.partNumber!!, color = HFColors.StatusCyan, fontSize = 15.sp,
+                        fontWeight = FontWeight.Black, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                    )
+                } else {
+                    Text("No confirmed part number", color = HFColors.StatusOrange, fontSize = 11.sp)
+                }
+            }
+            if (part.inStock) {
+                Spacer(Modifier.width(8.dp))
+                Box(
+                    Modifier.clip(CircleShape)
+                        .background(HFColors.StatusGreen.copy(alpha = 0.2f))
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("IN STOCK", color = HFColors.StatusGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+        part.reference?.let { ref ->
+            val canOpen = !ref.code.isNullOrBlank() || ref.title.isNotBlank()
+            Spacer(Modifier.height(8.dp))
+            Column(
+                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
+                    .background(HFColors.OnSurface.copy(alpha = 0.05f))
+                    .border(
+                        1.dp,
+                        HFColors.StatusCyan.copy(alpha = if (canOpen) 0.3f else 0f),
+                        RoundedCornerShape(10.dp)
+                    )
+                    .clickable(enabled = canOpen) { onVerify(ref) }
+                    .padding(10.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("📖 VERIFY IN MANUAL", color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.weight(1f))
+                    if (canOpen) {
+                        Text("Open ›", color = HFColors.StatusCyan, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+                Spacer(Modifier.height(3.dp))
+                Text(ref.title, color = HFColors.OnSurface.copy(alpha = 0.85f), fontSize = 12.sp, maxLines = 3)
+                val meta = listOfNotNull(ref.code, ref.page?.let { "p.$it" }, ref.manual).joinToString(" · ")
+                if (meta.isNotBlank()) Text(meta, color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 10.sp)
+            }
+        }
+        if (part.note.isNotBlank()) {
+            Spacer(Modifier.height(8.dp))
+            Text(part.note, color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 11.sp)
+        }
+        Spacer(Modifier.height(10.dp))
+        Box(
+            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                .background((if (ordered) HFColors.StatusGreen else HFColors.StatusCyan).copy(alpha = 0.15f))
+                .clickable(enabled = !ordered, onClick = onOrder)
+                .padding(vertical = 10.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    if (ordered) "✓  Added to Order Parts" else "🛒  Order this part",
+                    color = if (ordered) HFColors.StatusGreen else HFColors.StatusCyan,
+                    fontSize = 13.sp, fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
+}
 
 @Composable
 private fun AIPartsPanel(

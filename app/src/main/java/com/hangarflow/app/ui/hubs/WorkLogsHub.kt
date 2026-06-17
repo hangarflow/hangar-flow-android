@@ -470,67 +470,59 @@ private fun AssignedPlaneLogList(
 private fun AssignedWorkLogRow(log: HFWorkLog, onClick: () -> Unit) {
     val status = HFWorkLogStatus.fromRaw(log.status)
     val category = HFWorkCategory.fromRaw(log.category)
-    val refBadge = buildIPadReferenceBadge(log)
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(HFColors.StatusCyan.copy(alpha = 0.06f))
-            .border(1.dp, HFColors.StatusCyan.copy(alpha = 0.35f), RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(18.dp))
+            .background(HFColors.StatusCyan.copy(alpha = 0.08f))
+            .border(1.dp, HFColors.StatusCyan.copy(alpha = 0.35f), RoundedCornerShape(18.dp))
             .clickable(onClick = onClick)
-            .padding(14.dp)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        if (refBadge != null) {
-            Text(
-                refBadge,
-                color = HFColors.StatusGreen,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 0.5.sp
-            )
-            Spacer(Modifier.height(4.dp))
+        // Meta row: ATA/ref pill · solid status pill · spacer · date
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            val ata = (log.sourceAtaCode?.takeIf { it.isNotBlank() }
+                ?: log.referenceCode?.takeIf { it.isNotBlank() })
+            if (ata != null) {
+                IOSNeutralPill(text = ata)
+                Spacer(Modifier.width(8.dp))
+            }
+            IOSSolidStatusPill(color = status.color, label = status.label)
+            Spacer(Modifier.weight(1f))
+            formatUpdatedDate(log.updatedAt)?.let { d ->
+                Text(d, color = HFColors.OnSurface.copy(alpha = 0.45f), fontSize = 11.sp, fontWeight = FontWeight.Medium)
+            }
         }
-        Row(verticalAlignment = Alignment.Top) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    log.title.ifBlank { "Untitled work log" },
-                    color = HFColors.OnSurface,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 2
-                )
-                Spacer(Modifier.height(4.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(HFColors.OnSurface.copy(alpha = 0.08f))
-                            .padding(horizontal = 6.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            category.label,
-                            color = HFColors.OnSurface.copy(alpha = 0.70f),
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-                // Paper trail — who logged (or imported) this work.
-                Spacer(Modifier.height(3.dp))
-                Text(
-                    if (log.isImportedRecord)
-                        "Imported by ${log.importSourceName?.takeIf { it.isNotBlank() } ?: "Imported"}"
-                    else
-                        "Added by ${log.createdByUserName?.takeIf { it.isNotBlank() } ?: "—"}",
-                    color = HFColors.OnSurface.copy(alpha = 0.50f),
-                    fontSize = 10.sp
-                )
+
+        // Title
+        Text(
+            log.title.ifBlank { "Untitled work log" },
+            color = HFColors.OnSurface,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 3
+        )
+
+        // Paper trail — who logged (or imported) this work.
+        Text(
+            if (log.isImportedRecord)
+                "Imported by ${log.importSourceName?.takeIf { it.isNotBlank() } ?: "Imported"}"
+            else
+                "Added by ${log.createdByUserName?.takeIf { it.isNotBlank() } ?: "—"}",
+            color = HFColors.OnSurface.copy(alpha = 0.50f),
+            fontSize = 11.sp
+        )
+
+        // Bottom row: green page badge · neutral badges · spacer · chevron
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            log.manualPageStart?.takeIf { it > 0 }?.let { page ->
+                IOSGreenPageBadge(page = page)
+                Spacer(Modifier.width(8.dp))
             }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(8.dp).clip(CircleShape).background(status.color))
-                Spacer(Modifier.width(6.dp))
-                Text(status.label, color = status.color, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-            }
+            IOSNeutralBadge(text = category.label)
+            Spacer(Modifier.weight(1f))
+            Text("›", color = HFColors.OnSurface.copy(alpha = 0.36f), fontSize = 18.sp, fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -1035,60 +1027,44 @@ private fun IOSWorkLogCard(
             .clip(RoundedCornerShape(18.dp))
             .background(
                 if (isAssignedToMe) HFColors.StatusCyan.copy(alpha = 0.08f)
-                else HFColors.OnSurface.copy(alpha = 0.04f)
+                else HFColors.OnSurface.copy(alpha = 0.06f)
             )
             .border(1.dp, accent, RoundedCornerShape(18.dp))
             .clickable(onClick = onTapCard)
-            .padding(14.dp)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        // Green reference/page badge — mirrors the iPad "00 00/481" tag
-        // so techs can spot the manual chapter without opening the card.
-        val refBadge = buildIPadReferenceBadge(log)
-        if (refBadge != null) {
-            Text(
-                refBadge,
-                color = HFColors.StatusGreen,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 0.5.sp
-            )
-            Spacer(Modifier.height(4.dp))
-        }
-        Row(verticalAlignment = Alignment.Top) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    text = log.title.ifBlank { "Untitled work log" },
-                    color = HFColors.OnSurface,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 2
-                )
-                Spacer(Modifier.height(6.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IOSMetaPill(
-                        text = log.planeTailNumber.ifBlank { "No tail" },
-                        color = HFColors.OnSurface.copy(alpha = 0.55f)
-                    )
-                    Spacer(Modifier.width(6.dp))
-                    IOSMetaPill(text = category.label, color = HFColors.OnSurface.copy(alpha = 0.55f))
-                    if (!log.assignedUserName.isNullOrBlank()) {
-                        Spacer(Modifier.width(6.dp))
-                        IOSMetaPill(text = log.assignedUserName, color = HFColors.StatusCyan)
-                    }
-                }
+        // Meta row: ATA/ref pill · (tappable) solid status pill · spacer · date
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            val ata = (log.sourceAtaCode?.takeIf { it.isNotBlank() }
+                ?: log.referenceCode?.takeIf { it.isNotBlank() })
+            if (ata != null) {
+                IOSNeutralPill(text = ata)
+                Spacer(Modifier.width(8.dp))
             }
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(10.dp))
+                    .clip(RoundedCornerShape(100.dp))
                     .clickable(onClick = onTapStatus)
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
             ) {
-                IOSStatusDot(color = status.color, label = status.label)
+                IOSSolidStatusPill(color = status.color, label = status.label)
+            }
+            Spacer(Modifier.weight(1f))
+            formatUpdatedDate(log.updatedAt)?.let { d ->
+                Text(d, color = HFColors.OnSurface.copy(alpha = 0.45f), fontSize = 11.sp, fontWeight = FontWeight.Medium)
             }
         }
 
+        // Title
+        Text(
+            text = log.title.ifBlank { "Untitled work log" },
+            color = HFColors.OnSurface,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 3
+        )
+
         if (log.details.isNotBlank()) {
-            Spacer(Modifier.height(10.dp))
             Text(
                 text = log.details,
                 color = HFColors.OnSurface.copy(alpha = 0.68f),
@@ -1097,53 +1073,109 @@ private fun IOSWorkLogCard(
             )
         }
 
-        if (log.loggedMinutes > 0) {
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = formatLoggedMinutes(log.loggedMinutes),
-                color = HFColors.OnSurface.copy(alpha = 0.45f),
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold
-            )
+        // Bottom row: green page badge · neutral badges · spacer · chevron
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            log.manualPageStart?.takeIf { it > 0 }?.let { page ->
+                IOSGreenPageBadge(page = page)
+                Spacer(Modifier.width(8.dp))
+            }
+            IOSNeutralBadge(text = log.planeTailNumber.ifBlank { "No tail" })
+            Spacer(Modifier.width(8.dp))
+            IOSNeutralBadge(text = category.label)
+            if (!log.assignedUserName.isNullOrBlank()) {
+                Spacer(Modifier.width(8.dp))
+                IOSCyanBadge(text = log.assignedUserName)
+            }
+            if (log.loggedMinutes > 0) {
+                Spacer(Modifier.width(8.dp))
+                IOSNeutralBadge(text = formatLoggedMinutes(log.loggedMinutes))
+            }
+            Spacer(Modifier.weight(1f))
+            Text("›", color = HFColors.OnSurface.copy(alpha = 0.36f), fontSize = 18.sp, fontWeight = FontWeight.Bold)
         }
     }
 }
 
+/** Capsule, white@8% fill, white text — the iOS ATA/ref code pill. */
 @Composable
-private fun IOSMetaPill(text: String, color: Color) {
+private fun IOSNeutralPill(text: String) {
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(6.dp))
-            .background(color.copy(alpha = 0.12f))
-            .padding(horizontal = 6.dp, vertical = 2.dp)
+            .clip(RoundedCornerShape(100.dp))
+            .background(HFColors.OnSurface.copy(alpha = 0.08f))
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        contentAlignment = Alignment.Center
     ) {
-        Text(text, color = color, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+        Text(text, color = HFColors.OnSurface, fontSize = 11.sp, fontWeight = FontWeight.Bold)
     }
 }
 
-private fun buildIPadReferenceBadge(log: HFWorkLog): String? {
-    val ref = log.referenceCode?.takeIf { it.isNotBlank() }
-    val page = log.manualPageStart
-    return when {
-        ref != null && page != null -> "$ref / $page"
-        ref != null -> ref
-        page != null -> "p. $page"
-        else -> null
-    }
-}
-
+/** Solid status-colored capsule with black text — the iOS status pill. */
 @Composable
-private fun IOSStatusDot(color: Color, label: String) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            modifier = Modifier
-                .size(8.dp)
-                .clip(CircleShape)
-                .background(color)
-        )
-        Spacer(Modifier.width(6.dp))
-        Text(label, color = color, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+private fun IOSSolidStatusPill(color: Color, label: String) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(100.dp))
+            .background(color)
+            .padding(horizontal = 8.dp, vertical = 3.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(label, color = HFColors.BrandInk, fontSize = 10.sp, fontWeight = FontWeight.Bold)
     }
+}
+
+/** Green page-jump badge — book glyph + page number. */
+@Composable
+private fun IOSGreenPageBadge(page: Int) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(100.dp))
+            .background(HFColors.StatusGreen.copy(alpha = 0.18f))
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text("📖 p. $page", color = HFColors.StatusGreen, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+/** Neutral capsule badge — white@8% fill, muted white text. */
+@Composable
+private fun IOSNeutralBadge(text: String) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(100.dp))
+            .background(HFColors.OnSurface.copy(alpha = 0.08f))
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(text, color = HFColors.OnSurface.copy(alpha = 0.72f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+/** Cyan accent badge — assigned-tech name. */
+@Composable
+private fun IOSCyanBadge(text: String) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(100.dp))
+            .background(HFColors.StatusCyan.copy(alpha = 0.16f))
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(text, color = HFColors.StatusCyan, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+/** Abbreviated "MMM d" from the ISO updated_at, mirroring iOS. */
+private fun formatUpdatedDate(iso: String?): String? {
+    val raw = iso?.takeIf { it.isNotBlank() } ?: return null
+    val bits = raw.take(10).split("-")
+    if (bits.size < 3) return null
+    val month = bits[1].toIntOrNull() ?: return null
+    val day = bits[2].toIntOrNull() ?: return null
+    val names = listOf("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+    if (month < 1 || month > 12) return null
+    return "${names[month - 1]} $day"
 }
 
 // ---------- assignee picker section (admin-only, inline in status sheet) ----------

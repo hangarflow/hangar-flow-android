@@ -33,6 +33,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.automirrored.outlined.ListAlt
+import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.CheckCircle
@@ -180,18 +181,32 @@ private fun HomeHubContent(onOpenHub: (HomeDestination) -> Unit, onOpenNavigator
             modifier = Modifier.padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // AI navigator — "What are you looking for?"
+            // AI navigator — "What are you looking for?" Mirrors the iOS
+            // IOSAINavigatorBar: neutral field, cyan sparkle leading icon,
+            // muted-white placeholder, cyan hairline border.
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(HFColors.StatusCyan.copy(alpha = 0.10f))
-                    .border(1.dp, HFColors.StatusCyan.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(HFColors.OnSurface.copy(alpha = 0.06f))
+                    .border(1.dp, HFColors.StatusCyan.copy(alpha = 0.35f), RoundedCornerShape(14.dp))
                     .clickable(onClick = onOpenNavigator)
                     .padding(horizontal = 14.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Text("✨  What are you looking for?", color = HFColors.StatusCyan, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                androidx.compose.material3.Icon(
+                    imageVector = Icons.Outlined.AutoAwesome,
+                    contentDescription = null,
+                    tint = HFColors.StatusCyan,
+                    modifier = Modifier.size(18.dp)
+                )
+                Text(
+                    "What are you looking for?",
+                    color = HFColors.OnSurface.copy(alpha = 0.70f),
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium
+                )
             }
             IOSLiveViewPanel(
                 userName = me?.displayName,
@@ -262,11 +277,10 @@ private fun ReorderableHomeGrid(
     var dragOffset by remember { mutableStateOf(Offset.Zero) }
     var pointerGlobalPos by remember { mutableStateOf(Offset.Zero) }
 
-    // 3 cards per row to match the iOS iPad dashboard layout. Each card
-    // uses weight(1f), so the Row auto-divides into thirds. Trailing rows
-    // with fewer than 3 cards get spacer fillers so card width stays
-    // consistent across rows.
-    val rows = cards.chunked(3)
+    // 2 cards per row to match the iOS iPhone home dashboard layout. Each
+    // card uses weight(1f), so the Row splits in half. Trailing rows with
+    // fewer than 2 cards get a spacer filler so card width stays consistent.
+    val rows = cards.chunked(2)
     rows.forEachIndexed { index, rowPair ->
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             rowPair.forEach { card ->
@@ -330,8 +344,8 @@ private fun ReorderableHomeGrid(
                     )
                 }
             }
-            // Pad short trailing row so cards keep one-third width.
-            repeat(3 - rowPair.size) {
+            // Pad short trailing row so cards keep one-half width.
+            repeat(2 - rowPair.size) {
                 Spacer(Modifier.weight(1f))
             }
         }
@@ -556,7 +570,7 @@ private fun cardsForRole(isAdmin: Boolean): List<HomeCard> {
         HomeCard(
             id = "manuals",
             title = "Manuals",
-            subtitle = "Approved manual excerpts and PDFs",
+            subtitle = "Manual references and full PDFs",
             icon = Icons.AutoMirrored.Outlined.MenuBook,
             accent = HFColors.StatusPurple.copy(alpha = 0.44f),
             destination = HomeDestination.Manuals

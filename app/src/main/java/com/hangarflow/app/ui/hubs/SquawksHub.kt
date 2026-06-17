@@ -20,11 +20,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -103,45 +107,55 @@ private fun SquawksHubContent(
 
     val filters = listOf("All", "Open", "In Progress", "Waiting", "Resolved")
     var selectedFilter by remember { mutableStateOf("All") }
+    var search by remember { mutableStateOf("") }
     var statusSheetFor by remember { mutableStateOf<HFSquawk?>(null) }
     var deleteConfirmFor by remember { mutableStateOf<HFSquawk?>(null) }
     val deleteScope = rememberCoroutineScope()
     val sheetState = rememberModalBottomSheetState()
 
-    val filtered = remember(squawks, selectedFilter) {
-        when (selectedFilter) {
+    val filtered = remember(squawks, selectedFilter, search) {
+        val byStatus = when (selectedFilter) {
             "Open" -> squawks.filter { it.status == "open" }
             "In Progress" -> squawks.filter { it.status == "inProgress" }
             "Waiting" -> squawks.filter { it.status == "waitingOnParts" }
             "Resolved" -> squawks.filter { it.status == "resolved" }
             else -> squawks
         }
+        val q = search.trim().lowercase()
+        if (q.isEmpty()) byStatus
+        else byStatus.filter {
+            it.title.lowercase().contains(q) ||
+                it.notes.lowercase().contains(q) ||
+                it.planeTailNumber.lowercase().contains(q)
+        }
     }
 
     Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
-        // Squawk accent (orange) to match the Squawks card on the home
-        // grid and iOS squawk-builder button treatment — less "shouty"
-        // than a plain white CTA, more on-brand.
+        // Primary CTA — clean white "Apple" button, matching the iOS
+        // squawk-builder primary action.
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .background(HFColors.StatusOrange.copy(alpha = 0.14f))
-                .border(1.dp, HFColors.StatusOrange.copy(alpha = 0.45f), RoundedCornerShape(12.dp))
+                .clip(RoundedCornerShape(14.dp))
+                .background(HFColors.BrandWhite)
                 .clickable(onClick = onOpenCreate)
-                .padding(vertical = 12.dp),
+                .padding(vertical = 13.dp),
             contentAlignment = Alignment.Center
         ) {
             Text(
-                "+ New Squawk",
-                color = HFColors.StatusOrange,
-                fontSize = 14.sp,
+                "New Squawk",
+                color = HFColors.BrandInk,
+                fontSize = 15.sp,
                 fontWeight = FontWeight.Bold
             )
         }
 
-        Spacer(Modifier.size(12.dp))
+        Spacer(Modifier.size(16.dp))
 
+        // Filter chips — full-width capsule row, white text, subtle fill,
+        // matching the iOS plane-filter chip treatment.
+        SectionCaption("FILTER")
+        Spacer(Modifier.size(8.dp))
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -159,14 +173,19 @@ private fun SquawksHubContent(
 
         Spacer(Modifier.size(12.dp))
 
+        // Search bar — filters by title / notes / tail, mirroring iOS.
+        SquawkSearchBar(query = search, onChange = { search = it }, onClear = { search = "" })
+
+        Spacer(Modifier.size(14.dp))
+
         Text(
-            text = "${filtered.size} of ${squawks.size}",
-            color = HFColors.OnSurface.copy(alpha = 0.45f),
-            fontSize = 11.sp,
+            text = "${filtered.size} item${if (filtered.size == 1) "" else "s"}",
+            color = HFColors.OnSurface.copy(alpha = 0.5f),
+            fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold
         )
 
-        Spacer(Modifier.size(10.dp))
+        Spacer(Modifier.size(12.dp))
 
         if (filtered.isEmpty()) {
             IOSPlaceholderPanel(
@@ -288,17 +307,89 @@ private fun SquawkStatusPickerSheet(current: String, onPick: (String) -> Unit) {
 }
 
 @Composable
+private fun SectionCaption(text: String) {
+    Text(
+        text = text,
+        color = HFColors.OnSurface.copy(alpha = 0.5f),
+        fontSize = 11.sp,
+        fontWeight = FontWeight.Bold,
+        letterSpacing = 0.6.sp
+    )
+}
+
+@Composable
+private fun SquawkSearchBar(query: String, onChange: (String) -> Unit, onClear: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .background(HFColors.OnSurface.copy(alpha = 0.06f))
+            .border(1.dp, HFColors.OnSurface.copy(alpha = 0.10f), RoundedCornerShape(14.dp))
+            .padding(horizontal = 14.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = Icons.Outlined.Search,
+            contentDescription = null,
+            tint = HFColors.OnSurface.copy(alpha = 0.55f),
+            modifier = Modifier.size(18.dp)
+        )
+        Spacer(Modifier.width(8.dp))
+        OutlinedTextField(
+            value = query,
+            onValueChange = onChange,
+            modifier = Modifier.weight(1f),
+            singleLine = true,
+            placeholder = {
+                Text(
+                    "Search squawks",
+                    color = HFColors.OnSurface.copy(alpha = 0.4f),
+                    fontSize = 14.sp
+                )
+            },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                focusedBorderColor = Color.Transparent,
+                unfocusedBorderColor = Color.Transparent,
+                focusedTextColor = HFColors.OnSurface,
+                unfocusedTextColor = HFColors.OnSurface,
+                cursorColor = HFColors.OnSurface
+            )
+        )
+        if (query.isNotEmpty()) {
+            Box(
+                modifier = Modifier
+                    .size(22.dp)
+                    .clip(CircleShape)
+                    .clickable(onClick = onClear),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Close,
+                    contentDescription = "Clear",
+                    tint = HFColors.OnSurface.copy(alpha = 0.5f),
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun SquawkFilterChip(label: String, isSelected: Boolean, onClick: () -> Unit) {
-    val bg = if (isSelected) HFColors.BrandWhite else HFColors.OnSurface.copy(alpha = 0.06f)
-    val fg = if (isSelected) HFColors.BrandInk else HFColors.OnSurface
-    val border = if (isSelected) HFColors.BrandWhite else HFColors.OnSurface.copy(alpha = 0.10f)
+    // Capsule chip — white text, subtle fill, brighter when selected.
+    // Mirrors the iOS plane-filter chip row.
+    val bg = HFColors.OnSurface.copy(alpha = if (isSelected) 0.16f else 0.06f)
+    val border = HFColors.OnSurface.copy(alpha = if (isSelected) 0.5f else 0.12f)
+    val fg = HFColors.OnSurface.copy(alpha = if (isSelected) 1f else 0.75f)
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(10.dp))
+            .clip(CircleShape)
             .background(bg)
-            .border(1.dp, border, RoundedCornerShape(10.dp))
+            .border(1.dp, border, CircleShape)
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .padding(horizontal = 14.dp, vertical = 9.dp)
     ) {
         Text(
             label,
@@ -318,60 +409,49 @@ private fun SquawkCard(
 ) {
     val (statusLabel, statusColor) = statusPresentation(squawk.status)
 
+    // Clean black-&-white card — subtle white fill + hairline border,
+    // matching the iOS squawk list. Status shows as a small accented
+    // pill, not a full-card tint.
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.04f))
-            .border(1.dp, HFColors.OnSurface.copy(alpha = 0.10f), RoundedCornerShape(18.dp))
-            .padding(14.dp)
+            .background(HFColors.OnSurface.copy(alpha = 0.05f))
+            .border(1.dp, HFColors.OnSurface.copy(alpha = 0.12f), RoundedCornerShape(18.dp))
+            .padding(16.dp)
     ) {
         Row(verticalAlignment = Alignment.Top) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    text = squawk.title.ifBlank { "Untitled squawk" },
-                    color = HFColors.OnSurface,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 2
-                )
-                Spacer(Modifier.size(6.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    MetaPill(
-                        text = squawk.planeTailNumber.ifBlank { "No tail" },
-                        color = HFColors.OnSurface.copy(alpha = 0.55f)
-                    )
-                    if (!squawk.reportedByUserName.isNullOrBlank()) {
-                        Spacer(Modifier.width(6.dp))
-                        MetaPill(
-                            text = "by ${squawk.reportedByUserName}",
-                            color = HFColors.OnSurface.copy(alpha = 0.55f)
-                        )
-                    }
-                    if (!squawk.assignedUserName.isNullOrBlank()) {
-                        Spacer(Modifier.width(6.dp))
-                        MetaPill(text = "→ ${squawk.assignedUserName}", color = HFColors.StatusCyan)
-                    }
-                }
-            }
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(10.dp))
-                    .clickable(onClick = onTapStatus)
-                    .padding(horizontal = 4.dp, vertical = 2.dp)
-            ) {
-                StatusBadge(color = statusColor, label = statusLabel)
-            }
-            Spacer(Modifier.width(6.dp))
+            Text(
+                text = squawk.title.ifBlank { "Untitled squawk" },
+                color = HFColors.OnSurface,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 2,
+                modifier = Modifier.weight(1f)
+            )
+            Spacer(Modifier.width(8.dp))
             // Anyone (including techs) can delete a squawk.
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(HFColors.StatusRed.copy(alpha = 0.12f))
+                    .clip(RoundedCornerShape(8.dp))
                     .clickable(onClick = onDelete)
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                    .padding(horizontal = 6.dp, vertical = 2.dp),
+                contentAlignment = Alignment.Center
             ) {
-                Text("Delete", color = HFColors.StatusRed, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Text("Delete", color = HFColors.StatusRed.copy(alpha = 0.85f), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            }
+        }
+
+        Spacer(Modifier.size(8.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            MetaPill(text = squawk.planeTailNumber.ifBlank { "No tail" })
+            if (!squawk.reportedByUserName.isNullOrBlank()) {
+                Spacer(Modifier.width(6.dp))
+                MetaPill(text = "by ${squawk.reportedByUserName}")
+            }
+            if (!squawk.assignedUserName.isNullOrBlank()) {
+                Spacer(Modifier.width(6.dp))
+                MetaPill(text = "→ ${squawk.assignedUserName}")
             }
         }
 
@@ -379,7 +459,7 @@ private fun SquawkCard(
             Spacer(Modifier.size(10.dp))
             Text(
                 text = squawk.notes,
-                color = HFColors.OnSurface.copy(alpha = 0.70f),
+                color = HFColors.OnSurface.copy(alpha = 0.72f),
                 fontSize = 13.sp,
                 maxLines = 4
             )
@@ -387,6 +467,16 @@ private fun SquawkCard(
 
         if (squawk.photoPaths.isNotEmpty()) {
             Spacer(Modifier.size(10.dp))
+            // Explicit in-app affordance — opens the photo viewer (not a browser).
+            Text(
+                "Open attached Photos (${squawk.photoPaths.size})",
+                color = HFColors.StatusCyan, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { onOpenPhoto(squawk.photoPaths, 0) }
+                    .padding(vertical = 4.dp)
+            )
+            Spacer(Modifier.size(6.dp))
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -400,6 +490,13 @@ private fun SquawkCard(
                     )
                 }
             }
+        }
+
+        // Status footer — tap the pill to change status. Neutral capsule
+        // with a colored dot + label, the iOS card-footer treatment.
+        Spacer(Modifier.size(12.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            StatusBadge(color = statusColor, label = statusLabel, onClick = onTapStatus)
         }
     }
 }
@@ -437,25 +534,28 @@ private fun SquawkPhotoThumb(path: String, onClick: () -> Unit) {
 }
 
 @Composable
-private fun MetaPill(text: String, color: Color) {
+private fun MetaPill(text: String) {
+    // Neutral metadata chip — quiet, monochrome, matching iOS card meta.
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(6.dp))
-            .background(color.copy(alpha = 0.12f))
-            .padding(horizontal = 6.dp, vertical = 2.dp)
+            .clip(CircleShape)
+            .background(HFColors.OnSurface.copy(alpha = 0.08f))
+            .padding(horizontal = 8.dp, vertical = 3.dp)
     ) {
-        Text(text, color = color, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+        Text(text, color = HFColors.OnSurface.copy(alpha = 0.6f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
 @Composable
-private fun StatusBadge(color: Color, label: String) {
+private fun StatusBadge(color: Color, label: String, onClick: () -> Unit) {
+    // Neutral capsule with a colored status dot — clean & monochrome,
+    // tappable to change the status.
     Row(
         modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(color.copy(alpha = 0.14f))
-            .border(1.dp, color.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
-            .padding(horizontal = 8.dp, vertical = 4.dp),
+            .clip(CircleShape)
+            .background(HFColors.OnSurface.copy(alpha = 0.10f))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
@@ -464,8 +564,8 @@ private fun StatusBadge(color: Color, label: String) {
                 .clip(CircleShape)
                 .background(color)
         )
-        Spacer(Modifier.width(5.dp))
-        Text(label, color = color, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+        Spacer(Modifier.width(6.dp))
+        Text(label, color = HFColors.OnSurface.copy(alpha = 0.8f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 

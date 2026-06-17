@@ -25,6 +25,24 @@ data class HFPlane(
      *  suggested for attach when the plane is added. */
     @SerialName("aircraft_type") val aircraftType: String? = null,
     @SerialName("is_archived") val isArchived: Boolean = false,
+    // ── Aircraft intake: Times & Cycles (optional, mechanic reference) ──
+    // Captured at drop-off; pure reference (no tracking/computation). All
+    // optional — a single-engine plane just leaves the rest null. Stored as
+    // text so any format the shop already uses is accepted.
+    @SerialName("airframe_hours") val airframeHours: String? = null,
+    @SerialName("airframe_cycles") val airframeCycles: String? = null,
+    @SerialName("hobbs") val hobbs: String? = null,
+    @SerialName("tach") val tach: String? = null,
+    @SerialName("engine1_hours") val engine1Hours: String? = null,
+    @SerialName("engine1_cycles") val engine1Cycles: String? = null,
+    @SerialName("engine2_hours") val engine2Hours: String? = null,
+    @SerialName("engine2_cycles") val engine2Cycles: String? = null,
+    @SerialName("engine3_hours") val engine3Hours: String? = null,
+    @SerialName("engine3_cycles") val engine3Cycles: String? = null,
+    @SerialName("prop1_hours") val prop1Hours: String? = null,
+    @SerialName("prop2_hours") val prop2Hours: String? = null,
+    @SerialName("apu_hours") val apuHours: String? = null,
+    @SerialName("apu_cycles") val apuCycles: String? = null,
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("updated_at") val updatedAt: String? = null
 )

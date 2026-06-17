@@ -524,6 +524,18 @@ private fun PartLocationRow(
             StockBadge(status)
             Spacer(Modifier.size(8.dp))
             QuantityBadge(row.quantity)
+            if (row.quantity > 0) {
+                Spacer(Modifier.size(8.dp))
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(HFColors.StatusOrange.copy(alpha = 0.15f))
+                        .clickable { com.hangarflow.app.data.SharedStore.consumePartLocation(row.id) }
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text("Took 1", color = HFColors.StatusOrange, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
+            }
         }
         Spacer(Modifier.size(6.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -574,30 +586,53 @@ private fun PartLocationRow(
             !row.vendorWebsite.isNullOrBlank()
         if (hasVendor) {
             Spacer(Modifier.size(8.dp))
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                row.vendorName?.takeIf { it.isNotBlank() }?.let {
-                    Text(
-                        "Vendor: $it",
-                        color = HFColors.OnSurface,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-                row.vendorPhone?.takeIf { it.isNotBlank() }?.let {
-                    Text(
-                        "Phone: $it",
-                        color = HFColors.OnSurface.copy(alpha = 0.62f),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-                row.vendorWebsite?.takeIf { it.isNotBlank() }?.let {
-                    Text(
-                        it,
-                        color = HFColors.StatusBlue,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium
-                    )
+            var vendorExpanded by remember(row.id) { mutableStateOf(false) }
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable { vendorExpanded = !vendorExpanded }
+                    .padding(vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Vendor info",
+                    color = HFColors.OnSurface,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(Modifier.size(4.dp))
+                Text(
+                    if (vendorExpanded) "▾" else "▸",
+                    color = HFColors.OnSurface.copy(alpha = 0.6f),
+                    fontSize = 11.sp
+                )
+            }
+            if (vendorExpanded) {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    row.vendorName?.takeIf { it.isNotBlank() }?.let {
+                        Text(
+                            "Vendor: $it",
+                            color = HFColors.OnSurface,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    row.vendorPhone?.takeIf { it.isNotBlank() }?.let {
+                        Text(
+                            "Phone: $it",
+                            color = HFColors.OnSurface.copy(alpha = 0.62f),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                    row.vendorWebsite?.takeIf { it.isNotBlank() }?.let {
+                        Text(
+                            it,
+                            color = HFColors.StatusBlue,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                 }
             }
         }

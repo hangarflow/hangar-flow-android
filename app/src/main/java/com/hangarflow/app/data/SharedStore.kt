@@ -173,6 +173,120 @@ object SharedStore {
         }
     }
 
+    /** Pin or unpin a work log. Pinned logs sort to the top of the
+     *  Work Logs list so techs see critical inspections first. Mirrors
+     *  the Desktop/macOS pin affordance. */
+    fun setWorkLogPinned(workLogId: String, pinned: Boolean) {
+        val orgId = bootstrappedOrgId ?: return
+        val previous = _state.value.workLogs.firstOrNull { it.id == workLogId }?.pinnedAt
+        val nowIso = java.time.Instant.now().toString()
+        _state.update { current ->
+            current.copy(
+                workLogs = current.workLogs.map { log ->
+                    if (log.id == workLogId)
+                        log.copy(pinnedAt = if (pinned) nowIso else null)
+                    else log
+                }.reSortPinned()
+            )
+        }
+        scope.launch {
+            try {
+                cloud.setWorkLogPinned(workLogId, pinned)
+                cloud.emitOrgEvent(orgId = orgId, sourceDevice = deviceId)
+            } catch (t: Throwable) {
+                _state.update { current ->
+                    current.copy(
+                        workLogs = current.workLogs.map { log ->
+                            if (log.id == workLogId) log.copy(pinnedAt = previous) else log
+                        }.reSortPinned(),
+                        error = t.message
+                    )
+                }
+            }
+        }
+    }
+
+    /** Re-apply the snapshot ordering (pinned first by pinnedAt desc,
+     *  then most-recently updated) after an optimistic pin toggle so the
+     *  list reorders instantly without waiting for the next pull. */
+    private fun List<HFWorkLog>.reSortPinned(): List<HFWorkLog> =
+        this.sortedByDescending { it.updatedAt ?: "" }
+            .sortedWith(
+                compareByDescending<HFWorkLog> { !it.pinnedAt.isNullOrBlank() }
+                    .thenByDescending { it.pinnedAt.orEmpty() }
+            )
+
+    /** Toggle one inspection-checklist item done/undone on a work log
+     *  and persist the new state. Reads the current checklist_state
+     *  blob, upserts the target item, writes it back, and optimistically
+     *  updates local state so the checkbox feels instant. Other techs
+     *  see the change on the next snapshot pull (or realtime).
+     *
+     *  Initials auto-populate from the signed-in profile so the sign-off
+     *  line reads "✓ GB" without the tech typing anything; falls back to
+     *  the first letters of displayName when the profile field is blank. */
+    fun setWorkLogChecklistItem(workLogId: String, refId: String, done: Boolean) {
+        val orgId = bootstrappedOrgId ?: return
+        val me = _state.value.currentUser
+        val wl = _state.value.workLogs.firstOrNull { it.id == workLogId } ?: return
+
+        val byName = me?.displayName ?: ""
+        val byInitials = (me?.initials?.takeIf { it.isNotBlank() })
+            ?: byName.split(" ")
+                .mapNotNull { it.firstOrNull()?.uppercase() }
+                .joinToString("")
+                .take(3)
+                .ifBlank { "—" }
+        val nowIso = java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC).toString()
+
+        // Upsert the entry for this refId.
+        val current = wl.checklistState ?: emptyList()
+        val previous = wl.checklistState
+        val newEntry = com.hangarflow.app.data.model.HFChecklistEntry(
+            refId = refId, done = done, by = byName, initials = byInitials, at = nowIso
+        )
+        val updated = if (current.any { it.refId == refId }) {
+            current.map { if (it.refId == refId) newEntry else it }
+        } else {
+            current + newEntry
+        }
+
+        // Optimistic local update.
+        _state.update { s ->
+            s.copy(workLogs = s.workLogs.map { existing ->
+                if (existing.id == workLogId) existing.copy(checklistState = updated) else existing
+            })
+        }
+
+        scope.launch {
+            try {
+                val blob = kotlinx.serialization.json.JsonArray(
+                    updated.map { e ->
+                        kotlinx.serialization.json.buildJsonObject {
+                            put("ref_id", kotlinx.serialization.json.JsonPrimitive(e.refId))
+                            put("done", kotlinx.serialization.json.JsonPrimitive(e.done))
+                            put("by", kotlinx.serialization.json.JsonPrimitive(e.by))
+                            put("initials", kotlinx.serialization.json.JsonPrimitive(e.initials))
+                            put("at", kotlinx.serialization.json.JsonPrimitive(e.at))
+                        }
+                    }
+                )
+                cloud.updateWorkLogChecklistState(workLogId, blob.toString())
+                cloud.emitOrgEvent(orgId = orgId, sourceDevice = deviceId, eventType = "work_log_updated")
+            } catch (t: Throwable) {
+                // Roll back optimistic change.
+                _state.update { s ->
+                    s.copy(
+                        workLogs = s.workLogs.map { existing ->
+                            if (existing.id == workLogId) existing.copy(checklistState = previous) else existing
+                        },
+                        error = t.message
+                    )
+                }
+            }
+        }
+    }
+
     fun clear() {
         realtimeJob?.cancel()
         realtimeJob = null
@@ -241,6 +355,63 @@ object SharedStore {
         }
     }
 
+    /** Create a standalone task (not from a squawk). Optional plane + assignee.
+     *  Mirrors `convertSquawkToTask` shape; new tasks start "open". */
+    suspend fun createTask(
+        planeId: String?, planeTailNumber: String?,
+        title: String, details: String, category: String,
+        assignedUserId: String?, assignedUserName: String?
+    ): CreateResult {
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        if (title.trim().isBlank()) return CreateResult.Error("Title is required.")
+        val task = com.hangarflow.app.data.model.HFTask(
+            id = java.util.UUID.randomUUID().toString(),
+            orgId = orgId,
+            planeId = planeId,
+            planeTailNumber = planeTailNumber,
+            title = title.trim(),
+            details = details.trim(),
+            category = category,
+            status = "open",
+            assignedUserId = assignedUserId,
+            assignedUserName = assignedUserName,
+            isFromSquawk = false,
+            waitingOnParts = false,
+            loggedMinutes = 0
+        )
+        return try {
+            cloud.upsertTask(task)
+            cloud.emitOrgEvent(orgId = orgId, sourceDevice = deviceId, eventType = "task_updated")
+            pullSnapshot(orgId)
+            CreateResult.Success
+        } catch (t: Throwable) { CreateResult.Error(t.message ?: "Couldn't create task.") }
+    }
+
+    /** Edit an existing task's core fields. Assignee can be cleared (null). */
+    suspend fun updateTask(
+        taskId: String,
+        title: String, details: String, category: String,
+        assignedUserId: String?, assignedUserName: String?
+    ): CreateResult {
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        if (title.trim().isBlank()) return CreateResult.Error("Title is required.")
+        val existing = _state.value.tasks.firstOrNull { it.id == taskId }
+            ?: return CreateResult.Error("Task not found.")
+        val updated = existing.copy(
+            title = title.trim(),
+            details = details.trim(),
+            category = category,
+            assignedUserId = assignedUserId,
+            assignedUserName = assignedUserName
+        )
+        return try {
+            cloud.upsertTask(updated)
+            cloud.emitOrgEvent(orgId = orgId, sourceDevice = deviceId, eventType = "task_updated")
+            pullSnapshot(orgId)
+            CreateResult.Success
+        } catch (t: Throwable) { CreateResult.Error(t.message ?: "Couldn't update task.") }
+    }
+
     // -------- Task status updates --------
 
     fun updateTaskStatus(taskId: String, newStatus: String) {
@@ -303,13 +474,19 @@ object SharedStore {
 
     fun updatePartRequestStatus(partRequestId: String, newStatus: String) {
         val orgId = bootstrappedOrgId ?: return
-        val previous = _state.value.partRequests.firstOrNull { it.id == partRequestId }?.status
+        val req = _state.value.partRequests.firstOrNull { it.id == partRequestId }
+        val previous = req?.status
         _state.update { current ->
             current.copy(
                 partRequests = current.partRequests.map {
                     if (it.id == partRequestId) it.copy(status = newStatus) else it
                 }
             )
+        }
+        // Auto-decrement stock once when a tracked part is marked installed
+        // (fitted = consumed). Only on the transition in, only if in stock.
+        if (newStatus == "installed" && previous != "installed" && req != null) {
+            consumeInventoryByPartNumber(req.requestedPart, 1)
         }
         scope.launch {
             try {
@@ -619,6 +796,67 @@ object SharedStore {
         }
     }
 
+    // ── Time-entry corrections ──
+
+    /** Tech-side submit. Writes a pending correction the admin can
+     *  approve/dismiss from the Hours queue. Mirrors Desktop/macOS. */
+    suspend fun submitTimeEntryCorrection(
+        timeEntryId: String,
+        requestedChange: String
+    ): CreateResult {
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        val me = _state.value.currentUser ?: return CreateResult.Error("Not signed in.")
+        if (requestedChange.isBlank()) return CreateResult.Error("Describe the change.")
+        return try {
+            val row = com.hangarflow.app.data.model.HFTimeEntryCorrection(
+                id = java.util.UUID.randomUUID().toString(),
+                orgId = orgId,
+                timeEntryId = timeEntryId,
+                userId = me.authUserId ?: me.id,
+                userName = me.displayName,
+                requestedChange = requestedChange.trim(),
+                status = "pending"
+            )
+            cloud.upsertTimeEntryCorrection(row)
+            cloud.emitOrgEvent(orgId, deviceId, "time_entry_correction_submitted")
+            pullSnapshot(orgId)
+            CreateResult.Success
+        } catch (t: Throwable) {
+            CreateResult.Error(t.message ?: "Couldn't submit correction.")
+        }
+    }
+
+    /** Admin-side approve / dismiss. Matches the macOS Hours panel —
+     *  status flips to "applied" or "dismissed". */
+    suspend fun decideTimeEntryCorrection(
+        correctionId: String,
+        applied: Boolean
+    ): CreateResult {
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        val me = _state.value.currentUser
+        val newStatus = if (applied) "applied" else "dismissed"
+        return try {
+            cloud.updateTimeEntryCorrectionStatus(
+                correctionId = correctionId,
+                status = newStatus,
+                decidedByUserId = me?.authUserId ?: me?.id ?: "",
+                decidedByName = me?.displayName ?: ""
+            )
+            // Optimistic local flip.
+            _state.update { s ->
+                val updated = s.timeEntryCorrections.map {
+                    if (it.id == correctionId) it.copy(status = newStatus) else it
+                }
+                s.copy(timeEntryCorrections = updated)
+            }
+            cloud.emitOrgEvent(orgId, deviceId, "time_entry_correction_decided")
+            pullSnapshot(orgId)
+            CreateResult.Success
+        } catch (t: Throwable) {
+            CreateResult.Error(t.message ?: "Couldn't update correction.")
+        }
+    }
+
     // ── Calendar events ──
 
     /** Admin-create a calendar event (org-wide or plane-scoped).
@@ -915,6 +1153,34 @@ object SharedStore {
         } catch (t: Throwable) { CreateResult.Error(t.message ?: "Couldn't update plane.") }
     }
 
+    /** Persist the optional Times & Cycles intake reference for a plane.
+     *  Blank strings are normalized to null so empty fields stay clean. */
+    suspend fun updatePlaneTimesAndCycles(
+        planeId: String,
+        airframeHours: String?, airframeCycles: String?,
+        hobbs: String?, tach: String?,
+        engine1Hours: String?, engine1Cycles: String?,
+        engine2Hours: String?, engine2Cycles: String?,
+        engine3Hours: String?, engine3Cycles: String?,
+        prop1Hours: String?, prop2Hours: String?,
+        apuHours: String?, apuCycles: String?
+    ): CreateResult {
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        fun clean(s: String?) = s?.trim()?.takeIf { it.isNotEmpty() }
+        return try {
+            cloud.updatePlaneTimesAndCycles(
+                planeId,
+                clean(airframeHours), clean(airframeCycles), clean(hobbs), clean(tach),
+                clean(engine1Hours), clean(engine1Cycles), clean(engine2Hours), clean(engine2Cycles),
+                clean(engine3Hours), clean(engine3Cycles), clean(prop1Hours), clean(prop2Hours),
+                clean(apuHours), clean(apuCycles)
+            )
+            cloud.emitOrgEvent(orgId, deviceId, "plane_updated")
+            pullSnapshot(orgId)
+            CreateResult.Success
+        } catch (t: Throwable) { CreateResult.Error(t.message ?: "Couldn't save times & cycles.") }
+    }
+
     // ---------- Parity wave: archive, manual assignments, ref linking, bulk ----------
 
     /** Archive / unarchive a plane. Optimistic flip + org event so every
@@ -1090,6 +1356,33 @@ object SharedStore {
         }
     }
 
+    /** A tech pulled `count` of this part from stock — decrement quantity.
+     *  Optimistic local update + fire-and-forget cloud patch. */
+    fun consumePartLocation(id: String, count: Int = 1) {
+        val orgId = bootstrappedOrgId ?: return
+        val row = _state.value.partLocations.firstOrNull { it.id == id } ?: return
+        val newQty = (row.quantity - count).coerceAtLeast(0)
+        _state.update { s ->
+            s.copy(partLocations = s.partLocations.map { if (it.id == id) it.copy(quantity = newQty) else it })
+        }
+        scope.launch {
+            runCatching {
+                cloud.updatePartLocationQuantity(id, newQty)
+                cloud.emitOrgEvent(orgId, deviceId, "part_location_updated")
+            }
+        }
+    }
+
+    /** Best-effort auto-decrement when a part is logged used on a job. */
+    fun consumeInventoryByPartNumber(partNumber: String, count: Int = 1) {
+        val token = partNumber.trim().uppercase()
+        if (token.isEmpty()) return
+        val match = _state.value.partLocations.firstOrNull {
+            it.partNumber.trim().uppercase() == token && it.quantity > 0
+        } ?: return
+        consumePartLocation(match.id, count)
+    }
+
     private suspend fun pullSnapshot(orgId: String) {
         try {
             val planes = cloud.fetchPlanes(orgId)
@@ -1110,13 +1403,18 @@ object SharedStore {
             val reimbursements = runCatching { cloud.fetchReimbursements(orgId) }.getOrElse { emptyList() }
             val timeOffRequests = runCatching { cloud.fetchTimeOffRequests(orgId) }.getOrElse { emptyList() }
             val calendarEvents = runCatching { cloud.fetchCalendarEvents(orgId) }.getOrElse { emptyList() }
+            // Time-entry corrections may not have the migration yet on older
+            // orgs — fail open so the rest of the snapshot still loads.
+            val timeEntryCorrections = runCatching { cloud.fetchTimeEntryCorrections(orgId) }.getOrElse { emptyList() }
             val authUserId = runCatching {
                 SupabaseClientProvider.client.auth.currentUserOrNull()?.id
             }.getOrNull()
             val me = users.firstOrNull { it.authUserId == authUserId }
             val next = _state.value.copy(
                 planes = planes.sortedBy { p -> p.tailNumber.lowercase() },
-                workLogs = workLogs.sortedByDescending { w -> w.updatedAt ?: "" },
+                // Pinned logs float to the top (most-recently pinned first),
+                // then the rest by most-recently updated — mirrors Desktop.
+                workLogs = workLogs.reSortPinned(),
                 users = users,
                 manuals = manuals,
                 squawks = squawks,
@@ -1127,6 +1425,7 @@ object SharedStore {
                 reimbursements = reimbursements.sortedByDescending { it.createdAt ?: "" },
                 timeOffRequests = timeOffRequests.sortedByDescending { it.createdAt ?: "" },
                 calendarEvents = calendarEvents.sortedBy { it.startDate },
+                timeEntryCorrections = timeEntryCorrections.sortedByDescending { it.createdAt ?: "" },
                 currentUser = me,
                 loading = false,
                 error = null
@@ -1240,6 +1539,7 @@ data class ShopState(
     val reimbursements: List<com.hangarflow.app.data.model.HFReimbursement> = emptyList(),
     val timeOffRequests: List<com.hangarflow.app.data.model.HFTimeOffRequest> = emptyList(),
     val calendarEvents: List<com.hangarflow.app.data.model.HFCalendarEvent> = emptyList(),
+    val timeEntryCorrections: List<com.hangarflow.app.data.model.HFTimeEntryCorrection> = emptyList(),
     val currentUser: HFUserProfile?,
     val loading: Boolean,
     val error: String?
@@ -1258,6 +1558,7 @@ data class ShopState(
             reimbursements = emptyList(),
             timeOffRequests = emptyList(),
             calendarEvents = emptyList(),
+            timeEntryCorrections = emptyList(),
             currentUser = null,
             loading = false,
             error = null

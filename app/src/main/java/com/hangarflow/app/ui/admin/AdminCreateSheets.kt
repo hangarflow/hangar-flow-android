@@ -16,7 +16,12 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ExpandLess
+import androidx.compose.material.icons.outlined.ExpandMore
+import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -106,6 +111,22 @@ private fun CreatePlaneForm(onDone: () -> Unit) {
     // Phase 4 — aircraft type + which type-matched manuals to attach.
     var aircraftType by remember { mutableStateOf("") }
     var selectedTypeManualIds by remember { mutableStateOf(setOf<String>()) }
+    // Aircraft intake — Times & Cycles (all optional reference data).
+    var showTimesAndCycles by remember { mutableStateOf(false) }
+    var airframeHours by remember { mutableStateOf("") }
+    var airframeCycles by remember { mutableStateOf("") }
+    var hobbs by remember { mutableStateOf("") }
+    var tach by remember { mutableStateOf("") }
+    var engine1Hours by remember { mutableStateOf("") }
+    var engine1Cycles by remember { mutableStateOf("") }
+    var engine2Hours by remember { mutableStateOf("") }
+    var engine2Cycles by remember { mutableStateOf("") }
+    var engine3Hours by remember { mutableStateOf("") }
+    var engine3Cycles by remember { mutableStateOf("") }
+    var prop1Hours by remember { mutableStateOf("") }
+    var prop2Hours by remember { mutableStateOf("") }
+    var apuHours by remember { mutableStateOf("") }
+    var apuCycles by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
 
     // Existing manuals available to attach without re-uploading. Tail
@@ -260,6 +281,45 @@ private fun CreatePlaneForm(onDone: () -> Unit) {
         }
     }
 
+    // Aircraft intake — Times & Cycles. Optional, mechanic-facing reference
+    // captured at drop-off. Collapsed by default.
+    Spacer(Modifier.size(14.dp))
+    Column(
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+            .background(HFColors.OnSurface.copy(alpha = 0.04f))
+            .border(1.dp, HFColors.OnSurface.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().clickable { showTimesAndCycles = !showTimesAndCycles },
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(Icons.Outlined.Speed, null, tint = HFColors.StatusCyan, modifier = Modifier.size(16.dp))
+            Text("Times & Cycles", color = HFColors.OnSurface, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            Text("optional", color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 10.sp)
+            Spacer(Modifier.weight(1f))
+            Icon(
+                if (showTimesAndCycles) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
+                null, tint = HFColors.OnSurface.copy(alpha = 0.5f), modifier = Modifier.size(18.dp)
+            )
+        }
+        if (showTimesAndCycles) {
+            Text(
+                "Reference only — typed in as-is, nothing is tracked or calculated. Leave any field blank (a single-engine plane just fills Airframe + Engine 1).",
+                color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 11.sp
+            )
+            IntakePairRow("Airframe total time", airframeHours, { airframeHours = it }, "Airframe cycles", airframeCycles, { airframeCycles = it })
+            IntakePairRow("Hobbs", hobbs, { hobbs = it }, "Tach", tach, { tach = it })
+            IntakePairRow("Engine 1 hours", engine1Hours, { engine1Hours = it }, "Engine 1 cycles", engine1Cycles, { engine1Cycles = it })
+            IntakePairRow("Engine 2 hours", engine2Hours, { engine2Hours = it }, "Engine 2 cycles", engine2Cycles, { engine2Cycles = it })
+            IntakePairRow("Engine 3 hours", engine3Hours, { engine3Hours = it }, "Engine 3 cycles", engine3Cycles, { engine3Cycles = it })
+            IntakePairRow("Prop 1 hours", prop1Hours, { prop1Hours = it }, "Prop 2 hours", prop2Hours, { prop2Hours = it })
+            IntakePairRow("APU hours", apuHours, { apuHours = it }, "APU cycles", apuCycles, { apuCycles = it })
+        }
+    }
+
     if (attachableManuals.isNotEmpty()) {
         Spacer(Modifier.size(14.dp))
         Label("Attach Existing Files (optional)")
@@ -335,6 +395,16 @@ private fun CreatePlaneForm(onDone: () -> Unit) {
                                 newPlane.arrivalDate, newPlane.deadlineDate,
                                 inspection.takeIf { it.isNotBlank() },
                                 typeValue.takeIf { it.isNotBlank() }
+                            )
+                        }
+                        // Optional Times & Cycles intake reference.
+                        runCatching {
+                            SharedStore.updatePlaneTimesAndCycles(
+                                newPlane.id,
+                                airframeHours, airframeCycles, hobbs, tach,
+                                engine1Hours, engine1Cycles, engine2Hours, engine2Cycles,
+                                engine3Hours, engine3Cycles, prop1Hours, prop2Hours,
+                                apuHours, apuCycles
                             )
                         }
                     }
@@ -569,6 +639,42 @@ private fun FormField(
     }
 }
 
+/** Two optional intake fields side by side (50/50) for the Times & Cycles grid. */
+@Composable
+private fun IntakePairRow(
+    l1: String, v1: String, on1: (String) -> Unit,
+    l2: String, v2: String, on2: (String) -> Unit
+) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        OutlinedTextField(
+            value = v1, onValueChange = on1, singleLine = true, modifier = Modifier.weight(1f),
+            label = { Text(l1, fontSize = 11.sp) },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
+                unfocusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
+                focusedBorderColor = HFColors.OnSurface.copy(alpha = 0.25f),
+                unfocusedBorderColor = HFColors.OnSurface.copy(alpha = 0.10f),
+                focusedTextColor = HFColors.OnSurface,
+                unfocusedTextColor = HFColors.OnSurface,
+                cursorColor = HFColors.OnSurface
+            )
+        )
+        OutlinedTextField(
+            value = v2, onValueChange = on2, singleLine = true, modifier = Modifier.weight(1f),
+            label = { Text(l2, fontSize = 11.sp) },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
+                unfocusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
+                focusedBorderColor = HFColors.OnSurface.copy(alpha = 0.25f),
+                unfocusedBorderColor = HFColors.OnSurface.copy(alpha = 0.10f),
+                focusedTextColor = HFColors.OnSurface,
+                unfocusedTextColor = HFColors.OnSurface,
+                cursorColor = HFColors.OnSurface
+            )
+        )
+    }
+}
+
 @Composable
 private fun Label(text: String) {
     Text(
@@ -653,5 +759,5 @@ private val PALETTE = listOf(
 
 /** Curated receiving-inspection options — what a plane is coming in for. */
 val INCOMING_INSPECTION_OPTIONS = listOf(
-    "100-hr", "200-hr", "Annual", "Progressive / Phase", "5-year", "Pre-buy", "Other"
+    "Scheduled Maintenance", "Unscheduled Maintenance", "AOG", "Pre-buy"
 )

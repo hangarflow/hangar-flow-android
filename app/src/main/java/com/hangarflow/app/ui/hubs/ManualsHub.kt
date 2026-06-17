@@ -94,33 +94,55 @@ private fun ManualsHubContent() {
     }
 
     if (manuals.isEmpty()) {
-        Column(
-            modifier = Modifier.fillMaxSize().padding(24.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
+        // Empty state — mirrors iOS `IOSInfoPanel("No manuals yet")`:
+        // a rounded card with subtle border rather than bare centered text.
+        Box(
+            modifier = Modifier.fillMaxSize().padding(20.dp),
+            contentAlignment = Alignment.Center
         ) {
-            Text(
-                "No manuals yet",
-                color = HFColors.OnSurface,
-                fontSize = 17.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(Modifier.size(8.dp))
-            Text(
-                "Admins import manuals from the desktop. They'll show up here once they sync.",
-                color = HFColors.OnSurface.copy(alpha = 0.68f),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Medium
-            )
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(HFColors.OnSurface.copy(alpha = 0.05f))
+                    .border(1.dp, HFColors.OnSurface.copy(alpha = 0.10f), RoundedCornerShape(18.dp))
+                    .padding(18.dp)
+            ) {
+                Text(
+                    "NO MANUALS YET",
+                    color = HFColors.OnSurface.copy(alpha = 0.55f),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.0.sp
+                )
+                Spacer(Modifier.size(8.dp))
+                Text(
+                    "Admins import manuals from the desktop. They'll show up here once they sync.",
+                    color = HFColors.OnSurface.copy(alpha = 0.68f),
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
         }
         return
     }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
+        // Section caption — matches iOS "Plane Manuals" header above the list.
+        item(key = "__plane_manuals_caption") {
+            Text(
+                "PLANE MANUALS",
+                color = HFColors.OnSurface.copy(alpha = 0.62f),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.8.sp,
+                modifier = Modifier.padding(start = 2.dp, bottom = 2.dp)
+            )
+        }
         items(manuals, key = { it.id }) { manual ->
             val downloadState = downloadStates[manual.id] ?: DownloadState.Idle
             ManualRow(
@@ -235,15 +257,19 @@ private fun ManualRow(
     onPurge: (() -> Unit)? = null
 ) {
     val cached = downloadState is DownloadState.Cached
+    // iOS uses Color.indigo for the manual card accent. StatusPurple is the
+    // closest token in HFColors and matches the iPad/iPhone manual rows.
     val accent = HFColors.StatusPurple
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            // Match IOSManualPlaneRow: 16-radius indigo-tinted card with a
+            // 1pt indigo stroke (fill 0.08, stroke 0.35), 12dp inner padding.
             .clip(RoundedCornerShape(16.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.04f))
-            .border(1.dp, HFColors.OnSurface.copy(alpha = 0.10f), RoundedCornerShape(16.dp))
-            .padding(14.dp),
+            .background(accent.copy(alpha = 0.08f))
+            .border(1.dp, accent.copy(alpha = 0.35f), RoundedCornerShape(16.dp))
+            .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Tappable left area — opens PDF
@@ -253,9 +279,10 @@ private fun ManualRow(
                 .clickable(onClick = onTap),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // 44dp icon tile, indigo 0.22 fill, 12-radius — like iOS book.pages.
             Box(
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(44.dp)
                     .clip(RoundedCornerShape(12.dp))
                     .background(accent.copy(alpha = 0.22f)),
                 contentAlignment = Alignment.Center
@@ -264,7 +291,7 @@ private fun ManualRow(
                     imageVector = Icons.AutoMirrored.Outlined.MenuBook,
                     contentDescription = null,
                     tint = accent,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(22.dp)
                 )
             }
             Spacer(Modifier.size(12.dp))
@@ -273,12 +300,13 @@ private fun ManualRow(
                 Text(
                     text = tail,
                     color = HFColors.OnSurface,
-                    fontSize = 15.sp,
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
                 )
+                Spacer(Modifier.size(3.dp))
                 Text(
                     text = manual.title.takeIf { it.isNotBlank() } ?: manual.fileName,
-                    color = HFColors.OnSurface.copy(alpha = 0.68f),
+                    color = HFColors.OnSurface.copy(alpha = 0.60f),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
                     maxLines = 2
@@ -286,13 +314,16 @@ private fun ManualRow(
             }
         }
 
-        // Right-hand download/state button
+        Spacer(Modifier.size(12.dp))
+
+        // Right-hand download/state button — 40dp circle like iOS, white
+        // fill 0.12 when cached / 0.08 otherwise, with a 22dp glyph centered.
         Box(
             modifier = Modifier
-                .size(44.dp)
+                .size(40.dp)
                 .clip(CircleShape)
                 .background(
-                    if (cached) HFColors.StatusGreen.copy(alpha = 0.18f)
+                    if (cached) HFColors.OnSurface.copy(alpha = 0.12f)
                     else HFColors.OnSurface.copy(alpha = 0.08f)
                 )
                 .clickable(enabled = !cached, onClick = onDownload),
@@ -308,13 +339,13 @@ private fun ManualRow(
                     imageVector = Icons.Outlined.CheckCircle,
                     contentDescription = "Saved offline",
                     tint = HFColors.StatusGreen,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(22.dp)
                 )
                 else -> Icon(
                     imageVector = Icons.Outlined.Download,
                     contentDescription = "Download for offline",
-                    tint = HFColors.OnSurface,
-                    modifier = Modifier.size(18.dp)
+                    tint = HFColors.OnSurface.copy(alpha = 0.85f),
+                    modifier = Modifier.size(22.dp)
                 )
             }
         }

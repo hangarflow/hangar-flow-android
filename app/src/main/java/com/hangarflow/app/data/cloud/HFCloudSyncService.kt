@@ -217,6 +217,12 @@ class HFCloudSyncService {
         }
     }
 
+    /** Patch only the quantity — used by the quick "Took one" stock pull. */
+    suspend fun updatePartLocationQuantity(id: String, quantity: Int) {
+        client.postgrest.from("hf_part_locations")
+            .update(mapOf("quantity" to quantity.coerceAtLeast(0))) { filter { eq("id", id) } }
+    }
+
     /** Flip a part request through its lifecycle: requested → ordered → received → installed. */
     suspend fun updatePartRequestStatus(id: String, status: String) {
         client.postgrest.from("hf_part_requests").update(mapOf("status" to status)) {
@@ -328,6 +334,45 @@ class HFCloudSyncService {
                 limit(2000)
             }
             .decodeList()
+
+    /** Pull every manual-reference row tagged with the given
+     *  inspection_kind (e.g. "200hr") scoped to the plane's attached
+     *  manuals. Powers the inspection-checklist panel on a work-log. */
+    suspend fun fetchInspectionChecklistRefs(
+        orgId: String,
+        manualIds: List<String>,
+        inspectionKind: String
+    ): List<ManualSearchHit> {
+        if (manualIds.isEmpty()) return emptyList()
+        val cols = io.github.jan.supabase.postgrest.query.Columns.list(
+            "id", "manual_id", "plane_tail_number", "title",
+            "reference_code", "body_text", "page_start", "page_end",
+            "source_manual_name"
+        )
+        return client.postgrest
+            .from("hf_manual_references")
+            .select(cols) {
+                filter {
+                    eq("org_id", orgId)
+                    eq("inspection_kind", inspectionKind)
+                    isIn("manual_id", manualIds)
+                }
+                order(column = "page_start", order = io.github.jan.supabase.postgrest.query.Order.ASCENDING, nullsFirst = false)
+                limit(500)
+            }
+            .decodeList()
+    }
+
+    /** Persist the checklist_state JSONB on a work-log. The blob is
+     *  shape `[{ "ref_id": "...", "done": true, "by": "...", "at": "..." }]`. */
+    suspend fun updateWorkLogChecklistState(workLogId: String, stateJson: String) {
+        client.postgrest.from("hf_work_logs")
+            .update(
+                mapOf("checklist_state" to kotlinx.serialization.json.Json.parseToJsonElement(stateJson))
+            ) {
+                filter { eq("id", workLogId) }
+            }
+    }
 
     suspend fun searchManualReferences(
         orgId: String,
@@ -553,6 +598,44 @@ class HFCloudSyncService {
             }
     }
 
+    // ── Time-entry corrections ──
+
+    /** Org-wide time-entry-correction queue. Pending + decided rows
+     *  come back together; the admin queue UI filters by status. */
+    suspend fun fetchTimeEntryCorrections(
+        orgId: String
+    ): List<com.hangarflow.app.data.model.HFTimeEntryCorrection> =
+        client.postgrest.from("hf_time_entry_corrections")
+            .select { filter { eq("org_id", orgId) } }
+            .decodeList()
+
+    suspend fun upsertTimeEntryCorrection(
+        correction: com.hangarflow.app.data.model.HFTimeEntryCorrection
+    ) {
+        client.postgrest.from("hf_time_entry_corrections").upsert(correction)
+    }
+
+    suspend fun updateTimeEntryCorrectionStatus(
+        correctionId: String,
+        status: String,
+        decidedByUserId: String,
+        decidedByName: String
+    ) {
+        @kotlinx.serialization.Serializable
+        data class StatusPatch(
+            val status: String,
+            @kotlinx.serialization.SerialName("decided_by_user_id") val decidedByUserId: String,
+            @kotlinx.serialization.SerialName("decided_by_name") val decidedByName: String,
+            @kotlinx.serialization.SerialName("decided_at") val decidedAt: String,
+            @kotlinx.serialization.SerialName("updated_at") val updatedAt: String
+        )
+        val now = java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC).toString()
+        client.postgrest.from("hf_time_entry_corrections")
+            .update(StatusPatch(status, decidedByUserId, decidedByName, now, now)) {
+                filter { eq("id", correctionId) }
+            }
+    }
+
     /** Targeted UPDATE for admin time-off approve/deny (direct update keyed
      *  by id — upsert would trip the requester-only INSERT RLS policy). */
     suspend fun decideTimeOffRequestRow(
@@ -728,6 +811,21 @@ class HFCloudSyncService {
         client.postgrest
             .from("hf_work_logs")
             .update(mapOf("status" to status)) {
+                filter { eq("id", id) }
+            }
+    }
+
+    @kotlinx.serialization.Serializable
+    private data class WorkLogPinUpdate(val pinned_at: String?)
+
+    /** Pin or unpin a work log. Pin → now(); unpin → null. */
+    suspend fun setWorkLogPinned(id: String, pinned: Boolean) {
+        val payload = WorkLogPinUpdate(
+            pinned_at = if (pinned) java.time.Instant.now().toString() else null
+        )
+        client.postgrest
+            .from("hf_work_logs")
+            .update(payload) {
                 filter { eq("id", id) }
             }
     }
@@ -947,6 +1045,41 @@ class HFCloudSyncService {
         val resp = client.functions.invoke(function = "parts-search", body = body)
         return kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
             .decodeFromString(AIPartsSearchResult.serializer(), resp.bodyAsText())
+    }
+
+    // ---------- AI parts FIND (parts-find edge function — structured) ----------
+
+    @kotlinx.serialization.Serializable
+    data class AIPartReference(
+        val code: String? = null, val title: String = "",
+        val page: Int? = null, val manual: String? = null,
+    )
+    @kotlinx.serialization.Serializable
+    data class AIPartCandidate(
+        @kotlinx.serialization.SerialName("part_number") val partNumber: String? = null,
+        @kotlinx.serialization.SerialName("part_name") val partName: String = "",
+        val reference: AIPartReference? = null,
+        @kotlinx.serialization.SerialName("in_stock") val inStock: Boolean = false,
+        val note: String = "",
+    )
+    @kotlinx.serialization.Serializable
+    data class AIPartsFindRequest(
+        val query: String,
+        @kotlinx.serialization.SerialName("plane_id") val planeId: String? = null,
+        @kotlinx.serialization.SerialName("plane_tail") val planeTail: String? = null,
+        @kotlinx.serialization.SerialName("aircraft_type") val aircraftType: String? = null,
+    )
+    @kotlinx.serialization.Serializable
+    data class AIPartsFindResult(val parts: List<AIPartCandidate> = emptyList(), val note: String = "")
+
+    /** Structured AI part finder — part name+number+manual ref to verify, plane-scoped. */
+    suspend fun aiPartsFind(query: String, planeId: String?, planeTail: String?, aircraftType: String?): AIPartsFindResult {
+        val resp = client.functions.invoke(
+            function = "parts-find",
+            body = AIPartsFindRequest(query.trim(), planeId, planeTail, aircraftType),
+        )
+        return kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+            .decodeFromString(AIPartsFindResult.serializer(), resp.bodyAsText())
     }
 
     // ---------- AI organize (organize-worklogs edge function) ----------
@@ -1183,6 +1316,37 @@ class HFCloudSyncService {
     ) {
         client.postgrest.from("hf_aircraft").update(
             UpdatePlaneRow(tailNumber.trim().uppercase(), displayName.trim(), outlineHex, arrivalDate, deadlineDate, incomingInspection, aircraftType)
+        ) { filter { eq("id", planeId) } }
+    }
+
+    @kotlinx.serialization.Serializable
+    private data class TimesCyclesPatch(
+        val airframe_hours: String?, val airframe_cycles: String?,
+        val hobbs: String?, val tach: String?,
+        val engine1_hours: String?, val engine1_cycles: String?,
+        val engine2_hours: String?, val engine2_cycles: String?,
+        val engine3_hours: String?, val engine3_cycles: String?,
+        val prop1_hours: String?, val prop2_hours: String?,
+        val apu_hours: String?, val apu_cycles: String?
+    )
+
+    /** Persist the optional Times & Cycles intake reference (pure data). */
+    suspend fun updatePlaneTimesAndCycles(
+        planeId: String,
+        airframeHours: String?, airframeCycles: String?,
+        hobbs: String?, tach: String?,
+        engine1Hours: String?, engine1Cycles: String?,
+        engine2Hours: String?, engine2Cycles: String?,
+        engine3Hours: String?, engine3Cycles: String?,
+        prop1Hours: String?, prop2Hours: String?,
+        apuHours: String?, apuCycles: String?
+    ) {
+        client.postgrest.from("hf_aircraft").update(
+            TimesCyclesPatch(
+                airframeHours, airframeCycles, hobbs, tach,
+                engine1Hours, engine1Cycles, engine2Hours, engine2Cycles,
+                engine3Hours, engine3Cycles, prop1Hours, prop2Hours, apuHours, apuCycles
+            )
         ) { filter { eq("id", planeId) } }
     }
 

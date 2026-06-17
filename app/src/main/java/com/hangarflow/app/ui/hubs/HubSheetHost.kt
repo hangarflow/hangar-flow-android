@@ -129,7 +129,7 @@ private val HomeDestination.subtitle: String
         HomeDestination.PartsToOrder -> "Urgent, normal, and low priority parts."
         HomeDestination.PartLocations -> "Shared inventory — where parts live in the hangar."
         HomeDestination.TimeCard -> "Log time and review shifts."
-        HomeDestination.Manuals -> "Approved manual excerpts and PDFs."
+        HomeDestination.Manuals -> "Manual references and full PDFs."
         HomeDestination.FindParts -> "Search manual text for part numbers."
         HomeDestination.Settings -> "Account, cards, and preferences."
         HomeDestination.Users -> "Roster, roles, and invitations."

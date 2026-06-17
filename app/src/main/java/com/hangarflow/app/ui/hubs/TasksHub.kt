@@ -18,12 +18,19 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,8 +42,10 @@ import androidx.compose.ui.unit.sp
 import com.hangarflow.app.auth.AuthManager
 import com.hangarflow.app.data.SharedStore
 import com.hangarflow.app.data.model.HFTask
+import com.hangarflow.app.data.model.HFWorkCategory
 import com.hangarflow.app.ui.common.HFPullToRefreshHost
 import com.hangarflow.app.ui.theme.HFColors
+import kotlinx.coroutines.launch
 
 /**
  * Tasks hub for the Android tablet (tech) view.
@@ -67,6 +76,15 @@ private fun TasksHubContent() {
     var planeFilter by remember { mutableStateOf("") } // "" == All Planes
     var assignedToMe by remember { mutableStateOf(false) }
     var expandedTaskId by remember { mutableStateOf<String?>(null) }
+    var showCreateSheet by remember { mutableStateOf(false) }
+    var editingTask by remember { mutableStateOf<HFTask?>(null) }
+
+    if (showCreateSheet) {
+        TaskEditSheet(existing = null, onDismiss = { showCreateSheet = false })
+    }
+    editingTask?.let { t ->
+        TaskEditSheet(existing = t, onDismiss = { editingTask = null })
+    }
 
     val tasks = remember(state.tasks) {
         state.tasks.sortedByDescending { it.updatedAt ?: it.createdAt ?: "" }
@@ -176,6 +194,28 @@ private fun TasksHubContent() {
                     )
                 }
 
+                Spacer(Modifier.size(10.dp))
+
+                // + New Task — techs can create a standalone task (not just
+                // convert a squawk). Pre-fills the plane if one is filtered.
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(HFColors.StatusGreen.copy(alpha = 0.12f))
+                        .border(1.dp, HFColors.StatusGreen.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
+                        .clickable { showCreateSheet = true }
+                        .padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "+ New Task",
+                        color = HFColors.StatusGreen,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
                 Spacer(Modifier.size(12.dp))
 
                 if (filteredTasks.isEmpty()) {
@@ -188,7 +228,8 @@ private fun TasksHubContent() {
                                 expanded = expandedTaskId == task.id,
                                 onToggle = {
                                     expandedTaskId = if (expandedTaskId == task.id) null else task.id
-                                }
+                                },
+                                onEdit = { editingTask = task }
                             )
                         }
                     }
@@ -258,7 +299,8 @@ private fun FilterChipPill(label: String, selected: Boolean, onClick: () -> Unit
 private fun TaskCard(
     task: HFTask,
     expanded: Boolean,
-    onToggle: () -> Unit
+    onToggle: () -> Unit,
+    onEdit: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -317,6 +359,16 @@ private fun TaskCard(
                         modifier = Modifier.weight(1f)
                     )
                 }
+            }
+            Spacer(Modifier.size(10.dp))
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(HFColors.OnSurface.copy(alpha = 0.08f))
+                    .clickable(onClick = onEdit)
+                    .padding(horizontal = 14.dp, vertical = 7.dp)
+            ) {
+                Text("Edit Task", color = HFColors.OnSurface, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             }
         }
     }
@@ -469,4 +521,170 @@ private fun statusAccent(status: String): Color = when (status) {
     "waitingOnParts" -> HFColors.StatusYellow
     "done" -> HFColors.StatusGreen
     else -> HFColors.OnSurface.copy(alpha = 0.30f)
+}
+
+/** Create or edit a task. `existing == null` => create; otherwise edit.
+ *  Plane is optional; assignee defaults to the current user on create. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TaskEditSheet(existing: HFTask?, onDismiss: () -> Unit) {
+    val state by SharedStore.state.collectAsState()
+    val me = state.currentUser
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
+
+    var planeId by remember { mutableStateOf(existing?.planeId) }
+    var planeTail by remember { mutableStateOf(existing?.planeTailNumber ?: "") }
+    var title by remember { mutableStateOf(existing?.title ?: "") }
+    var details by remember { mutableStateOf(existing?.details ?: "") }
+    var category by remember { mutableStateOf(HFWorkCategory.fromRaw(existing?.category)) }
+    var assigneeId by remember { mutableStateOf(existing?.assignedUserId ?: me?.id) }
+    var assigneeName by remember { mutableStateOf(existing?.assignedUserName ?: me?.displayName) }
+    var busy by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = HFColors.Background,
+        contentColor = HFColors.OnSurface,
+        dragHandle = null
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 10.dp)
+        ) {
+            Text(
+                if (existing == null) "New Task" else "Edit Task",
+                color = HFColors.OnSurface, fontSize = 20.sp, fontWeight = FontWeight.Bold
+            )
+            Spacer(Modifier.size(16.dp))
+
+            // Plane (optional) — chip row.
+            SheetLabel("Plane (optional)")
+            Spacer(Modifier.size(6.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                FilterChipPill(label = "None", selected = planeId == null) { planeId = null; planeTail = "" }
+                state.planes.forEach { p ->
+                    FilterChipPill(label = p.tailNumber, selected = p.id == planeId) {
+                        planeId = p.id; planeTail = p.tailNumber
+                    }
+                }
+            }
+
+            Spacer(Modifier.size(12.dp))
+            SheetField("Title", title, { title = it }, "Replace landing light")
+            Spacer(Modifier.size(12.dp))
+            SheetField("Details", details, { details = it }, "Notes (optional)", singleLine = false)
+
+            Spacer(Modifier.size(12.dp))
+            SheetLabel("Category")
+            Spacer(Modifier.size(6.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                HFWorkCategory.values().forEach { cat ->
+                    FilterChipPill(label = cat.label, selected = cat == category) { category = cat }
+                }
+            }
+
+            Spacer(Modifier.size(12.dp))
+            SheetLabel("Assign To")
+            Spacer(Modifier.size(6.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                FilterChipPill(label = "Unassigned", selected = assigneeId == null) {
+                    assigneeId = null; assigneeName = null
+                }
+                state.users.forEach { u ->
+                    FilterChipPill(label = u.displayName.ifBlank { u.email }, selected = u.id == assigneeId) {
+                        assigneeId = u.id; assigneeName = u.displayName.ifBlank { u.email }
+                    }
+                }
+            }
+
+            if (error != null) {
+                Spacer(Modifier.size(10.dp))
+                Text(error!!, color = HFColors.StatusRed, fontSize = 12.sp)
+            }
+
+            Spacer(Modifier.size(16.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(HFColors.StatusGreen.copy(alpha = if (busy || title.isBlank()) 0.06f else 0.16f))
+                    .border(1.dp, HFColors.StatusGreen.copy(alpha = 0.35f), RoundedCornerShape(14.dp))
+                    .clickable(enabled = !busy && title.isNotBlank()) {
+                        busy = true; error = null
+                        scope.launch {
+                            val r = if (existing == null) {
+                                SharedStore.createTask(
+                                    planeId, planeTail.takeIf { it.isNotBlank() },
+                                    title, details, category.raw, assigneeId, assigneeName
+                                )
+                            } else {
+                                SharedStore.updateTask(
+                                    existing.id, title, details, category.raw, assigneeId, assigneeName
+                                )
+                            }
+                            when (r) {
+                                SharedStore.CreateResult.Success -> onDismiss()
+                                is SharedStore.CreateResult.Error -> { error = r.message; busy = false }
+                            }
+                        }
+                    }
+                    .padding(vertical = 14.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    if (busy) "Saving…" else if (existing == null) "Create Task" else "Save Changes",
+                    color = HFColors.StatusGreen, fontSize = 15.sp, fontWeight = FontWeight.Bold
+                )
+            }
+            Spacer(Modifier.size(28.dp))
+        }
+    }
+}
+
+@Composable
+private fun SheetLabel(text: String) {
+    Text(
+        text.uppercase(),
+        color = HFColors.OnSurface.copy(alpha = 0.60f),
+        fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.0.sp
+    )
+}
+
+@Composable
+private fun SheetField(
+    label: String, value: String, onChange: (String) -> Unit,
+    placeholder: String, singleLine: Boolean = true
+) {
+    Column {
+        SheetLabel(label)
+        Spacer(Modifier.size(6.dp))
+        OutlinedTextField(
+            value = value, onValueChange = onChange,
+            modifier = Modifier.fillMaxWidth(), singleLine = singleLine,
+            placeholder = { Text(placeholder, color = HFColors.OnSurface.copy(alpha = 0.35f), fontSize = 13.sp) },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
+                unfocusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
+                focusedBorderColor = HFColors.OnSurface.copy(alpha = 0.25f),
+                unfocusedBorderColor = HFColors.OnSurface.copy(alpha = 0.10f),
+                focusedTextColor = HFColors.OnSurface,
+                unfocusedTextColor = HFColors.OnSurface,
+                cursorColor = HFColors.OnSurface
+            )
+        )
+    }
 }

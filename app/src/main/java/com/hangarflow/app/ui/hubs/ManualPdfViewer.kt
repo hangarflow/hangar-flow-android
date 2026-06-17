@@ -409,60 +409,79 @@ internal fun FullScreenPdf(
 ) {
     val configuration = androidx.compose.ui.platform.LocalConfiguration.current
     // Use most of the screen height per page so each page fits on screen
-    // the way PDFView does on iOS — user scrolls to flip pages.
-    val pageHeight = (configuration.screenHeightDp - 140).dp.coerceAtLeast(480.dp)
-    Box(
+    // the way PDFView does on iOS — user scrolls to flip pages. We reserve
+    // a bit more vertical room now that the header is a real bar above the
+    // framed PDF (matching IOSManualPDFViewerSheet) rather than overlaid.
+    val pageHeight = (configuration.screenHeightDp - 200).dp.coerceAtLeast(440.dp)
+    // Mirrors IOSManualPDFViewerSheet: black background, 16 padding around a
+    // header (large title + footnote citation) sitting above the PDF, which
+    // itself reads as a rounded card framed with a subtle white hairline.
+    Column(
         modifier = Modifier
             .fillMaxSize()
             .background(HFColors.Background)
+            .padding(16.dp)
     ) {
-        PdfPagerContent(
-            file = file,
-            initialPage = initialPage,
-            showIndicator = true,
-            topPadding = 64.dp,
-            bottomPadding = 48.dp,
-            fixedPageHeight = pageHeight,
-            referenceCode = referenceCode,
-            manualId = manualId
-        )
+        // Header row — Close pill on the left like the iOS toolbar, then the
+        // big section title + citation underneath.
         Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalAlignment = Alignment.Top
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    logTitle.ifBlank { "Manual" },
-                    color = HFColors.OnSurface,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1
-                )
-                if (!subtitle.isNullOrBlank()) {
-                    Text(
-                        subtitle,
-                        color = HFColors.OnSurface.copy(alpha = 0.65f),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
-                        maxLines = 1
-                    )
-                }
-            }
-            Box(
+            Text(
+                "Close",
+                color = HFColors.OnSurface,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
                 modifier = Modifier
-                    .size(34.dp)
-                    .clip(CircleShape)
-                    .background(HFColors.OnSurface.copy(alpha = 0.14f))
-                    .clickable(onClick = onClose),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.Close,
-                    contentDescription = "Close",
-                    tint = HFColors.OnSurface,
-                    modifier = Modifier.size(16.dp)
-                )
-            }
+                    .clip(RoundedCornerShape(100.dp))
+                    .clickable(onClick = onClose)
+                    .padding(horizontal = 4.dp, vertical = 4.dp)
+            )
+            Spacer(Modifier.weight(1f))
+        }
+
+        Spacer(Modifier.size(10.dp))
+
+        Text(
+            logTitle.ifBlank { "Manual" },
+            color = HFColors.OnSurface,
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+            maxLines = 2
+        )
+        if (!subtitle.isNullOrBlank()) {
+            Spacer(Modifier.size(6.dp))
+            Text(
+                subtitle,
+                color = HFColors.OnSurface.copy(alpha = 0.68f),
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                maxLines = 2
+            )
+        }
+
+        Spacer(Modifier.size(14.dp))
+
+        // Framed PDF card — white 0.05 fill, 18-radius, 1pt white 0.10 stroke.
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+                .clip(RoundedCornerShape(18.dp))
+                .background(HFColors.OnSurface.copy(alpha = 0.05f))
+                .border(1.dp, HFColors.OnSurface.copy(alpha = 0.10f), RoundedCornerShape(18.dp))
+        ) {
+            PdfPagerContent(
+                file = file,
+                initialPage = initialPage,
+                showIndicator = true,
+                topPadding = 0.dp,
+                bottomPadding = 0.dp,
+                fixedPageHeight = pageHeight,
+                referenceCode = referenceCode,
+                manualId = manualId
+            )
         }
     }
 }
@@ -1031,29 +1050,32 @@ private fun PdfPagerContent(
         val scope = rememberCoroutineScope()
 
         if (showIndicator) {
+            // Bottom-trailing green page pill — matches the iOS viewer:
+            // solid green fill (0.92), black text/icon, faint white stroke,
+            // 14dp inset from the framed PDF edge. Tap opens the navigator.
             var badgeModifier: Modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(end = 14.dp, bottom = 10.dp)
+                .padding(end = 14.dp, bottom = 14.dp)
                 .clip(RoundedCornerShape(100.dp))
-                .background(HFColors.BrandInk.copy(alpha = 0.78f))
-                .border(1.dp, HFColors.StatusGreen.copy(alpha = 0.55f), RoundedCornerShape(100.dp))
+                .background(HFColors.StatusGreen.copy(alpha = 0.92f))
+                .border(1.dp, HFColors.OnSurface.copy(alpha = 0.20f), RoundedCornerShape(100.dp))
             if (manualId != null) {
                 badgeModifier = badgeModifier.clickable { bookmarksOpenState.value = true }
             }
-            badgeModifier = badgeModifier.padding(horizontal = 12.dp, vertical = 5.dp)
+            badgeModifier = badgeModifier.padding(horizontal = 12.dp, vertical = 8.dp)
 
             Row(modifier = badgeModifier, verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Outlined.Bookmark,
                     contentDescription = null,
-                    tint = HFColors.StatusGreen,
+                    tint = HFColors.BrandInk,
                     modifier = Modifier.size(12.dp)
                 )
-                Spacer(Modifier.size(4.dp))
+                Spacer(Modifier.size(6.dp))
                 Text(
                     "Page ${currentVisiblePage.value} / $pageCount",
-                    color = HFColors.StatusGreen,
-                    fontSize = 11.sp,
+                    color = HFColors.BrandInk,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -1464,20 +1486,21 @@ private fun ManualBookmarksSheet(
                     }
                 }
 
-                // Footer pill
+                // Footer pill — solid green with black text, matching the
+                // iOS green page indicator style used across the PDF flow.
                 Row(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .padding(end = 16.dp, bottom = 12.dp)
                         .clip(RoundedCornerShape(100.dp))
-                        .background(HFColors.StatusGreen.copy(alpha = 0.22f))
-                        .border(1.dp, HFColors.StatusGreen.copy(alpha = 0.55f), RoundedCornerShape(100.dp))
-                        .padding(horizontal = 10.dp, vertical = 5.dp),
+                        .background(HFColors.StatusGreen.copy(alpha = 0.92f))
+                        .border(1.dp, HFColors.OnSurface.copy(alpha = 0.20f), RoundedCornerShape(100.dp))
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         "Page $currentPage / $totalPages",
-                        color = HFColors.StatusGreen,
+                        color = HFColors.BrandInk,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -1770,15 +1793,18 @@ private fun SearchHitRow(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // Solid green page badge with black text — matches the iOS
+        // navigator search-result pill (Capsule().fill(green.opacity(0.9))).
         Box(
             modifier = Modifier
-                .clip(RoundedCornerShape(6.dp))
-                .background(HFColors.StatusGreen.copy(alpha = 0.18f))
-                .padding(horizontal = 8.dp, vertical = 4.dp)
+                .clip(RoundedCornerShape(100.dp))
+                .background(HFColors.StatusGreen.copy(alpha = 0.90f))
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            contentAlignment = Alignment.Center
         ) {
             Text(
                 "P${hit.pageNumber}",
-                color = HFColors.StatusGreen,
+                color = HFColors.BrandInk,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold
             )

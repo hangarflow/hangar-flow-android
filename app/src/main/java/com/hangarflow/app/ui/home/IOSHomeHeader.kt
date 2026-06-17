@@ -12,8 +12,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.outlined.Logout
-import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.filled.Apartment
+import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -50,31 +51,46 @@ fun IOSHomeHeader(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
             modifier = Modifier.weight(1f)
         ) {
+            // Org line: building icon + org name, small/bold/kerned —
+            // mirrors the iOS `planesDashboardHeader` top row so it's
+            // always clear which shop's data is on screen.
+            subtitle?.takeIf { it.isNotBlank() }?.let {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Apartment,
+                        contentDescription = null,
+                        tint = HFColors.OnSurface.copy(alpha = 0.55f),
+                        modifier = Modifier.size(12.dp)
+                    )
+                    Text(
+                        it,
+                        color = HFColors.OnSurface.copy(alpha = 0.55f),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.8.sp,
+                        maxLines = 1
+                    )
+                }
+            }
             Text(
                 text = primaryTitle.ifBlank { "Hangar Flow" },
                 color = HFColors.OnSurface,
-                fontSize = 34.sp,
+                fontSize = 30.sp,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1
             )
-            subtitle?.takeIf { it.isNotBlank() }?.let {
-                Text(
-                    it,
-                    color = HFColors.OnSurface.copy(alpha = 0.55f),
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-            Spacer(Modifier.size(4.dp))
             IOSSyncBadge(statusText = syncStatus)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             HeaderIconButton(icon = Icons.Filled.Home, onClick = onGoHome)
-            HeaderIconButton(icon = Icons.Outlined.Settings, onClick = onOpenSettings)
-            HeaderIconButton(icon = Icons.Outlined.Logout, onClick = onSignOut)
+            HeaderIconButton(icon = Icons.Filled.Settings, onClick = onOpenSettings)
+            HeaderIconButton(icon = Icons.AutoMirrored.Filled.Logout, onClick = onSignOut)
         }
     }
 }

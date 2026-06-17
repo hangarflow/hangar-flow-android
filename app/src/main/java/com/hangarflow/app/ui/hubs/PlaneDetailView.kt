@@ -27,6 +27,7 @@ import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material.icons.outlined.ChecklistRtl
 import androidx.compose.material.icons.outlined.Memory
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.VerifiedUser
 import androidx.compose.material.icons.rounded.AirlineSeatReclineNormal
 import androidx.compose.material.icons.rounded.Flight
@@ -172,18 +173,21 @@ private fun CategoryGrid(
 ) {
     // Seven tiles — iPad shows the six maintenance disciplines + General.
     // Each card shows the plane's open-work count for that discipline.
+    // Accent colors mirror iOS `iconAccent(for:)`: airframe=blue, engine=orange,
+    // propeller=yellow, avionics=cyan, interior=purple, inspection=green,
+    // general=white.
     val tiles = listOf(
         CategoryTile(HFWorkCategory.Airframe, Icons.Outlined.Build, HFColors.StatusBlue),
         CategoryTile(HFWorkCategory.Engine, Icons.Outlined.Settings, HFColors.StatusOrange),
-        CategoryTile(HFWorkCategory.Propeller, Icons.Rounded.Flight, HFColors.StatusCyan),
-        CategoryTile(HFWorkCategory.Avionics, Icons.Outlined.Memory, HFColors.StatusGreen),
+        CategoryTile(HFWorkCategory.Propeller, Icons.Rounded.Flight, HFColors.StatusYellow),
+        CategoryTile(HFWorkCategory.Avionics, Icons.Outlined.Memory, HFColors.StatusCyan),
         CategoryTile(
             HFWorkCategory.Interior,
             Icons.Rounded.AirlineSeatReclineNormal,
             HFColors.StatusPurple
         ),
-        CategoryTile(HFWorkCategory.Inspection, Icons.Outlined.VerifiedUser, HFColors.StatusRed),
-        CategoryTile(HFWorkCategory.General, Icons.AutoMirrored.Outlined.Article, HFColors.OnSurfaceMuted)
+        CategoryTile(HFWorkCategory.Inspection, Icons.Outlined.VerifiedUser, HFColors.StatusGreen),
+        CategoryTile(HFWorkCategory.General, Icons.AutoMirrored.Outlined.Article, HFColors.OnSurface)
     )
 
     val counts = remember(workLogs) {
@@ -193,63 +197,69 @@ private fun CategoryGrid(
             .eachCount()
     }
 
+    // iOS leads with the big display name then the tail underneath.
+    val bigTitle = plane.displayName.ifBlank { plane.tailNumber }
+    val subTail = plane.tailNumber.takeIf { it.isNotBlank() && it != bigTitle }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(HFColors.Background)
     ) {
-        // Top bar: back button + title
+        // Plane name + tail at the top — matches iOS `IOSPlaneWorkLogCategoriesView`.
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(start = 16.dp, end = 16.dp, top = 18.dp, bottom = 10.dp),
+            verticalAlignment = Alignment.Top
         ) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(HFColors.OnSurface.copy(alpha = 0.10f))
-                    .clickable(onClick = onBack),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                    contentDescription = "Back",
-                    tint = HFColors.OnSurface,
-                    modifier = Modifier.size(18.dp)
+            Column(Modifier.weight(1f)) {
+                Text(
+                    bigTitle,
+                    color = HFColors.OnSurface,
+                    fontSize = 30.sp,
+                    fontWeight = FontWeight.Bold
                 )
+                if (subTail != null) {
+                    Spacer(Modifier.size(2.dp))
+                    Text(
+                        subTail,
+                        color = HFColors.OnSurface.copy(alpha = 0.60f),
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
-            Spacer(Modifier.width(10.dp))
-            Text(
-                "All planes",
-                color = HFColors.OnSurface.copy(alpha = 0.70f),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.clickable(onClick = onBack)
-            )
         }
 
-        // Plane title header — big and bold, matches iPad "Pilatus PC12".
-        Column(modifier = Modifier.padding(horizontal = 20.dp)) {
-            Text(
-                plane.tailNumber,
-                color = HFColors.OnSurface,
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Bold
-            )
-            if (plane.displayName.isNotBlank() && plane.displayName != plane.tailNumber) {
-                Spacer(Modifier.size(4.dp))
+        // "Back to Planes" capsule right under the title (iOS look).
+        Box(
+            modifier = Modifier
+                .padding(start = 16.dp, end = 16.dp, bottom = 10.dp)
+                .clip(CircleShape)
+                .background(HFColors.OnSurface.copy(alpha = 0.10f))
+                .clickable(onClick = onBack)
+                .padding(horizontal = 14.dp, vertical = 8.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+                    contentDescription = null,
+                    tint = HFColors.OnSurface,
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(Modifier.width(6.dp))
                 Text(
-                    plane.displayName,
-                    color = HFColors.OnSurface.copy(alpha = 0.68f),
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Medium
+                    "Back to Planes",
+                    color = HFColors.OnSurface,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold
                 )
             }
-            // Accent bar under the title — subtle visual for the plane's
-            // outline color so the user ties category + plane together.
-            Spacer(Modifier.size(8.dp))
+        }
+
+        // Accent bar — subtle visual for the plane's outline color.
+        Column(modifier = Modifier.padding(horizontal = 20.dp)) {
             Box(
                 modifier = Modifier
                     .size(width = 44.dp, height = 3.dp)
@@ -317,6 +327,8 @@ private fun CategoryGrid(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            // Times & Cycles intake reference — only shows filled fields.
+            item { TimesAndCyclesBlock(plane) }
             items(items = tiles.chunked(2), key = { it.first().category.raw }) { rowPair ->
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     rowPair.forEach { tile ->
@@ -343,6 +355,58 @@ private data class CategoryTile(
     val accent: Color
 )
 
+/** Read-only Times & Cycles intake reference. Only filled fields show; the
+ *  whole block is hidden when nothing was captured at drop-off. */
+@Composable
+private fun TimesAndCyclesBlock(plane: HFPlane) {
+    val tc = listOfNotNull(
+        plane.airframeHours?.let { "Airframe TT" to it },
+        plane.airframeCycles?.let { "Airframe Cyc" to it },
+        plane.hobbs?.let { "Hobbs" to it },
+        plane.tach?.let { "Tach" to it },
+        plane.engine1Hours?.let { "Eng 1 Hrs" to it },
+        plane.engine1Cycles?.let { "Eng 1 Cyc" to it },
+        plane.engine2Hours?.let { "Eng 2 Hrs" to it },
+        plane.engine2Cycles?.let { "Eng 2 Cyc" to it },
+        plane.engine3Hours?.let { "Eng 3 Hrs" to it },
+        plane.engine3Cycles?.let { "Eng 3 Cyc" to it },
+        plane.prop1Hours?.let { "Prop 1 Hrs" to it },
+        plane.prop2Hours?.let { "Prop 2 Hrs" to it },
+        plane.apuHours?.let { "APU Hrs" to it },
+        plane.apuCycles?.let { "APU Cyc" to it },
+    ).filter { it.second.isNotBlank() }
+    if (tc.isEmpty()) return
+    Column(
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
+            .background(HFColors.OnSurface.copy(alpha = 0.04f))
+            .border(1.dp, HFColors.OnSurface.copy(alpha = 0.08f), RoundedCornerShape(14.dp))
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Icon(Icons.Outlined.Speed, null, tint = HFColors.StatusCyan, modifier = Modifier.size(16.dp))
+            Text("TIMES & CYCLES", color = HFColors.StatusCyan, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.0.sp)
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            tc.chunked(2).forEach { rowPair ->
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    rowPair.forEach { (label, value) ->
+                        Column(
+                            modifier = Modifier.weight(1f).clip(RoundedCornerShape(10.dp))
+                                .background(HFColors.OnSurface.copy(alpha = 0.05f))
+                                .padding(horizontal = 10.dp, vertical = 8.dp)
+                        ) {
+                            Text(label, color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 9.sp, fontWeight = FontWeight.SemiBold)
+                            Text(value, color = HFColors.OnSurface, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                    if (rowPair.size == 1) Spacer(Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun CategoryCard(
     tile: CategoryTile,
@@ -350,56 +414,59 @@ private fun CategoryCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // iOS `IOSPlaneWorkLogCategoriesView` category tile: solid accent-filled
+    // rounded icon square (black glyph) + chevron up top, then the category
+    // name pushed to the bottom of a tall card with a subtle white border.
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = 132.dp)
+            .heightIn(min = 150.dp)
             .clip(RoundedCornerShape(20.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.04f))
-            .border(1.5.dp, tile.accent.copy(alpha = 0.55f), RoundedCornerShape(20.dp))
+            .background(HFColors.OnSurface.copy(alpha = 0.06f))
+            .border(1.dp, HFColors.OnSurface.copy(alpha = 0.10f), RoundedCornerShape(20.dp))
             .clickable(onClick = onClick)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+            .padding(18.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
-                    .size(48.dp)
+                    .size(56.dp)
                     .clip(RoundedCornerShape(14.dp))
-                    .background(tile.accent.copy(alpha = 0.22f)),
+                    .background(tile.accent),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = tile.icon,
                     contentDescription = null,
-                    tint = tile.accent,
-                    modifier = Modifier.size(22.dp)
+                    tint = HFColors.BrandInk,
+                    modifier = Modifier.size(26.dp)
                 )
             }
             Spacer(Modifier.weight(1f))
             Icon(
                 imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
                 contentDescription = null,
-                tint = HFColors.OnSurface.copy(alpha = 0.35f),
-                modifier = Modifier.size(14.dp)
+                tint = HFColors.OnSurface.copy(alpha = 0.45f),
+                modifier = Modifier.size(16.dp)
             )
         }
+        // Spacer pushes the title to the bottom, matching iOS `Spacer(minLength: 0)`.
+        Spacer(Modifier.weight(1f))
         Text(
             tile.category.label,
             color = HFColors.OnSurface,
-            fontSize = 18.sp,
+            fontSize = 20.sp,
             fontWeight = FontWeight.Bold
         )
-        Text(
-            text = when (openCount) {
-                0 -> "No open work"
-                1 -> "1 open item"
-                else -> "$openCount open items"
-            },
-            color = HFColors.OnSurface.copy(alpha = 0.65f),
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Medium
-        )
+        if (openCount > 0) {
+            Text(
+                text = if (openCount == 1) "1 open item" else "$openCount open items",
+                color = HFColors.OnSurface.copy(alpha = 0.55f),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium
+            )
+        }
     }
 }
 
@@ -426,60 +493,77 @@ private fun CategoryWorkLogList(
             )
     }
 
+    val bigTitle = plane.displayName.ifBlank { plane.tailNumber }
+    val subTail = plane.tailNumber.takeIf { it.isNotBlank() && it != bigTitle }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(HFColors.Background)
     ) {
-        // Top bar: back to categories + breadcrumb
+        // Plane name + tail at the top — mirrors the category-grid header.
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(start = 16.dp, end = 16.dp, top = 18.dp, bottom = 10.dp),
+            verticalAlignment = Alignment.Top
         ) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(HFColors.OnSurface.copy(alpha = 0.10f))
-                    .clickable(onClick = onBack),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
-                    contentDescription = "Back",
-                    tint = HFColors.OnSurface,
-                    modifier = Modifier.size(18.dp)
+            Column(Modifier.weight(1f)) {
+                Text(
+                    bigTitle,
+                    color = HFColors.OnSurface,
+                    fontSize = 30.sp,
+                    fontWeight = FontWeight.Bold
                 )
+                if (subTail != null) {
+                    Spacer(Modifier.size(2.dp))
+                    Text(
+                        subTail,
+                        color = HFColors.OnSurface.copy(alpha = 0.60f),
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
             }
-            Spacer(Modifier.width(10.dp))
-            Text(
-                text = plane.tailNumber,
-                color = HFColors.OnSurface.copy(alpha = 0.70f),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.clickable(onClick = onBack)
-            )
-            Text(
-                text = " · ${category.label}",
-                color = HFColors.OnSurface.copy(alpha = 0.45f),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold
-            )
         }
 
-        // Category title header
+        // "Back" capsule (pops one level to the category grid).
+        Box(
+            modifier = Modifier
+                .padding(start = 16.dp, end = 16.dp, bottom = 10.dp)
+                .clip(CircleShape)
+                .background(HFColors.OnSurface.copy(alpha = 0.10f))
+                .clickable(onClick = onBack)
+                .padding(horizontal = 14.dp, vertical = 8.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+                    contentDescription = null,
+                    tint = HFColors.OnSurface,
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    "Back",
+                    color = HFColors.OnSurface,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+
+        // Category title + count, with the accent bar underneath.
         Column(modifier = Modifier.padding(horizontal = 20.dp)) {
             Text(
                 category.label,
                 color = HFColors.OnSurface,
-                fontSize = 28.sp,
+                fontSize = 22.sp,
                 fontWeight = FontWeight.Bold
             )
             Spacer(Modifier.size(2.dp))
             Text(
-                "${filtered.size} work log${if (filtered.size == 1) "" else "s"} · ${plane.tailNumber}",
+                "${filtered.size} work log${if (filtered.size == 1) "" else "s"}",
                 color = HFColors.OnSurface.copy(alpha = 0.62f),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium

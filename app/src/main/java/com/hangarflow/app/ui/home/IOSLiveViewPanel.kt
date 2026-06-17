@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.StopCircle
@@ -239,27 +240,41 @@ private fun IOSStatTile(
             .let { if (onTap != null) it.clickable(onClick = onTap) else it }
             .padding(horizontal = 16.dp, vertical = 18.dp)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Box(
                 modifier = Modifier
-                    .size(10.dp)
+                    .size(8.dp)
                     .clip(CircleShape)
                     .background(accent)
             )
             Spacer(Modifier.width(8.dp))
             Text(
                 label,
-                color = HFColors.OnSurface.copy(alpha = 0.60f),
+                color = HFColors.OnSurface.copy(alpha = 0.55f),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 0.8.sp
             )
+            // Chevron in the top-right when the tile is tappable — matches
+            // iOS IOSStatTile's `chevron.right` affordance.
+            if (onTap != null) {
+                Spacer(Modifier.weight(1f))
+                Icon(
+                    imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = HFColors.OnSurface.copy(alpha = 0.35f),
+                    modifier = Modifier.size(14.dp)
+                )
+            }
         }
         Spacer(Modifier.height(10.dp))
         Text(
             value,
             color = HFColors.OnSurface,
-            fontSize = 30.sp,
+            fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             maxLines = 1
         )
