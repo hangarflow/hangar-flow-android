@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
@@ -57,6 +58,7 @@ import com.hangarflow.app.data.model.HFSquawk
 import com.hangarflow.app.ui.common.HFPullToRefreshHost
 import com.hangarflow.app.ui.theme.HFColors
 import androidx.compose.ui.platform.LocalContext
+import kotlin.math.roundToInt
 
 /**
  * Squawks hub. Lists every open squawk with its plane tail, title,
@@ -492,11 +494,96 @@ private fun SquawkCard(
             }
         }
 
+        // AI-suggested manual pages for this squawk (on-demand, tap to expand).
+        Spacer(Modifier.size(10.dp))
+        RelatedManualsSection(squawk)
+
         // Status footer — tap the pill to change status. Neutral capsule
         // with a colored dot + label, the iOS card-footer treatment.
         Spacer(Modifier.size(12.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             StatusBadge(color = statusColor, label = statusLabel, onClick = onTapStatus)
+        }
+    }
+}
+
+/**
+ * Collapsible "Related in Manuals" section on a squawk card. Loads lazily the
+ * first time it's expanded (so we don't fire a lookup for every card in the
+ * list) via the `squawk-manuals` edge function — semantic + keyword match.
+ */
+@Composable
+private fun RelatedManualsSection(squawk: HFSquawk) {
+    val cloud = remember { HFCloudSyncService() }
+    var expanded by remember(squawk.id) { mutableStateOf(false) }
+    var loading by remember(squawk.id) { mutableStateOf(false) }
+    var loaded by remember(squawk.id) { mutableStateOf(false) }
+    var refs by remember(squawk.id) { mutableStateOf<List<HFCloudSyncService.SquawkManualRef>>(emptyList()) }
+
+    LaunchedEffect(expanded) {
+        if (expanded && !loaded && !loading) {
+            val text = "${squawk.title} ${squawk.notes}".trim()
+            if (text.length >= 3) {
+                loading = true
+                refs = runCatching {
+                    cloud.squawkManuals(text = text, planeTail = squawk.planeTailNumber.ifBlank { null })
+                }.getOrNull()?.manualRefs ?: emptyList()
+                loading = false
+            }
+            loaded = true
+        }
+    }
+
+    Column(Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(10.dp))
+                .clickable { expanded = !expanded }
+                .padding(vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("✦ Related in Manuals", color = HFColors.StatusCyan, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.weight(1f))
+            if (loading) {
+                CircularProgressIndicator(Modifier.size(14.dp), color = HFColors.StatusCyan, strokeWidth = 2.dp)
+            } else {
+                Text(if (expanded) "▲" else "▼", color = HFColors.OnSurface.copy(alpha = 0.4f), fontSize = 10.sp)
+            }
+        }
+        if (expanded) {
+            if (refs.isNotEmpty()) {
+                refs.take(5).forEach { r ->
+                    Column(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 3.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(HFColors.StatusCyan.copy(alpha = 0.06f))
+                            .padding(10.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(r.referenceCode ?: "—", color = HFColors.StatusCyan, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            r.pageLabel?.takeIf { it.isNotBlank() }?.let {
+                                Spacer(Modifier.width(6.dp))
+                                Text("p. $it", color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 11.sp)
+                            }
+                            Spacer(Modifier.weight(1f))
+                            r.similarity?.let {
+                                Text("${(it * 100).roundToInt()}%", color = HFColors.OnSurface.copy(alpha = 0.4f), fontSize = 10.sp)
+                            }
+                        }
+                        r.title?.takeIf { it.isNotBlank() }?.let {
+                            Text(it, color = HFColors.OnSurface.copy(alpha = 0.8f), fontSize = 12.sp, maxLines = 2)
+                        }
+                        r.sourceManualName?.takeIf { it.isNotBlank() }?.let {
+                            Text(it, color = HFColors.OnSurface.copy(alpha = 0.4f), fontSize = 10.sp, maxLines = 1)
+                        }
+                    }
+                }
+            } else if (loaded && !loading) {
+                Text("No related manual pages found.", color = HFColors.OnSurface.copy(alpha = 0.4f), fontSize = 12.sp, modifier = Modifier.padding(vertical = 4.dp))
+            }
         }
     }
 }

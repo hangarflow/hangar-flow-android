@@ -43,6 +43,14 @@ data class HFPlane(
     @SerialName("prop2_hours") val prop2Hours: String? = null,
     @SerialName("apu_hours") val apuHours: String? = null,
     @SerialName("apu_cycles") val apuCycles: String? = null,
+    // Registry details (Phase 3 tail-number auto-fill via aircraft-lookup).
+    @SerialName("manufacturer") val manufacturer: String? = null,
+    @SerialName("model") val model: String? = null,
+    @SerialName("serial_number") val serialNumber: String? = null,
+    @SerialName("year") val year: String? = null,
+    @SerialName("registered_owner") val registeredOwner: String? = null,
+    @SerialName("engine_model") val engineModel: String? = null,
+    @SerialName("prop_model") val propModel: String? = null,
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("updated_at") val updatedAt: String? = null
 )

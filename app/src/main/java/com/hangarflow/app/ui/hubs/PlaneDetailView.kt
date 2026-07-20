@@ -740,10 +740,10 @@ private fun formatMinutesShort(m: Int): String {
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 private fun EditPlaneSheet(plane: HFPlane, onDismiss: () -> Unit) {
-    var tail by androidx.compose.runtime.mutableStateOf(plane.tailNumber)
-    var display by androidx.compose.runtime.mutableStateOf(plane.displayName)
-    var busy by androidx.compose.runtime.mutableStateOf(false)
-    var error by androidx.compose.runtime.mutableStateOf<String?>(null)
+    var tail by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(plane.tailNumber) }
+    var display by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(plane.displayName) }
+    var busy by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    var error by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
 
     androidx.compose.material3.AlertDialog(
@@ -773,8 +773,8 @@ private fun EditPlaneSheet(plane: HFPlane, onDismiss: () -> Unit) {
 
 @Composable
 private fun DeletePlaneSheet(plane: HFPlane, onDismiss: () -> Unit) {
-    var busy by androidx.compose.runtime.mutableStateOf(false)
-    var error by androidx.compose.runtime.mutableStateOf<String?>(null)
+    var busy by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    var error by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
     val scope = androidx.compose.runtime.rememberCoroutineScope()
 
     androidx.compose.material3.AlertDialog(

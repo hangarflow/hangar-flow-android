@@ -49,12 +49,16 @@ jobs:
           echo "Found: $APK_PATH"
           echo "apk_path=$APK_PATH" >> "$GITHUB_OUTPUT"
 
+      # Upload only for real releases (v* tags) or manual runs. Plain main
+      # pushes still build (sanity) but skip storing the ~34 MB APK that used
+      # to accumulate against the free 500 MB Actions storage.
       - name: Upload APK artifact
+        if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
         with:
           name: hangar-flow-android-beta-apk
           path: ${{ steps.locate.outputs.apk_path }}
-          retention-days: 30
+          retention-days: 7
 
       - name: Publish to Cloudflare R2
         if: startsWith(github.ref, 'refs/tags/v')

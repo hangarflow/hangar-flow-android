@@ -236,7 +236,15 @@ private fun ReportIssueDialog(onDismiss: () -> Unit) {
 private fun remember_packageInfo(context: android.content.Context): String {
     return try {
         val info = context.packageManager.getPackageInfo(context.packageName, 0)
-        "${info.versionName} (${info.longVersionCode})"
+        // longVersionCode is API 28+; fall back to the (deprecated) versionCode
+        // on Android 8.0/8.1 (API 26–27) so the version still shows there.
+        val code = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+            info.longVersionCode
+        } else {
+            @Suppress("DEPRECATION")
+            info.versionCode.toLong()
+        }
+        "${info.versionName} ($code)"
     } catch (_: Throwable) {
         "—"
     }

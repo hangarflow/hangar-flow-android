@@ -42,6 +42,7 @@ import androidx.compose.material.icons.outlined.PeopleAlt
 import androidx.compose.material.icons.outlined.ReportProblem
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Inventory2
+import androidx.compose.material.icons.outlined.QrCode2
 import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.outlined.WarningAmber
@@ -500,7 +501,7 @@ private fun CustomizeHomeSheet(
 }
 
 enum class HomeDestination {
-    Planes, WorkLogs, Tasks, Squawks, PartsToOrder, PartLocations, TimeCard, Manuals, FindParts, Settings, Users, Review, Schedule, ActivityLog
+    Planes, WorkLogs, Tasks, Squawks, PartsToOrder, PartLocations, TimeCard, Manuals, FindParts, Settings, Users, Review, Schedule, ActivityLog, Equipment, QuickPic
 }
 
 private data class HomeCard(
@@ -582,6 +583,22 @@ private fun cardsForRole(isAdmin: Boolean): List<HomeCard> {
             icon = Icons.Outlined.Inventory2,
             accent = HFColors.StatusYellow.copy(alpha = 0.44f),
             destination = HomeDestination.PartLocations
+        ),
+        HomeCard(
+            id = "equipment",
+            title = "Equipment",
+            subtitle = "Shop gear — maintenance & calibration due",
+            icon = Icons.Outlined.Build,
+            accent = HFColors.StatusGreen.copy(alpha = 0.46f),
+            destination = HomeDestination.Equipment
+        ),
+        HomeCard(
+            id = "quickpic",
+            title = "QuickPic",
+            subtitle = "Scan or print QR labels for parts & gear",
+            icon = Icons.Outlined.QrCode2,
+            accent = HFColors.StatusCyan.copy(alpha = 0.46f),
+            destination = HomeDestination.QuickPic
         ),
         HomeCard(
             id = "schedule",

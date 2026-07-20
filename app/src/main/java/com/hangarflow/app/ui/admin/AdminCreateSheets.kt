@@ -70,6 +70,10 @@ fun AdminCreateSheet(
         contentColor = HFColors.OnSurface,
         dragHandle = null
     ) {
+        // Perf watchdog: times FAB-tap → sheet-visible so a laggy open is caught.
+        androidx.compose.runtime.LaunchedEffect(Unit) {
+            com.hangarflow.app.perf.HFPerfMonitor.markShown("create:${mode.name}")
+        }
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -127,6 +131,16 @@ private fun CreatePlaneForm(onDone: () -> Unit) {
     var prop2Hours by remember { mutableStateOf("") }
     var apuHours by remember { mutableStateOf("") }
     var apuCycles by remember { mutableStateOf("") }
+    // Registry auto-fill (Phase 3 tail-number lookup).
+    var manufacturer by remember { mutableStateOf("") }
+    var model by remember { mutableStateOf("") }
+    var serialNumber by remember { mutableStateOf("") }
+    var year by remember { mutableStateOf("") }
+    var registeredOwner by remember { mutableStateOf("") }
+    var engineModel by remember { mutableStateOf("") }
+    var propModel by remember { mutableStateOf("") }
+    var lookingUp by remember { mutableStateOf(false) }
+    var lookupNote by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
     // Existing manuals available to attach without re-uploading. Tail
@@ -149,8 +163,63 @@ private fun CreatePlaneForm(onDone: () -> Unit) {
     }
 
     FormField(label = "Tail Number", value = tail, onChange = { tail = it.uppercase() }, placeholder = "N123AB")
+    Spacer(Modifier.size(8.dp))
+    // Tail-number auto-fill — FAA registry + AI normalize (Phase 3).
+    Box(
+        modifier = Modifier.fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(HFColors.StatusCyan.copy(alpha = 0.14f))
+            .border(1.dp, HFColors.StatusCyan.copy(alpha = 0.40f), RoundedCornerShape(10.dp))
+            .clickable(enabled = !lookingUp && tail.trim().isNotBlank()) {
+                lookingUp = true; lookupNote = null
+                scope.launch {
+                    val r = SharedStore.lookupAircraft(tail.trim())
+                    lookingUp = false
+                    if (r != null && r.found) {
+                        r.manufacturer?.let { manufacturer = it }
+                        r.model?.let { model = it }
+                        r.serialNumber?.let { serialNumber = it }
+                        r.year?.let { year = it }
+                        r.registeredOwner?.let { registeredOwner = it }
+                        r.engineModel?.let { engineModel = it }
+                        r.propModel?.let { propModel = it }
+                        if (display.isBlank()) {
+                            display = listOf(manufacturer, model).filter { it.isNotBlank() }.joinToString(" ").trim()
+                        }
+                        lookupNote = "Filled from ${if (r.source == "faa") "the FAA registry" else "AI"} — review and edit below."
+                    } else {
+                        lookupNote = "No registry match — enter the details manually."
+                    }
+                }
+            }
+            .padding(vertical = 11.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            if (lookingUp) "Looking up…" else "Look up N-number",
+            color = HFColors.StatusCyan, fontSize = 13.sp, fontWeight = FontWeight.Bold
+        )
+    }
+    lookupNote?.let {
+        Spacer(Modifier.size(6.dp))
+        Text(it, color = HFColors.OnSurface.copy(alpha = 0.60f), fontSize = 11.sp, fontWeight = FontWeight.Medium)
+    }
     Spacer(Modifier.size(10.dp))
     FormField(label = "Display Name", value = display, onChange = { display = it }, placeholder = "Pilatus PC12")
+    Spacer(Modifier.size(10.dp))
+    FormField(label = "Manufacturer", value = manufacturer, onChange = { manufacturer = it }, placeholder = "Cessna")
+    Spacer(Modifier.size(8.dp))
+    FormField(label = "Model", value = model, onChange = { model = it }, placeholder = "R172K")
+    Spacer(Modifier.size(8.dp))
+    FormField(label = "Serial Number", value = serialNumber, onChange = { serialNumber = it }, placeholder = "R172-2842")
+    Spacer(Modifier.size(8.dp))
+    FormField(label = "Year", value = year, onChange = { year = it }, placeholder = "1977")
+    Spacer(Modifier.size(8.dp))
+    FormField(label = "Registered Owner", value = registeredOwner, onChange = { registeredOwner = it }, placeholder = "Owner name")
+    Spacer(Modifier.size(8.dp))
+    FormField(label = "Engine Model", value = engineModel, onChange = { engineModel = it }, placeholder = "Continental IO-360")
+    Spacer(Modifier.size(8.dp))
+    FormField(label = "Propeller Model", value = propModel, onChange = { propModel = it }, placeholder = "optional")
     Spacer(Modifier.size(12.dp))
     Label("Outline Color")
     Spacer(Modifier.size(6.dp))
@@ -377,7 +446,11 @@ private fun CreatePlaneForm(onDone: () -> Unit) {
         val inspection = incomingInspection.trim()
         val typeValue = aircraftType.trim()
         scope.launch {
-            when (val r = SharedStore.createPlane(tail, display, color)) {
+            when (val r = SharedStore.createPlane(
+                tail, display, color,
+                manufacturer = manufacturer, model = model, serialNumber = serialNumber,
+                year = year, registeredOwner = registeredOwner, engineModel = engineModel, propModel = propModel
+            )) {
                 SharedStore.CreateResult.Success -> {
                     // createPlane re-pulled the snapshot, so the new plane is
                     // now in state — resolve its id by tail and attach picks.

@@ -48,7 +48,10 @@ fun AdminFabOverlay(
                     .size(56.dp)
                     .clip(CircleShape)
                     .background(HFColors.OnSurface)
-                    .clickable { open = true },
+                    .clickable {
+                        com.hangarflow.app.perf.HFPerfMonitor.markTapped("create:${mode.name}")
+                        open = true
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(

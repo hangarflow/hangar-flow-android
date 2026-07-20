@@ -4,7 +4,9 @@ import android.content.Context
 import android.util.Log
 import com.hangarflow.app.data.SharedStore
 import com.hangarflow.app.data.cloud.SupabaseClientProvider
+import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -53,14 +55,29 @@ object FcmTokenManager {
 
     fun registerToken(context: Context, token: String) {
         val deviceId = SharedStore.deviceIdentifier()
-        val userId = SharedStore.state.value.currentUser?.id
         scope.launch {
+            val client = SupabaseClientProvider.client
+            // ensureRegistered fires at app launch, which can beat the auth
+            // session being restored from storage. Writing then goes out as the
+            // anon role and RLS (auth.uid() = user_id) rejects it. Wait briefly
+            // for the session, and take the id straight from auth so it always
+            // equals auth.uid(). If still signed out, we retry on next launch.
+            var uid = runCatching { client.auth.currentUserOrNull()?.id }.getOrNull()
+            var tries = 0
+            while (uid == null && tries < 20) {
+                delay(500)
+                uid = runCatching { client.auth.currentUserOrNull()?.id }.getOrNull()
+                tries++
+            }
+            if (uid == null) {
+                Log.w(TAG, "No auth session yet; will register on next launch/sign-in")
+                return@launch
+            }
             runCatching {
-                val client = SupabaseClientProvider.client
                 client.postgrest.from("hf_user_devices").upsert(
                     DeviceRow(
                         device_id = deviceId,
-                        user_id = userId,
+                        user_id = uid,
                         platform = "android",
                         fcm_token = token
                     )

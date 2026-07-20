@@ -11,14 +11,23 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
+import androidx.metrics.performance.JankStats
 import com.hangarflow.app.data.OfflineCache
 import com.hangarflow.app.AssignmentNotifier
+import com.hangarflow.app.perf.HFPerfMonitor
 import com.hangarflow.app.ui.shell.RootScreen
 import com.hangarflow.app.ui.theme.HangarFlowTheme
 
 class MainActivity : ComponentActivity() {
+    // Lint's InvalidFragmentVersionForActivityResult is a false positive here:
+    // this is a ComponentActivity (androidx.activity), where registerForActivityResult
+    // is always valid regardless of the transitive Fragment version.
+    @Suppress("InvalidFragmentVersionForActivityResult")
     private val requestNotificationPermission =
         registerForActivityResult(androidx.activity.result.contract.ActivityResultContracts.RequestPermission()) { /* result ignored — user can retry from Settings */ }
+
+    // Live perf watchdog — flags dropped/slow frames per screen.
+    private var jankStats: JankStats? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Swap back from the splash theme (black canvas) to the regular
@@ -37,6 +46,9 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         PushNotifications.ensureRegistered(this)
         com.hangarflow.app.push.FcmTokenManager.ensureRegistered(this)
+        HFPerfMonitor.start(
+            runCatching { packageManager.getPackageInfo(packageName, 0).versionName }.getOrNull() ?: ""
+        )
         setContent {
             HangarFlowTheme {
                 // safeDrawing covers status bar, gesture/3-button nav,
@@ -58,6 +70,21 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (jankStats == null) {
+            jankStats = JankStats.createAndTrack(window) { frameData ->
+                if (frameData.isJank) HFPerfMonitor.recordJank(frameData.frameDurationUiNanos / 1_000_000L)
+            }
+        }
+        jankStats?.isTrackingEnabled = true
+    }
+
+    override fun onPause() {
+        super.onPause()
+        jankStats?.isTrackingEnabled = false
     }
 
     private fun askForNotificationPermission() {

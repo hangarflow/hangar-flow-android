@@ -5,6 +5,10 @@ import com.hangarflow.app.data.cloud.HFCloudSyncService
 import com.hangarflow.app.data.cloud.SupabaseClientProvider
 import com.hangarflow.app.data.cloud.TimeEntryService
 import com.hangarflow.app.data.model.HFAuditEvent
+import com.hangarflow.app.data.model.HFEquipment
+import com.hangarflow.app.data.model.HFEquipmentDoc
+import com.hangarflow.app.data.model.HFEquipmentMaintenanceItem
+import com.hangarflow.app.data.model.HFEquipmentServiceEntry
 import com.hangarflow.app.data.model.HFManual
 import com.hangarflow.app.data.model.HFPartLocation
 import com.hangarflow.app.data.model.HFPartRequest
@@ -19,6 +23,8 @@ import java.time.Instant
 import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -61,6 +67,9 @@ object SharedStore {
     fun deviceIdentifier(): String = deviceId
 
     private var bootstrappedOrgId: String? = null
+
+    /** Read-only org id for cross-cutting concerns (e.g. the perf watchdog). */
+    val currentOrgId: String? get() = bootstrappedOrgId
     private var realtimeJob: Job? = null
 
     /**
@@ -716,6 +725,12 @@ object SharedStore {
         return runCatching { cloud.fetchAuditLog(orgId, limit) }.getOrDefault(emptyList())
     }
 
+    /** Recent audit events for one item (QuickPic "who last used/serviced it"). */
+    suspend fun fetchAuditEventsForEntity(entityId: String, limit: Int = 12): List<HFAuditEvent> {
+        val orgId = bootstrappedOrgId ?: return emptyList()
+        return runCatching { cloud.fetchAuditLogForEntity(orgId, entityId, limit) }.getOrDefault(emptyList())
+    }
+
     // ── Admin approval flows (time-off, reimbursement, time entry) ──
 
     /** Admin approve/deny a PTO request. `approve=true` → approved,
@@ -945,10 +960,20 @@ object SharedStore {
         return runCatching { cloud.clockoutSummary(userName, null, wl, sq) }.getOrNull()?.summary
     }
 
+    /** Tail-number auto-fill: FAA registry + AI normalize via edge function. */
+    suspend fun lookupAircraft(tailNumber: String) = cloud.lookupAircraft(tailNumber)
+
     suspend fun createPlane(
         tailNumber: String,
         displayName: String,
-        outlineHex: String
+        outlineHex: String,
+        manufacturer: String? = null,
+        model: String? = null,
+        serialNumber: String? = null,
+        year: String? = null,
+        registeredOwner: String? = null,
+        engineModel: String? = null,
+        propModel: String? = null
     ): CreateResult {
         val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded yet.")
         if (tailNumber.trim().isBlank()) return CreateResult.Error("Tail number is required.")
@@ -957,7 +982,7 @@ object SharedStore {
         }
         if (duplicate) return CreateResult.Error("A plane with that tail number already exists.")
         return try {
-            cloud.createPlane(orgId, tailNumber, displayName, outlineHex)
+            cloud.createPlane(orgId, tailNumber, displayName, outlineHex, manufacturer, model, serialNumber, year, registeredOwner, engineModel, propModel)
             cloud.emitOrgEvent(orgId, deviceId, "plane_created")
             logAudit("plane", null, "created", "Added plane ${tailNumber.trim().uppercase()}")
             pullSnapshot(orgId)
@@ -1373,6 +1398,306 @@ object SharedStore {
         }
     }
 
+    // ---------------------------------------------------------------------
+    // Equipment — shop gear maintenance & calibration due-tracking.
+    // Org-wide read/write, mirrors the Desktop store ops verbatim.
+    // ---------------------------------------------------------------------
+
+    suspend fun saveEquipment(draft: HFEquipment): CreateResult {
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        if (draft.name.trim().isBlank()) return CreateResult.Error("Name is required.")
+        val me = _state.value.currentUser
+        val isNew = draft.id.isBlank()
+        val existing = _state.value.equipment.firstOrNull { it.id == draft.id }
+        val record = draft.copy(
+            id = if (isNew) UUID.randomUUID().toString() else draft.id,
+            orgId = orgId,
+            // Photos/docs are added/removed on their own paths — preserve them.
+            photoPaths = if (isNew) draft.photoPaths else (existing?.photoPaths ?: draft.photoPaths),
+            docPaths = if (isNew) draft.docPaths else (existing?.docPaths ?: draft.docPaths),
+            updatedByUserId = me?.id,
+            updatedByUserName = me?.displayName ?: "Tech"
+        )
+        return try {
+            if (isNew) cloud.createEquipment(record) else cloud.updateEquipment(record)
+            logAudit(
+                "equipment", record.id, if (isNew) "created" else "updated",
+                (if (isNew) "Added equipment \"" else "Updated equipment \"") + "${record.name.trim()}\""
+            )
+            cloud.emitOrgEvent(orgId, deviceId, "equipment_saved")
+            pullSnapshot(orgId)
+            CreateResult.Success
+        } catch (t: Throwable) {
+            CreateResult.Error(t.message ?: "Couldn't save equipment.")
+        }
+    }
+
+    fun deleteEquipment(id: String) {
+        val orgId = bootstrappedOrgId ?: return
+        val name = _state.value.equipment.firstOrNull { it.id == id }?.name ?: ""
+        // Optimistic removal (DB cascades maintenance items + service log).
+        _state.update { s ->
+            s.copy(
+                equipment = s.equipment.filterNot { it.id == id },
+                equipmentMaintenanceItems = s.equipmentMaintenanceItems.filterNot { it.equipmentId == id },
+                equipmentServiceLog = s.equipmentServiceLog.filterNot { it.equipmentId == id }
+            )
+        }
+        scope.launch {
+            runCatching {
+                cloud.deleteEquipment(id)
+                logAudit("equipment", id, "deleted", "Deleted equipment \"$name\"")
+                cloud.emitOrgEvent(orgId, deviceId, "equipment_deleted")
+                pullSnapshot(orgId)
+            }
+        }
+    }
+
+    /** Quick update of the running hour meter (drives usage-based due tracking). */
+    fun logEquipmentHours(id: String, hours: Double) {
+        val orgId = bootstrappedOrgId ?: return
+        val clamped = hours.coerceAtLeast(0.0)
+        _state.update { s ->
+            s.copy(equipment = s.equipment.map { if (it.id == id) it.copy(usageHours = clamped) else it })
+        }
+        scope.launch {
+            runCatching {
+                cloud.updateEquipmentUsageHours(id, clamped)
+                cloud.emitOrgEvent(orgId, deviceId, "equipment_saved")
+            }
+        }
+    }
+
+    /** Create/update a maintenance or calibration item. Recomputes the
+     *  next-due date/hours from last-done + interval when possible, and
+     *  (on create, when a reminder user is set) drops a calendar event so
+     *  the existing fire-due-reminders job pushes a notification. */
+    suspend fun saveMaintenanceItem(draft: HFEquipmentMaintenanceItem): CreateResult {
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        if (draft.title.trim().isBlank()) return CreateResult.Error("Title is required.")
+        val isNew = draft.id.isBlank()
+        val (nextAt, nextHours) = computeEquipmentNextDue(draft)
+        val record = draft.copy(
+            id = if (isNew) UUID.randomUUID().toString() else draft.id,
+            orgId = orgId,
+            nextDueAt = nextAt,
+            nextDueHours = nextHours
+        )
+        return try {
+            if (isNew) cloud.createMaintenanceItem(record) else cloud.updateMaintenanceItem(record)
+            // Reminder: reuse the calendar-event pipeline so the server-side
+            // fire-due-reminders job needs no changes and the due date also
+            // renders on the Schedule calendar.
+            if (isNew && record.nextDueAt != null && !record.remindUserId.isNullOrBlank()) {
+                val eqName = _state.value.equipment.firstOrNull { it.id == record.equipmentId }?.name ?: "Equipment"
+                runCatching {
+                    createCalendarEvent(
+                        title = "$eqName: ${record.title.trim()} due",
+                        description = if (record.itemKind == "calibration") "Calibration due" else "Maintenance due",
+                        startDate = record.nextDueAt!!,
+                        endDate = record.nextDueAt!!,
+                        planeId = null,
+                        planeTailNumber = null,
+                        colorHex = null,
+                        eventKind = "equipment_due",
+                        visibility = "public",
+                        remindAt = "${record.nextDueAt}T08:00:00",
+                        remindUserId = record.remindUserId
+                    )
+                }
+            }
+            cloud.emitOrgEvent(orgId, deviceId, "equipment_saved")
+            pullSnapshot(orgId)
+            CreateResult.Success
+        } catch (t: Throwable) {
+            CreateResult.Error(t.message ?: "Couldn't save maintenance item.")
+        }
+    }
+
+    fun deleteMaintenanceItem(id: String) {
+        val orgId = bootstrappedOrgId ?: return
+        _state.update { s ->
+            s.copy(equipmentMaintenanceItems = s.equipmentMaintenanceItems.filterNot { it.id == id })
+        }
+        scope.launch {
+            runCatching {
+                cloud.deleteMaintenanceItem(id)
+                cloud.emitOrgEvent(orgId, deviceId, "equipment_saved")
+                pullSnapshot(orgId)
+            }
+        }
+    }
+
+    /** Log a completed service/repair/calibration. Records history AND
+     *  advances the linked maintenance item's due clock + bumps the
+     *  equipment hour meter when a higher reading is reported. */
+    suspend fun logEquipmentService(
+        equipmentId: String,
+        maintenanceItemId: String?,
+        performedAt: String,
+        hoursAtService: Double?,
+        notes: String,
+        docPaths: List<HFEquipmentDoc> = emptyList()
+    ): CreateResult {
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        val me = _state.value.currentUser
+        val entry = HFEquipmentServiceEntry(
+            id = UUID.randomUUID().toString(),
+            orgId = orgId,
+            equipmentId = equipmentId,
+            maintenanceItemId = maintenanceItemId,
+            performedAt = performedAt,
+            performedByUserId = me?.id,
+            performedByUserName = me?.displayName ?: "Tech",
+            hoursAtService = hoursAtService,
+            notes = notes.trim(),
+            docPaths = docPaths
+        )
+        return try {
+            cloud.createServiceEntry(entry)
+            // Advance the linked item's clock so it flips back to green.
+            if (maintenanceItemId != null) {
+                val item = _state.value.equipmentMaintenanceItems.firstOrNull { it.id == maintenanceItemId }
+                if (item != null) {
+                    val advanced = item.copy(
+                        lastDoneAt = performedAt,
+                        lastDoneHours = hoursAtService ?: item.lastDoneHours
+                    )
+                    val (nAt, nHrs) = computeEquipmentNextDue(advanced)
+                    cloud.updateMaintenanceItem(advanced.copy(nextDueAt = nAt, nextDueHours = nHrs))
+                }
+            }
+            // Keep the hour meter honest.
+            if (hoursAtService != null) {
+                val eq = _state.value.equipment.firstOrNull { it.id == equipmentId }
+                if (eq != null && hoursAtService > eq.usageHours) {
+                    cloud.updateEquipmentUsageHours(equipmentId, hoursAtService)
+                }
+            }
+            val eqName = _state.value.equipment.firstOrNull { it.id == equipmentId }?.name ?: ""
+            logAudit("equipment", equipmentId, "serviced", "Logged service on \"$eqName\"")
+            cloud.emitOrgEvent(orgId, deviceId, "equipment_saved")
+            pullSnapshot(orgId)
+            CreateResult.Success
+        } catch (t: Throwable) {
+            CreateResult.Error(t.message ?: "Couldn't log service.")
+        }
+    }
+
+    fun deleteServiceEntry(id: String) {
+        val orgId = bootstrappedOrgId ?: return
+        _state.update { s -> s.copy(equipmentServiceLog = s.equipmentServiceLog.filterNot { it.id == id }) }
+        scope.launch {
+            runCatching {
+                cloud.deleteServiceEntry(id)
+                cloud.emitOrgEvent(orgId, deviceId, "equipment_saved")
+                pullSnapshot(orgId)
+            }
+        }
+    }
+
+    /** Upload an image and append it to the equipment's photo list. */
+    suspend fun addEquipmentPhoto(equipmentId: String, data: ByteArray, fileName: String): CreateResult {
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        val eq = _state.value.equipment.firstOrNull { it.id == equipmentId }
+            ?: return CreateResult.Error("Equipment not found.")
+        return try {
+            val path = cloud.uploadEquipmentDoc(
+                data, orgId, equipmentId, fileName, io.ktor.http.ContentType.Image.JPEG
+            )
+            cloud.updateEquipment(eq.copy(photoPaths = eq.photoPaths + path))
+            cloud.emitOrgEvent(orgId, deviceId, "equipment_saved")
+            pullSnapshot(orgId)
+            CreateResult.Success
+        } catch (t: Throwable) {
+            CreateResult.Error(t.message ?: "Couldn't upload photo.")
+        }
+    }
+
+    /** Attach a document (cal cert, receipt, manual) to the equipment. */
+    suspend fun attachEquipmentDoc(
+        equipmentId: String,
+        data: ByteArray,
+        fileName: String,
+        contentType: io.ktor.http.ContentType,
+        kind: String = "doc"
+    ): CreateResult {
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        val eq = _state.value.equipment.firstOrNull { it.id == equipmentId }
+            ?: return CreateResult.Error("Equipment not found.")
+        return try {
+            val path = cloud.uploadEquipmentDoc(data, orgId, equipmentId, fileName, contentType)
+            val doc = HFEquipmentDoc(path = path, bucket = "equipment-docs", name = fileName, kind = kind)
+            cloud.updateEquipment(eq.copy(docPaths = eq.docPaths + doc))
+            cloud.emitOrgEvent(orgId, deviceId, "equipment_saved")
+            pullSnapshot(orgId)
+            CreateResult.Success
+        } catch (t: Throwable) {
+            CreateResult.Error(t.message ?: "Couldn't attach document.")
+        }
+    }
+
+    fun removeEquipmentDoc(equipmentId: String, doc: HFEquipmentDoc) {
+        val orgId = bootstrappedOrgId ?: return
+        val eq = _state.value.equipment.firstOrNull { it.id == equipmentId } ?: return
+        _state.update { s ->
+            s.copy(equipment = s.equipment.map {
+                if (it.id == equipmentId) it.copy(docPaths = it.docPaths.filterNot { d -> d.path == doc.path }) else it
+            })
+        }
+        scope.launch {
+            runCatching {
+                cloud.updateEquipment(eq.copy(docPaths = eq.docPaths.filterNot { it.path == doc.path }))
+                cloud.deleteEquipmentDocFile(doc.path)
+                cloud.emitOrgEvent(orgId, deviceId, "equipment_saved")
+                pullSnapshot(orgId)
+            }
+        }
+    }
+
+    fun removeEquipmentPhoto(equipmentId: String, path: String) {
+        val orgId = bootstrappedOrgId ?: return
+        val eq = _state.value.equipment.firstOrNull { it.id == equipmentId } ?: return
+        _state.update { s ->
+            s.copy(equipment = s.equipment.map {
+                if (it.id == equipmentId) it.copy(photoPaths = it.photoPaths.filterNot { p -> p == path }) else it
+            })
+        }
+        scope.launch {
+            runCatching {
+                cloud.updateEquipment(eq.copy(photoPaths = eq.photoPaths.filterNot { it == path }))
+                cloud.deleteEquipmentDocFile(path)
+                cloud.emitOrgEvent(orgId, deviceId, "equipment_saved")
+                pullSnapshot(orgId)
+            }
+        }
+    }
+
+    /** Short-lived signed URL for an equipment photo/doc (private bucket). */
+    suspend fun signedEquipmentDocURL(path: String): String? =
+        runCatching { cloud.signedEquipmentDocURL(path) }.getOrNull()
+
+    /** Recompute next-due from last-done + interval. Falls back to the
+     *  provided next-due when there's nothing to compute from. */
+    private fun computeEquipmentNextDue(item: HFEquipmentMaintenanceItem): Pair<String?, Double?> {
+        var nextAt = item.nextDueAt
+        var nextHours = item.nextDueHours
+        if (item.intervalType == "usage") {
+            val months = item.intervalHours
+            val last = item.lastDoneHours
+            if (months != null && last != null) nextHours = last + months
+        } else {
+            val m = item.intervalMonths
+            val last = item.lastDoneAt
+            if (m != null && !last.isNullOrBlank()) {
+                nextAt = runCatching {
+                    java.time.LocalDate.parse(last.take(10)).plusMonths(m.toLong()).toString()
+                }.getOrDefault(nextAt)
+            }
+        }
+        return nextAt to nextHours
+    }
+
     /** Best-effort auto-decrement when a part is logged used on a job. */
     fun consumeInventoryByPartNumber(partNumber: String, count: Int = 1) {
         val token = partNumber.trim().uppercase()
@@ -1385,32 +1710,50 @@ object SharedStore {
 
     private suspend fun pullSnapshot(orgId: String) {
         try {
-            val planes = cloud.fetchPlanes(orgId)
-            val workLogs = cloud.fetchWorkLogs(orgId)
-            val users = cloud.fetchUserProfiles(orgId)
-            val manuals = cloud.fetchManuals(orgId)
-            val squawks = cloud.fetchSquawks(orgId)
-            val timeEntries = cloud.fetchTimeEntries(orgId)
-            val partRequests = cloud.fetchPartRequests(orgId)
-            val partLocations = runCatching { cloud.fetchPartLocations(orgId) }.getOrElse {
-                // Table might not exist yet in older orgs — fail open
-                // with an empty list so the rest of the pull still works.
-                emptyList()
-            }
-            val tasks = runCatching { cloud.fetchTasks(orgId) }.getOrElse { emptyList() }
-            // Reimbursements may not have the migration yet on older orgs.
-            // Fail open so the rest of the snapshot loads.
-            val reimbursements = runCatching { cloud.fetchReimbursements(orgId) }.getOrElse { emptyList() }
-            val timeOffRequests = runCatching { cloud.fetchTimeOffRequests(orgId) }.getOrElse { emptyList() }
-            val calendarEvents = runCatching { cloud.fetchCalendarEvents(orgId) }.getOrElse { emptyList() }
-            // Time-entry corrections may not have the migration yet on older
-            // orgs — fail open so the rest of the snapshot still loads.
-            val timeEntryCorrections = runCatching { cloud.fetchTimeEntryCorrections(orgId) }.getOrElse { emptyList() }
-            val authUserId = runCatching {
-                SupabaseClientProvider.client.auth.currentUserOrNull()?.id
-            }.getOrNull()
+            // Fan out every fetch concurrently. This used to run ~17 fetches
+            // back-to-back (each awaiting the previous), so a sign-in waited
+            // on 17 sequential round-trips. Now they run in parallel and the
+            // pull takes only as long as the single slowest call. Wrapped in
+            // the perf watchdog so a slow load surfaces in hf_perf_events.
+            val next = com.hangarflow.app.perf.HFPerfMonitor.trace("pull_snapshot") { coroutineScope {
+            val planesD = async { cloud.fetchPlanes(orgId) }
+            val workLogsD = async { cloud.fetchWorkLogs(orgId) }
+            val usersD = async { cloud.fetchUserProfiles(orgId) }
+            val manualsD = async { cloud.fetchManuals(orgId) }
+            val squawksD = async { cloud.fetchSquawks(orgId) }
+            val timeEntriesD = async { cloud.fetchTimeEntries(orgId) }
+            val partRequestsD = async { cloud.fetchPartRequests(orgId) }
+            // Fail-open fetches (tables may be missing on older orgs).
+            val partLocationsD = async { runCatching { cloud.fetchPartLocations(orgId) }.getOrElse { emptyList() } }
+            val equipmentD = async { runCatching { cloud.fetchEquipment(orgId) }.getOrElse { emptyList() } }
+            val equipmentMaintenanceItemsD = async { runCatching { cloud.fetchEquipmentMaintenanceItems(orgId) }.getOrElse { emptyList() } }
+            val equipmentServiceLogD = async { runCatching { cloud.fetchEquipmentServiceLog(orgId) }.getOrElse { emptyList() } }
+            val tasksD = async { runCatching { cloud.fetchTasks(orgId) }.getOrElse { emptyList() } }
+            val reimbursementsD = async { runCatching { cloud.fetchReimbursements(orgId) }.getOrElse { emptyList() } }
+            val timeOffRequestsD = async { runCatching { cloud.fetchTimeOffRequests(orgId) }.getOrElse { emptyList() } }
+            val calendarEventsD = async { runCatching { cloud.fetchCalendarEvents(orgId) }.getOrElse { emptyList() } }
+            val timeEntryCorrectionsD = async { runCatching { cloud.fetchTimeEntryCorrections(orgId) }.getOrElse { emptyList() } }
+            val authUserIdD = async { runCatching { SupabaseClientProvider.client.auth.currentUserOrNull()?.id }.getOrNull() }
+
+            val planes = planesD.await()
+            val workLogs = workLogsD.await()
+            val users = usersD.await()
+            val manuals = manualsD.await()
+            val squawks = squawksD.await()
+            val timeEntries = timeEntriesD.await()
+            val partRequests = partRequestsD.await()
+            val partLocations = partLocationsD.await()
+            val equipment = equipmentD.await()
+            val equipmentMaintenanceItems = equipmentMaintenanceItemsD.await()
+            val equipmentServiceLog = equipmentServiceLogD.await()
+            val tasks = tasksD.await()
+            val reimbursements = reimbursementsD.await()
+            val timeOffRequests = timeOffRequestsD.await()
+            val calendarEvents = calendarEventsD.await()
+            val timeEntryCorrections = timeEntryCorrectionsD.await()
+            val authUserId = authUserIdD.await()
             val me = users.firstOrNull { it.authUserId == authUserId }
-            val next = _state.value.copy(
+            _state.value.copy(
                 planes = planes.sortedBy { p -> p.tailNumber.lowercase() },
                 // Pinned logs float to the top (most-recently pinned first),
                 // then the rest by most-recently updated — mirrors Desktop.
@@ -1421,6 +1764,9 @@ object SharedStore {
                 timeEntries = timeEntries,
                 partRequests = partRequests,
                 partLocations = partLocations.sortedByDescending { it.updatedAt ?: "" },
+                equipment = equipment.sortedBy { it.name.lowercase() },
+                equipmentMaintenanceItems = equipmentMaintenanceItems,
+                equipmentServiceLog = equipmentServiceLog,
                 tasks = tasks.sortedByDescending { it.updatedAt ?: "" },
                 reimbursements = reimbursements.sortedByDescending { it.createdAt ?: "" },
                 timeOffRequests = timeOffRequests.sortedByDescending { it.createdAt ?: "" },
@@ -1430,6 +1776,7 @@ object SharedStore {
                 loading = false,
                 error = null
             )
+            } }
             _state.value = next
             // Persist the newly pulled snapshot so the next cold start
             // can render before the network is available.
@@ -1438,7 +1785,7 @@ object SharedStore {
             // up a new assignment. Notifier tracks IDs internally so we
             // don't re-ping on every sync.
             com.hangarflow.app.AssignmentNotifier.onSnapshot(
-                currentUserId = me?.id,
+                currentUserId = next.currentUser?.id,
                 workLogs = next.workLogs
             )
         } catch (t: Throwable) {
@@ -1535,6 +1882,9 @@ data class ShopState(
     val timeEntries: List<HFTimeEntry>,
     val partRequests: List<HFPartRequest>,
     val partLocations: List<HFPartLocation>,
+    val equipment: List<com.hangarflow.app.data.model.HFEquipment> = emptyList(),
+    val equipmentMaintenanceItems: List<com.hangarflow.app.data.model.HFEquipmentMaintenanceItem> = emptyList(),
+    val equipmentServiceLog: List<com.hangarflow.app.data.model.HFEquipmentServiceEntry> = emptyList(),
     val tasks: List<HFTask> = emptyList(),
     val reimbursements: List<com.hangarflow.app.data.model.HFReimbursement> = emptyList(),
     val timeOffRequests: List<com.hangarflow.app.data.model.HFTimeOffRequest> = emptyList(),
@@ -1554,6 +1904,9 @@ data class ShopState(
             timeEntries = emptyList(),
             partRequests = emptyList(),
             partLocations = emptyList(),
+            equipment = emptyList(),
+            equipmentMaintenanceItems = emptyList(),
+            equipmentServiceLog = emptyList(),
             tasks = emptyList(),
             reimbursements = emptyList(),
             timeOffRequests = emptyList(),

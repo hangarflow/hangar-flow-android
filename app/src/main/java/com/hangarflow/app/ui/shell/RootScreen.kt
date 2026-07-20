@@ -51,13 +51,19 @@ fun RootScreen() {
                 var showAINavDisclaimer by remember { mutableStateOf(false) }
 
                 HomeHub(
-                    onOpenHub = { openHub = it },
+                    onOpenHub = {
+                        openHub = it
+                        com.hangarflow.app.perf.HFPerfMonitor.currentScreen = "hub:${it.name}"
+                    },
                     onOpenNavigator = { if (aiAccepted) showAINav = true else showAINavDisclaimer = true }
                 )
                 openHub?.let { destination ->
                     HubSheetHost(
                         destination = destination,
-                        onDismiss = { openHub = null }
+                        onDismiss = {
+                            openHub = null
+                            com.hangarflow.app.perf.HFPerfMonitor.currentScreen = "home"
+                        }
                     )
                 }
                 AINavigatorHost(

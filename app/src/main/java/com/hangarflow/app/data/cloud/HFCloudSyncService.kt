@@ -1,5 +1,9 @@
 package com.hangarflow.app.data.cloud
 
+import com.hangarflow.app.data.model.HFEquipment
+import com.hangarflow.app.data.model.HFEquipmentDoc
+import com.hangarflow.app.data.model.HFEquipmentMaintenanceItem
+import com.hangarflow.app.data.model.HFEquipmentServiceEntry
 import com.hangarflow.app.data.model.HFManual
 import com.hangarflow.app.data.model.HFPartLocation
 import com.hangarflow.app.data.model.HFPartRequest
@@ -101,6 +105,18 @@ class HFCloudSyncService {
             .from("hf_audit_log")
             .select {
                 filter { eq("org_id", orgId) }
+                order("created_at", io.github.jan.supabase.postgrest.query.Order.DESCENDING)
+                limit(limit.toLong())
+            }
+            .decodeList()
+
+    /** Audit events for a single item (equipment / part) — powers the
+     *  "who last used / serviced it" trail on QuickPic scan sheets. */
+    suspend fun fetchAuditLogForEntity(orgId: String, entityId: String, limit: Int = 12): List<com.hangarflow.app.data.model.HFAuditEvent> =
+        client.postgrest
+            .from("hf_audit_log")
+            .select {
+                filter { eq("org_id", orgId); eq("entity_id", entityId) }
                 order("created_at", io.github.jan.supabase.postgrest.query.Order.DESCENDING)
                 limit(limit.toLong())
             }
@@ -221,6 +237,158 @@ class HFCloudSyncService {
     suspend fun updatePartLocationQuantity(id: String, quantity: Int) {
         client.postgrest.from("hf_part_locations")
             .update(mapOf("quantity" to quantity.coerceAtLeast(0))) { filter { eq("id", id) } }
+    }
+
+    // ----------------------------------------------------------------------
+    // Equipment — shop gear + maintenance/calibration due items + service log.
+    // Org-wide (RLS: any org member reads + writes). Mirrors part-location ops.
+    // ----------------------------------------------------------------------
+    suspend fun fetchEquipment(orgId: String): List<HFEquipment> =
+        client.postgrest.from("hf_equipment").select { filter { eq("org_id", orgId) } }.decodeList()
+
+    suspend fun fetchEquipmentMaintenanceItems(orgId: String): List<HFEquipmentMaintenanceItem> =
+        client.postgrest.from("hf_equipment_maintenance_items").select { filter { eq("org_id", orgId) } }.decodeList()
+
+    suspend fun fetchEquipmentServiceLog(orgId: String): List<HFEquipmentServiceEntry> =
+        client.postgrest.from("hf_equipment_service_log").select { filter { eq("org_id", orgId) } }.decodeList()
+
+    @kotlinx.serialization.Serializable
+    private data class EquipmentRow(
+        val id: String? = null,
+        val org_id: String? = null,
+        val name: String,
+        val equipment_type: String,
+        val location: String,
+        val manufacturer: String,
+        val model_number: String,
+        val serial_number: String,
+        val status: String,
+        val photo_paths: List<String>,
+        val doc_paths: List<HFEquipmentDoc>,
+        val assigned_owner_id: String?,
+        val assigned_owner_name: String,
+        val usage_hours: Double,
+        val warranty_expires_at: String?,
+        val registration_expires_at: String?,
+        val notes: String,
+        val updated_by_user_id: String?,
+        val updated_by_user_name: String
+    )
+
+    private fun HFEquipment.toRow(rowId: String) = EquipmentRow(
+        id = rowId, org_id = orgId, name = name.trim(),
+        equipment_type = equipmentType.ifBlank { "general" }, location = location.trim(),
+        manufacturer = manufacturer.trim(), model_number = modelNumber.trim(),
+        serial_number = serialNumber.trim(), status = status.ifBlank { "active" },
+        photo_paths = photoPaths, doc_paths = docPaths, assigned_owner_id = assignedOwnerId,
+        assigned_owner_name = assignedOwnerName.trim(), usage_hours = usageHours.coerceAtLeast(0.0),
+        warranty_expires_at = warrantyExpiresAt, registration_expires_at = registrationExpiresAt,
+        notes = notes.trim(), updated_by_user_id = updatedByUserId, updated_by_user_name = updatedByUserName.trim()
+    )
+
+    suspend fun createEquipment(equipment: HFEquipment): String {
+        val id = equipment.id.ifBlank { java.util.UUID.randomUUID().toString() }
+        client.postgrest.from("hf_equipment").insert(equipment.toRow(id))
+        return id
+    }
+
+    suspend fun updateEquipment(equipment: HFEquipment) {
+        client.postgrest.from("hf_equipment").update(equipment.toRow(equipment.id)) { filter { eq("id", equipment.id) } }
+    }
+
+    suspend fun deleteEquipment(id: String) {
+        client.postgrest.from("hf_equipment").delete { filter { eq("id", id) } }
+    }
+
+    suspend fun updateEquipmentUsageHours(id: String, hours: Double) {
+        client.postgrest.from("hf_equipment")
+            .update(mapOf("usage_hours" to hours.coerceAtLeast(0.0))) { filter { eq("id", id) } }
+    }
+
+    @kotlinx.serialization.Serializable
+    private data class MaintenanceItemRow(
+        val id: String? = null,
+        val org_id: String? = null,
+        val equipment_id: String,
+        val title: String,
+        val item_kind: String,
+        val interval_type: String,
+        val interval_months: Int?,
+        val interval_hours: Double?,
+        val last_done_at: String?,
+        val last_done_hours: Double?,
+        val next_due_at: String?,
+        val next_due_hours: Double?,
+        val remind_user_id: String?,
+        val notes: String
+    )
+
+    private fun HFEquipmentMaintenanceItem.toRow(rowId: String) = MaintenanceItemRow(
+        id = rowId, org_id = orgId, equipment_id = equipmentId, title = title.trim(),
+        item_kind = itemKind.ifBlank { "maintenance" }, interval_type = intervalType.ifBlank { "time" },
+        interval_months = intervalMonths, interval_hours = intervalHours, last_done_at = lastDoneAt,
+        last_done_hours = lastDoneHours, next_due_at = nextDueAt, next_due_hours = nextDueHours,
+        remind_user_id = remindUserId, notes = notes.trim()
+    )
+
+    suspend fun createMaintenanceItem(item: HFEquipmentMaintenanceItem): String {
+        val id = item.id.ifBlank { java.util.UUID.randomUUID().toString() }
+        client.postgrest.from("hf_equipment_maintenance_items").insert(item.toRow(id))
+        return id
+    }
+
+    suspend fun updateMaintenanceItem(item: HFEquipmentMaintenanceItem) {
+        client.postgrest.from("hf_equipment_maintenance_items").update(item.toRow(item.id)) { filter { eq("id", item.id) } }
+    }
+
+    suspend fun deleteMaintenanceItem(id: String) {
+        client.postgrest.from("hf_equipment_maintenance_items").delete { filter { eq("id", id) } }
+    }
+
+    @kotlinx.serialization.Serializable
+    private data class ServiceEntryRow(
+        val id: String? = null,
+        val org_id: String? = null,
+        val equipment_id: String,
+        val maintenance_item_id: String?,
+        val performed_at: String,
+        val performed_by_user_id: String?,
+        val performed_by_user_name: String,
+        val hours_at_service: Double?,
+        val notes: String,
+        val doc_paths: List<HFEquipmentDoc>
+    )
+
+    suspend fun createServiceEntry(entry: HFEquipmentServiceEntry): String {
+        val id = entry.id.ifBlank { java.util.UUID.randomUUID().toString() }
+        val row = ServiceEntryRow(
+            id = id, org_id = entry.orgId, equipment_id = entry.equipmentId,
+            maintenance_item_id = entry.maintenanceItemId, performed_at = entry.performedAt,
+            performed_by_user_id = entry.performedByUserId, performed_by_user_name = entry.performedByUserName.trim(),
+            hours_at_service = entry.hoursAtService, notes = entry.notes.trim(), doc_paths = entry.docPaths
+        )
+        client.postgrest.from("hf_equipment_service_log").insert(row)
+        return id
+    }
+
+    suspend fun deleteServiceEntry(id: String) {
+        client.postgrest.from("hf_equipment_service_log").delete { filter { eq("id", id) } }
+    }
+
+    suspend fun uploadEquipmentDoc(
+        data: ByteArray, orgId: String, equipmentId: String, fileName: String, contentType: io.ktor.http.ContentType
+    ): String {
+        val ext = fileName.substringAfterLast('.', "").lowercase().ifBlank { "bin" }
+        val path = "$orgId/$equipmentId/${java.util.UUID.randomUUID()}.$ext"
+        client.storage.from("equipment-docs").upload(path, data) { this.contentType = contentType; upsert = false }
+        return path
+    }
+
+    suspend fun signedEquipmentDocURL(path: String, expiresInSeconds: Int = 3600): String =
+        client.storage.from("equipment-docs").createSignedUrl(path, expiresIn = expiresInSeconds.seconds)
+
+    suspend fun deleteEquipmentDocFile(path: String) {
+        runCatching { client.storage.from("equipment-docs").delete(path) }
     }
 
     /** Flip a part request through its lifecycle: requested → ordered → received → installed. */
@@ -927,7 +1095,14 @@ class HFCloudSyncService {
         val org_id: String,
         val tail_number: String,
         val display_name: String,
-        val outline_hex: String
+        val outline_hex: String,
+        val manufacturer: String? = null,
+        val model: String? = null,
+        val serial_number: String? = null,
+        val year: String? = null,
+        val registered_owner: String? = null,
+        val engine_model: String? = null,
+        val prop_model: String? = null
     )
 
     /** Insert a plane row. Caller should pre-uppercase the tail number and
@@ -936,7 +1111,14 @@ class HFCloudSyncService {
         orgId: String,
         tailNumber: String,
         displayName: String,
-        outlineHex: String
+        outlineHex: String,
+        manufacturer: String? = null,
+        model: String? = null,
+        serialNumber: String? = null,
+        year: String? = null,
+        registeredOwner: String? = null,
+        engineModel: String? = null,
+        propModel: String? = null
     ): String {
         val id = java.util.UUID.randomUUID().toString()
         val row = NewPlaneRow(
@@ -944,11 +1126,49 @@ class HFCloudSyncService {
             org_id = orgId,
             tail_number = tailNumber.trim().uppercase(),
             display_name = displayName.trim().ifBlank { tailNumber.trim().uppercase() },
-            outline_hex = outlineHex.ifBlank { "#FFFFFF" }
+            outline_hex = outlineHex.ifBlank { "#FFFFFF" },
+            manufacturer = manufacturer?.trim()?.ifBlank { null },
+            model = model?.trim()?.ifBlank { null },
+            serial_number = serialNumber?.trim()?.ifBlank { null },
+            year = year?.trim()?.ifBlank { null },
+            registered_owner = registeredOwner?.trim()?.ifBlank { null },
+            engine_model = engineModel?.trim()?.ifBlank { null },
+            prop_model = propModel?.trim()?.ifBlank { null }
         )
         client.postgrest.from("hf_aircraft").insert(row)
         return id
     }
+
+    @kotlinx.serialization.Serializable
+    data class AircraftLookupResult(
+        val found: Boolean = false,
+        val source: String = "none",
+        val manufacturer: String? = null,
+        val model: String? = null,
+        @kotlinx.serialization.SerialName("serial_number") val serialNumber: String? = null,
+        val year: String? = null,
+        @kotlinx.serialization.SerialName("registered_owner") val registeredOwner: String? = null,
+        @kotlinx.serialization.SerialName("engine_model") val engineModel: String? = null,
+        @kotlinx.serialization.SerialName("prop_model") val propModel: String? = null
+    )
+
+    @kotlinx.serialization.Serializable
+    private data class AircraftLookupRequest(
+        @kotlinx.serialization.SerialName("tail_number") val tailNumber: String
+    )
+
+    /** Look up an N-number via the `aircraft-lookup` edge function (FAA
+     *  registry + AI normalize). Returns null on any failure so the caller
+     *  just leaves the fields for manual entry. */
+    suspend fun lookupAircraft(tailNumber: String): AircraftLookupResult? =
+        runCatching {
+            val resp = client.functions.invoke(
+                function = "aircraft-lookup",
+                body = AircraftLookupRequest(tailNumber.trim().uppercase())
+            )
+            kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+                .decodeFromString(AircraftLookupResult.serializer(), resp.bodyAsText())
+        }.getOrNull()
 
     @kotlinx.serialization.Serializable
     private data class NewWorkLogRow(
@@ -1045,6 +1265,44 @@ class HFCloudSyncService {
         val resp = client.functions.invoke(function = "parts-search", body = body)
         return kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
             .decodeFromString(AIPartsSearchResult.serializer(), resp.bodyAsText())
+    }
+
+    // ---------- Squawk → related manuals (squawk-manuals edge function) ----------
+
+    @kotlinx.serialization.Serializable
+    data class SquawkManualsRequest(
+        val text: String,
+        @kotlinx.serialization.SerialName("plane_tail") val planeTail: String? = null,
+        val limit: Int = 5,
+    )
+    @kotlinx.serialization.Serializable
+    data class SquawkManualRef(
+        @kotlinx.serialization.SerialName("reference_code") val referenceCode: String? = null,
+        val title: String? = null,
+        @kotlinx.serialization.SerialName("page_label") val pageLabel: String? = null,
+        @kotlinx.serialization.SerialName("source_manual_name") val sourceManualName: String? = null,
+        @kotlinx.serialization.SerialName("body_text") val bodyText: String? = null,
+        val similarity: Double? = null,
+    )
+    @kotlinx.serialization.Serializable
+    data class SquawkIPCRef(
+        @kotlinx.serialization.SerialName("part_number") val partNumber: String? = null,
+        @kotlinx.serialization.SerialName("page_number") val pageNumber: Int? = null,
+    )
+    @kotlinx.serialization.Serializable
+    data class SquawkManualsResult(
+        @kotlinx.serialization.SerialName("manual_refs") val manualRefs: List<SquawkManualRef> = emptyList(),
+        val ipc: List<SquawkIPCRef> = emptyList(),
+    )
+
+    /** Semantic + keyword manual references for a squawk (auto-suggest). No Claude. */
+    suspend fun squawkManuals(text: String, planeTail: String?, limit: Int = 5): SquawkManualsResult {
+        val resp = client.functions.invoke(
+            function = "squawk-manuals",
+            body = SquawkManualsRequest(text = text.trim(), planeTail = planeTail, limit = limit),
+        )
+        return kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+            .decodeFromString(SquawkManualsResult.serializer(), resp.bodyAsText())
     }
 
     // ---------- AI parts FIND (parts-find edge function — structured) ----------

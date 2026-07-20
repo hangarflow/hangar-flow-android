@@ -18,6 +18,8 @@ navigationCompose = "2.8.5"
 coil = "3.0.4"
 pdfboxAndroid = "2.0.27.0"
 firebaseBom = "33.7.0"
+zxingEmbedded = "4.3.0"
+metricsPerformance = "1.0.0-beta02"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -60,6 +62,13 @@ coil-network-okhttp = { group = "io.coil-kt.coil3", name = "coil-network-okhttp"
 pdfbox-android = { group = "com.tom-roush", name = "pdfbox-android", version.ref = "pdfboxAndroid" }
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
 firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging-ktx" }
+
+# QuickPic — QR label scanning (bundles ZXing core; ships its own CaptureActivity
+# so it handles the camera + permission prompt itself, no CameraX plumbing).
+zxing-android-embedded = { group = "com.journeyapps", name = "zxing-android-embedded", version.ref = "zxingEmbedded" }
+
+# Live perf watchdog — JankStats flags dropped/slow frames per screen.
+androidx-metrics-performance = { group = "androidx.metrics", name = "metrics-performance", version.ref = "metricsPerformance" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

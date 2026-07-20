@@ -89,6 +89,8 @@ fun HubSheetHost(
                 HomeDestination.Users -> UsersHub()
                 HomeDestination.Schedule -> ScheduleHub()
                 HomeDestination.ActivityLog -> ActivityLogHub()
+                HomeDestination.Equipment -> EquipmentHub()
+                HomeDestination.QuickPic -> QuickPicScreen()
                 else -> Column(
                     modifier = Modifier
                         .padding(horizontal = 16.dp)
@@ -118,6 +120,8 @@ private val HomeDestination.title: String
         HomeDestination.Review -> "Needs Review"
         HomeDestination.Schedule -> "Schedule"
         HomeDestination.ActivityLog -> "Activity Log"
+        HomeDestination.Equipment -> "Equipment"
+        HomeDestination.QuickPic -> "QuickPic"
     }
 
 private val HomeDestination.subtitle: String
@@ -136,6 +140,8 @@ private val HomeDestination.subtitle: String
         HomeDestination.Review -> "Imported rows awaiting approval."
         HomeDestination.Schedule -> "Plane drop-offs, RTS deadlines, time-off."
         HomeDestination.ActivityLog -> "Who added, imported, or changed what."
+        HomeDestination.Equipment -> "Shop gear — maintenance & calibration due."
+        HomeDestination.QuickPic -> "Scan or print QR labels for parts & gear."
     }
 
 private val HomeDestination.phaseMessage: String

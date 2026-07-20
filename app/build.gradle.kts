@@ -87,6 +87,12 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)
 
+    // QuickPic — QR label scanning
+    implementation(libs.zxing.android.embedded)
+
+    // Live perf watchdog (JankStats)
+    implementation(libs.androidx.metrics.performance)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
