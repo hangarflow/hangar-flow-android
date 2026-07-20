@@ -49,17 +49,9 @@ jobs:
           echo "Found: $APK_PATH"
           echo "apk_path=$APK_PATH" >> "$GITHUB_OUTPUT"
 
-      # Upload only for real releases (v* tags) or manual runs. Plain main
-      # pushes still build (sanity) but skip storing the ~34 MB APK that used
-      # to accumulate against the free 500 MB Actions storage.
-      - name: Upload APK artifact
-        if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
-        uses: actions/upload-artifact@v4
-        with:
-          name: hangar-flow-android-beta-apk
-          path: ${{ steps.locate.outputs.apk_path }}
-          retention-days: 7
-
+      # R2 is the REAL distribution (the /downloads APK). It runs FIRST and
+      # independent of the throwaway GitHub artifact below, so an Actions
+      # artifact-storage quota hit can never block or skip the actual release.
       - name: Publish to Cloudflare R2
         if: startsWith(github.ref, 'refs/tags/v')
         env:
@@ -78,3 +70,15 @@ jobs:
             --endpoint-url "$R2_ENDPOINT" \
             --content-type "application/vnd.android.package-archive"
           echo "Published to: https://pub-255b2db29597443abd3ccb6104ab034b.r2.dev/Hangar-Flow-Android-Beta.apk"
+
+      # Convenience copy for manual download from the Actions tab, only on
+      # v* tags / manual runs. continue-on-error so a full Actions artifact
+      # quota can't fail the release run — the real APK already went to R2.
+      - name: Upload APK artifact
+        if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: hangar-flow-android-beta-apk
+          path: ${{ steps.locate.outputs.apk_path }}
+          retention-days: 7
