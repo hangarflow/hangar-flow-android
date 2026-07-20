@@ -969,6 +969,62 @@ class HFCloudSyncService {
         return id
     }
 
+    @kotlinx.serialization.Serializable
+    private data class SquawkEditPatch(
+        val plane_id: String?,
+        val plane_tail_number: String,
+        val title: String,
+        val notes: String,
+        val category: String,
+        val corrective_action: String,
+        val corrected_by_user_id: String?,
+        val corrected_by_user_name: String,
+        val corrected_at: String?
+    )
+
+    /** Full edit of an existing squawk incl. its corrective action. */
+    suspend fun updateSquawkFields(
+        id: String,
+        planeId: String?,
+        planeTailNumber: String,
+        title: String,
+        notes: String,
+        category: String,
+        correctiveAction: String,
+        correctedByUserId: String?,
+        correctedByUserName: String,
+        correctedAt: String?
+    ) {
+        client.postgrest.from("hf_squawks").update(
+            SquawkEditPatch(
+                plane_id = planeId,
+                plane_tail_number = planeTailNumber.trim().uppercase(),
+                title = title.trim(),
+                notes = notes.trim(),
+                category = category,
+                corrective_action = correctiveAction.trim(),
+                corrected_by_user_id = correctedByUserId,
+                corrected_by_user_name = correctedByUserName,
+                corrected_at = correctedAt
+            )
+        ) { filter { eq("id", id) } }
+    }
+
+    @kotlinx.serialization.Serializable
+    private data class SchedMaintPatch(
+        val scheduled_maintenance: List<com.hangarflow.app.data.model.HFScheduledMaintItem>
+    )
+
+    /** Persist the plane's scheduled-maintenance checklist (JSONB column). */
+    suspend fun updatePlaneScheduledMaintenance(
+        planeId: String,
+        items: List<com.hangarflow.app.data.model.HFScheduledMaintItem>
+    ) {
+        client.postgrest.from("hf_aircraft").update(SchedMaintPatch(items)) {
+            filter { eq("id", planeId) }
+        }
+    }
+
     /**
      * Single-column update on a work log. Used when a tech flips status
      * (e.g. Open → In Progress → Done) from the Android tablet. The RLS

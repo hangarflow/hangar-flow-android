@@ -69,6 +69,7 @@ import kotlin.math.roundToInt
 @Composable
 fun SquawksHub() {
     var showCreate by remember { mutableStateOf(false) }
+    var editingSquawk by remember { mutableStateOf<HFSquawk?>(null) }
     // Full-screen photo viewer state.
     var viewingPhotoPaths by remember { mutableStateOf<List<String>?>(null) }
     var viewingPhotoIndex by remember { mutableStateOf(0) }
@@ -85,9 +86,17 @@ fun SquawksHub() {
         CreateSquawkSheet(onDismiss = { showCreate = false })
         return
     }
+    editingSquawk?.let { sq ->
+        // Re-resolve against live state so the sheet reflects the latest
+        // corrective-action stamp after a save round-trip.
+        val live = SharedStore.state.collectAsState().value.squawks.firstOrNull { it.id == sq.id } ?: sq
+        EditSquawkSheet(squawk = live, onDismiss = { editingSquawk = null })
+        return
+    }
     HFPullToRefreshHost {
         SquawksHubContent(
             onOpenCreate = { showCreate = true },
+            onOpenEdit = { editingSquawk = it },
             onOpenPhoto = { paths, index ->
                 viewingPhotoPaths = paths
                 viewingPhotoIndex = index
@@ -100,6 +109,7 @@ fun SquawksHub() {
 @Composable
 private fun SquawksHubContent(
     onOpenCreate: () -> Unit,
+    onOpenEdit: (HFSquawk) -> Unit,
     onOpenPhoto: (paths: List<String>, index: Int) -> Unit
 ) {
     val state by SharedStore.state.collectAsState()
@@ -205,6 +215,7 @@ private fun SquawksHubContent(
                     SquawkCard(
                         squawk = squawk,
                         onTapStatus = { statusSheetFor = squawk },
+                        onEdit = { onOpenEdit(squawk) },
                         onDelete = { deleteConfirmFor = squawk },
                         onOpenPhoto = onOpenPhoto
                     )
@@ -406,6 +417,7 @@ private fun SquawkFilterChip(label: String, isSelected: Boolean, onClick: () -> 
 private fun SquawkCard(
     squawk: HFSquawk,
     onTapStatus: () -> Unit,
+    onEdit: () -> Unit,
     onDelete: () -> Unit,
     onOpenPhoto: (paths: List<String>, index: Int) -> Unit
 ) {
@@ -432,6 +444,17 @@ private fun SquawkCard(
                 modifier = Modifier.weight(1f)
             )
             Spacer(Modifier.width(8.dp))
+            // Full edit — title/plane/category/notes/corrective action.
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable(onClick = onEdit)
+                    .padding(horizontal = 6.dp, vertical = 2.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Edit", color = HFColors.OnSurface.copy(alpha = 0.75f), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            }
+            Spacer(Modifier.width(2.dp))
             // Anyone (including techs) can delete a squawk.
             Box(
                 modifier = Modifier
@@ -465,6 +488,39 @@ private fun SquawkCard(
                 fontSize = 13.sp,
                 maxLines = 4
             )
+        }
+
+        // ── Corrective action — what was done to fix it ──
+        if (squawk.correctiveAction.isNotBlank()) {
+            Spacer(Modifier.size(10.dp))
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(HFColors.StatusGreen.copy(alpha = 0.07f))
+                    .border(1.dp, HFColors.StatusGreen.copy(alpha = 0.20f), RoundedCornerShape(10.dp))
+                    .padding(10.dp)
+            ) {
+                Text(
+                    "CORRECTIVE ACTION",
+                    color = HFColors.StatusGreen,
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp
+                )
+                Spacer(Modifier.size(4.dp))
+                Text(squawk.correctiveAction, color = HFColors.OnSurface, fontSize = 13.sp)
+                val by = squawk.correctedByUserName.takeIf { it.isNotBlank() }
+                val on = squawk.correctedAt?.take(10)
+                if (by != null || on != null) {
+                    Spacer(Modifier.size(4.dp))
+                    Text(
+                        listOfNotNull(by?.let { "Closed by $it" }, on).joinToString(" · "),
+                        color = HFColors.OnSurface.copy(alpha = 0.5f),
+                        fontSize = 10.sp
+                    )
+                }
+            }
         }
 
         if (squawk.photoPaths.isNotEmpty()) {

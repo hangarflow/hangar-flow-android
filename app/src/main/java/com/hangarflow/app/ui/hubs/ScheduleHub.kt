@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
@@ -19,13 +20,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.hangarflow.app.data.SharedStore
 import com.hangarflow.app.data.model.HFPlane
+import com.hangarflow.app.data.model.HFScheduledMaintItem
 import com.hangarflow.app.ui.theme.HFColors
+import java.util.UUID
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
@@ -44,6 +49,7 @@ import kotlinx.coroutines.launch
 fun ScheduleHub() {
     var showRequestTimeOff by remember { mutableStateOf(false) }
     var addEventDate by remember { mutableStateOf<LocalDate?>(null) }
+    var editEvent by remember { mutableStateOf<com.hangarflow.app.data.model.HFCalendarEvent?>(null) }
     if (showRequestTimeOff) {
         RequestTimeOffSheet(onDismiss = { showRequestTimeOff = false })
         return
@@ -54,14 +60,26 @@ fun ScheduleHub() {
             onDismiss = { addEventDate = null }
         )
     }
+    editEvent?.let { ev ->
+        AddCalendarEventSheet(
+            initialDate = parseDate(ev.startDate) ?: LocalDate.now(),
+            onDismiss = { editEvent = null },
+            existing = ev
+        )
+    }
     ScheduleHubContent(
         onRequestTimeOff = { showRequestTimeOff = true },
-        onAddEvent = { addEventDate = it }
+        onAddEvent = { addEventDate = it },
+        onEditEvent = { editEvent = it }
     )
 }
 
 @Composable
-private fun ScheduleHubContent(onRequestTimeOff: () -> Unit, onAddEvent: (LocalDate) -> Unit) {
+private fun ScheduleHubContent(
+    onRequestTimeOff: () -> Unit,
+    onAddEvent: (LocalDate) -> Unit,
+    onEditEvent: (com.hangarflow.app.data.model.HFCalendarEvent) -> Unit
+) {
     val shopState by SharedStore.state.collectAsState()
     val authState by com.hangarflow.app.auth.AuthManager.state.collectAsState()
     val isAdmin = authState.isAdmin
@@ -173,7 +191,13 @@ private fun ScheduleHubContent(onRequestTimeOff: () -> Unit, onAddEvent: (LocalD
                         EmptyGroupText("No admin events.")
                     } else {
                         dayCalendarEvents.forEach { ev ->
-                            CalendarEventRow(event = ev, canDelete = isAdmin, scope = scope)
+                            CalendarEventRow(
+                                event = ev,
+                                canDelete = isAdmin,
+                                canEdit = canManage,
+                                onEdit = { onEditEvent(ev) },
+                                scope = scope
+                            )
                         }
                     }
                 }
@@ -181,7 +205,12 @@ private fun ScheduleHubContent(onRequestTimeOff: () -> Unit, onAddEvent: (LocalD
                     if (arrivals.isEmpty()) {
                         EmptyGroupText("No drop-offs.")
                     } else {
-                        arrivals.forEach { EventRow(it) }
+                        arrivals.forEach { ev ->
+                            EventRow(ev)
+                            ev.plane?.let { plane ->
+                                SchedMaintChecklist(plane = plane)
+                            }
+                        }
                     }
                 }
                 DayGroup(title = "RTS DEADLINES (${deadlines.size})", accent = HFColors.StatusRed) {
@@ -579,6 +608,140 @@ private fun EventRow(event: PlaneScheduleEvent) {
     }
 }
 
+/**
+ * Editable scheduled-maintenance checklist for a plane's shop visit — a
+ * bulletin/list of what the plane is in for. Check items off, add, remove.
+ * Persists on every change (optimistic). Techs check items off as they go.
+ */
+@Composable
+private fun SchedMaintChecklist(plane: HFPlane) {
+    val items = plane.scheduledMaintenance
+    val meName = SharedStore.state.collectAsState().value.currentUser?.displayName ?: "Tech"
+    var newTitle by remember(plane.id) { mutableStateOf("") }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 11.dp, top = 4.dp, bottom = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(5.dp)
+    ) {
+        Text(
+            "SCHEDULED MAINTENANCE",
+            color = HFColors.OnSurface.copy(alpha = 0.5f),
+            fontSize = 8.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 0.8.sp
+        )
+        if (items.isEmpty()) {
+            Text("Nothing listed yet.", color = HFColors.OnSurface.copy(alpha = 0.4f), fontSize = 11.sp)
+        } else {
+            items.forEach { item ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(16.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(if (item.done) HFColors.StatusGreen.copy(alpha = 0.25f) else HFColors.OnSurface.copy(alpha = 0.04f))
+                            .border(
+                                1.dp,
+                                if (item.done) HFColors.StatusGreen.copy(alpha = 0.6f) else HFColors.OnSurface.copy(alpha = 0.15f),
+                                RoundedCornerShape(4.dp)
+                            )
+                            .clickable {
+                                val toggled = items.map { row ->
+                                    if (row.id == item.id) row.copy(
+                                        done = !row.done,
+                                        doneByName = if (!row.done) meName else "",
+                                        doneAt = if (!row.done) LocalDate.now().toString() else null
+                                    ) else row
+                                }
+                                SharedStore.updatePlaneScheduledMaintenance(plane.id, toggled)
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (item.done) Text("✓", color = HFColors.StatusGreen, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            item.title,
+                            color = if (item.done) HFColors.OnSurface.copy(alpha = 0.5f) else HFColors.OnSurface,
+                            fontSize = 12.sp,
+                            textDecoration = if (item.done) TextDecoration.LineThrough else null
+                        )
+                        if (item.done && item.doneByName.isNotBlank()) {
+                            Text(
+                                "done by ${item.doneByName}${item.doneAt?.take(10)?.let { " · $it" } ?: ""}",
+                                color = HFColors.OnSurface.copy(alpha = 0.4f),
+                                fontSize = 8.sp
+                            )
+                        }
+                    }
+                    Text(
+                        "×",
+                        color = HFColors.StatusRed,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .clickable {
+                                SharedStore.updatePlaneScheduledMaintenance(plane.id, items.filterNot { it.id == item.id })
+                            }
+                            .padding(horizontal = 4.dp)
+                    )
+                }
+            }
+        }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(HFColors.OnSurface.copy(alpha = 0.05f))
+                    .border(1.dp, HFColors.OnSurface.copy(alpha = 0.12f), RoundedCornerShape(8.dp))
+                    .padding(horizontal = 8.dp, vertical = 7.dp)
+            ) {
+                if (newTitle.isEmpty()) {
+                    Text("Add item (e.g. 100-hr inspection)", color = HFColors.OnSurface.copy(alpha = 0.35f), fontSize = 11.sp)
+                }
+                BasicTextField(
+                    value = newTitle,
+                    onValueChange = { newTitle = it },
+                    singleLine = true,
+                    textStyle = androidx.compose.ui.text.TextStyle(color = HFColors.OnSurface, fontSize = 11.sp),
+                    cursorBrush = SolidColor(HFColors.OnSurface),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+            val canAdd = newTitle.trim().isNotBlank()
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(HFColors.StatusGreen.copy(alpha = if (canAdd) 0.15f else 0.05f))
+                    .then(
+                        if (canAdd) Modifier.clickable {
+                            SharedStore.updatePlaneScheduledMaintenance(
+                                plane.id,
+                                items + HFScheduledMaintItem(id = UUID.randomUUID().toString(), title = newTitle.trim())
+                            )
+                            newTitle = ""
+                        } else Modifier
+                    )
+                    .padding(horizontal = 10.dp, vertical = 7.dp)
+            ) {
+                Text(
+                    "Add",
+                    color = if (canAdd) HFColors.StatusGreen else HFColors.OnSurface.copy(alpha = 0.35f),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    }
+}
+
 // ----- Helpers -----
 
 private enum class PlaneEventKind { Arrival, Deadline }
@@ -586,7 +749,10 @@ private enum class PlaneEventKind { Arrival, Deadline }
 private data class PlaneScheduleEvent(
     val kind: PlaneEventKind,
     val title: String,
-    val subtitle: String
+    val subtitle: String,
+    // Set for arrivals so the day view can render this plane's
+    // scheduled-maintenance checklist under the drop-off.
+    val plane: HFPlane? = null
 )
 
 private fun buildPlaneEventIndex(planes: List<HFPlane>): Map<LocalDate, List<PlaneScheduleEvent>> {
@@ -599,7 +765,8 @@ private fun buildPlaneEventIndex(planes: List<HFPlane>): Map<LocalDate, List<Pla
                 .add(PlaneScheduleEvent(
                     kind = PlaneEventKind.Arrival,
                     title = "${plane.tailNumber} arrives",
-                    subtitle = if (insp != null) "Drop-off · $insp" else "Drop-off"
+                    subtitle = if (insp != null) "Drop-off · $insp" else "Drop-off",
+                    plane = plane
                 ))
         }
         parseDate(plane.deadlineDate)?.let { d ->
@@ -656,6 +823,8 @@ private fun buildCalendarEventIndex(
 private fun CalendarEventRow(
     event: com.hangarflow.app.data.model.HFCalendarEvent,
     canDelete: Boolean,
+    canEdit: Boolean,
+    onEdit: () -> Unit,
     scope: kotlinx.coroutines.CoroutineScope
 ) {
     val accent = HFColors.StatusBlue
@@ -691,6 +860,18 @@ private fun CalendarEventRow(
                 )
             }
         }
+        if (canEdit) {
+            Spacer(Modifier.width(6.dp))
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable(onClick = onEdit)
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Edit", color = HFColors.StatusBlue, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+            }
+        }
         if (canDelete) {
             Spacer(Modifier.width(6.dp))
             Box(
@@ -713,33 +894,45 @@ private fun CalendarEventRow(
 @Composable
 private fun AddCalendarEventSheet(
     initialDate: LocalDate,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    existing: com.hangarflow.app.data.model.HFCalendarEvent? = null
 ) {
     val shopState by SharedStore.state.collectAsState()
     val scope = rememberCoroutineScope()
 
-    var title by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var startDate by remember { mutableStateOf(initialDate) }
-    var endDate by remember { mutableStateOf(initialDate) }
-    var planeTail by remember { mutableStateOf<String?>(null) }
-    var visibility by remember { mutableStateOf("public") }
+    var title by remember { mutableStateOf(existing?.title ?: "") }
+    var description by remember { mutableStateOf(existing?.description ?: "") }
+    var startDate by remember { mutableStateOf(parseDate(existing?.startDate) ?: initialDate) }
+    var endDate by remember { mutableStateOf(parseDate(existing?.endDate) ?: initialDate) }
+    var planeTail by remember { mutableStateOf(existing?.planeTailNumber) }
+    var visibility by remember { mutableStateOf(existing?.visibility ?: "public") }
     var saving by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 
     // Optional reminder: fire a push to the chosen teammate at a chosen
     // date + hour. Defaults to "remind me" on the event's start date at 8am.
-    var remindOn by remember { mutableStateOf(false) }
-    var remindDate by remember { mutableStateOf(initialDate) }
-    var remindHour by remember { mutableStateOf(8) }
-    var remindUserAuthId by remember { mutableStateOf(shopState.currentUser?.authUserId) }
+    val existingRemind = parseDate(existing?.remindAt)
+    var remindOn by remember { mutableStateOf(existing?.remindAt != null) }
+    var remindDate by remember { mutableStateOf(existingRemind ?: initialDate) }
+    var remindHour by remember {
+        mutableStateOf(
+            existing?.remindAt?.let {
+                runCatching {
+                    java.time.OffsetDateTime.parse(it)
+                        .atZoneSameInstant(java.time.ZoneId.systemDefault()).hour
+                }.getOrNull()
+            } ?: 8
+        )
+    }
+    var remindUserAuthId by remember { mutableStateOf(existing?.remindUserId ?: shopState.currentUser?.authUserId) }
 
     val dateFmt = remember { DateTimeFormatter.ofPattern("EEE, MMM d") }
     val canSave = title.trim().isNotEmpty() && !saving
+    val isEdit = existing != null
 
     androidx.compose.material3.AlertDialog(
         onDismissRequest = { if (!saving) onDismiss() },
-        title = { Text("Add to schedule", color = HFColors.OnSurface, fontWeight = FontWeight.Bold) },
+        title = { Text(if (isEdit) "Edit event" else "Add to schedule", color = HFColors.OnSurface, fontWeight = FontWeight.Bold) },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
@@ -830,18 +1023,36 @@ private fun AddCalendarEventSheet(
                             .toInstant().toString()
                     } else null
                     scope.launch {
-                        when (val r = SharedStore.createCalendarEvent(
-                            title = title,
-                            description = description,
-                            startDate = startDate.format(DateTimeFormatter.ISO_LOCAL_DATE),
-                            endDate = endDate.format(DateTimeFormatter.ISO_LOCAL_DATE),
-                            planeId = planeId,
-                            planeTailNumber = tail,
-                            colorHex = null,
-                            visibility = visibility,
-                            remindAt = remindAtIso,
-                            remindUserId = if (remindAtIso != null) remindUserAuthId else null
-                        )) {
+                        val r = if (existing != null) {
+                            SharedStore.updateCalendarEvent(
+                                eventId = existing.id,
+                                title = title,
+                                description = description,
+                                startDate = startDate.format(DateTimeFormatter.ISO_LOCAL_DATE),
+                                endDate = endDate.format(DateTimeFormatter.ISO_LOCAL_DATE),
+                                planeId = planeId,
+                                planeTailNumber = tail,
+                                colorHex = existing.colorHex,
+                                eventKind = existing.eventKind,
+                                visibility = visibility,
+                                remindAt = remindAtIso,
+                                remindUserId = if (remindAtIso != null) remindUserAuthId else null
+                            )
+                        } else {
+                            SharedStore.createCalendarEvent(
+                                title = title,
+                                description = description,
+                                startDate = startDate.format(DateTimeFormatter.ISO_LOCAL_DATE),
+                                endDate = endDate.format(DateTimeFormatter.ISO_LOCAL_DATE),
+                                planeId = planeId,
+                                planeTailNumber = tail,
+                                colorHex = null,
+                                visibility = visibility,
+                                remindAt = remindAtIso,
+                                remindUserId = if (remindAtIso != null) remindUserAuthId else null
+                            )
+                        }
+                        when (r) {
                             SharedStore.CreateResult.Success -> onDismiss()
                             is SharedStore.CreateResult.Error -> { error = r.message; saving = false }
                         }

@@ -479,6 +479,82 @@ object SharedStore {
         }
     }
 
+    /** Full edit of a squawk incl. its corrective action ("what was done").
+     *  Stamps who/when whenever a non-blank corrective action is saved. */
+    suspend fun updateSquawk(
+        squawkId: String,
+        title: String,
+        planeId: String?,
+        planeTailNumber: String,
+        category: String,
+        notes: String,
+        correctiveAction: String
+    ): CreateResult {
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        if (title.trim().isBlank()) return CreateResult.Error("Title is required.")
+        val existing = _state.value.squawks.firstOrNull { it.id == squawkId }
+            ?: return CreateResult.Error("Squawk not found.")
+        val me = _state.value.currentUser
+        val ca = correctiveAction.trim()
+        // Stamp who/when when a corrective action is present. Preserve the
+        // original stamp if the text is unchanged; refresh it when it changes.
+        val caChanged = ca != existing.correctiveAction.trim()
+        val correctedById = when {
+            ca.isBlank() -> null
+            caChanged -> me?.id
+            else -> existing.correctedByUserId
+        }
+        val correctedByName = when {
+            ca.isBlank() -> ""
+            caChanged -> me?.displayName ?: "Tech"
+            else -> existing.correctedByUserName
+        }
+        val correctedAt = when {
+            ca.isBlank() -> null
+            caChanged -> Instant.now().toString()
+            else -> existing.correctedAt
+        }
+        return try {
+            cloud.updateSquawkFields(
+                id = squawkId,
+                planeId = planeId,
+                planeTailNumber = planeTailNumber,
+                title = title,
+                notes = notes,
+                category = category,
+                correctiveAction = ca,
+                correctedByUserId = correctedById,
+                correctedByUserName = correctedByName,
+                correctedAt = correctedAt
+            )
+            _state.update { s ->
+                s.copy(squawks = s.squawks.map {
+                    if (it.id == squawkId) it.copy(
+                        title = title.trim(),
+                        planeId = planeId,
+                        planeTailNumber = planeTailNumber.trim().uppercase(),
+                        category = category,
+                        notes = notes.trim(),
+                        correctiveAction = ca,
+                        correctedByUserId = correctedById,
+                        correctedByUserName = correctedByName,
+                        correctedAt = correctedAt
+                    ) else it
+                })
+            }
+            logAudit(
+                "squawk", squawkId, "updated",
+                if (caChanged && ca.isNotBlank()) "Corrective action on \"${title.trim()}\": ${ca.take(80)}"
+                else "Edited squawk \"${title.trim()}\""
+            )
+            cloud.emitOrgEvent(orgId, deviceId, "squawk_updated")
+            pullSnapshot(orgId)
+            CreateResult.Success
+        } catch (t: Throwable) {
+            CreateResult.Error(t.message ?: "Couldn't update squawk.")
+        }
+    }
+
     // -------- Part request status updates --------
 
     fun updatePartRequestStatus(partRequestId: String, newStatus: String) {
@@ -933,6 +1009,73 @@ object SharedStore {
             CreateResult.Success
         } catch (t: Throwable) {
             CreateResult.Error(t.message ?: "Couldn't delete the event.")
+        }
+    }
+
+    /** Edit an existing calendar event. Preserves the original author +
+     *  created_at; upserts by id. */
+    suspend fun updateCalendarEvent(
+        eventId: String,
+        title: String,
+        description: String,
+        startDate: String,
+        endDate: String,
+        planeId: String?,
+        planeTailNumber: String?,
+        colorHex: String?,
+        eventKind: String = "general",
+        visibility: String = "public",
+        remindAt: String? = null,
+        remindUserId: String? = null
+    ): CreateResult {
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        val existing = _state.value.calendarEvents.firstOrNull { it.id == eventId }
+            ?: return CreateResult.Error("Event not found.")
+        if (title.trim().isBlank()) return CreateResult.Error("Title is required.")
+        val updated = existing.copy(
+            title = title.trim(),
+            description = description.trim(),
+            startDate = startDate,
+            endDate = endDate,
+            planeId = planeId,
+            planeTailNumber = planeTailNumber,
+            colorHex = colorHex,
+            eventKind = eventKind,
+            visibility = if (visibility in setOf("public", "admin_only", "personal")) visibility else "public",
+            remindAt = remindAt,
+            remindUserId = remindUserId
+        )
+        return try {
+            cloud.upsertCalendarEvent(updated)
+            _state.update { s ->
+                s.copy(calendarEvents = s.calendarEvents.map { if (it.id == eventId) updated else it }
+                    .sortedBy { it.startDate })
+            }
+            cloud.emitOrgEvent(orgId, deviceId, "calendar_updated")
+            logAudit("calendar_event", eventId, "updated", "Event \"${updated.title}\" edited")
+            CreateResult.Success
+        } catch (t: Throwable) {
+            CreateResult.Error(t.message ?: "Couldn't update the event.")
+        }
+    }
+
+    /** Persist a plane's scheduled-maintenance checklist. Optimistic +
+     *  fire-and-forget so checking items off feels instant. */
+    fun updatePlaneScheduledMaintenance(
+        planeId: String,
+        items: List<com.hangarflow.app.data.model.HFScheduledMaintItem>
+    ) {
+        val orgId = bootstrappedOrgId ?: return
+        _state.update { s ->
+            s.copy(planes = s.planes.map {
+                if (it.id == planeId) it.copy(scheduledMaintenance = items) else it
+            })
+        }
+        scope.launch {
+            runCatching {
+                cloud.updatePlaneScheduledMaintenance(planeId, items)
+                cloud.emitOrgEvent(orgId, deviceId, "plane_updated")
+            }
         }
     }
 

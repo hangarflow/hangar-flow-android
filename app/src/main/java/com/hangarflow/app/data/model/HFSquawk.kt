@@ -17,6 +17,12 @@ data class HFSquawk(
     @SerialName("reported_by_user_name") val reportedByUserName: String? = null,
     @SerialName("assigned_user_name") val assignedUserName: String? = null,
     @SerialName("photo_paths") val photoPaths: List<String> = emptyList(),
+    // Corrective action — what was actually done to fix the squawk, plus
+    // who closed it and when. Fills in as the squawk resolves; editable.
+    @SerialName("corrective_action") val correctiveAction: String = "",
+    @SerialName("corrected_by_user_id") val correctedByUserId: String? = null,
+    @SerialName("corrected_by_user_name") val correctedByUserName: String = "",
+    @SerialName("corrected_at") val correctedAt: String? = null,
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("updated_at") val updatedAt: String? = null
 )

@@ -51,6 +51,19 @@ data class HFPlane(
     @SerialName("registered_owner") val registeredOwner: String? = null,
     @SerialName("engine_model") val engineModel: String? = null,
     @SerialName("prop_model") val propModel: String? = null,
+    /** Scheduled-maintenance checklist for this shop visit — a bulletin/list
+     *  of what the plane is in for. Editable; each item can be checked off. */
+    @SerialName("scheduled_maintenance") val scheduledMaintenance: List<HFScheduledMaintItem> = emptyList(),
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("updated_at") val updatedAt: String? = null
+)
+
+/** One line item on a plane's scheduled-maintenance checklist. */
+@Serializable
+data class HFScheduledMaintItem(
+    val id: String = "",
+    val title: String = "",
+    val done: Boolean = false,
+    @SerialName("done_by_name") val doneByName: String = "",
+    @SerialName("done_at") val doneAt: String? = null
 )
