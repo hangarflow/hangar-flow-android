@@ -481,6 +481,30 @@ object SharedStore {
 
     /** Full edit of a squawk incl. its corrective action ("what was done").
      *  Stamps who/when whenever a non-blank corrective action is saved. */
+    /** Reads a corrective-action note and decides whether it describes a
+     *  COMPLETED fix (so the squawk can auto-move to Resolved). Errs toward
+     *  leaving the status alone: any in-progress phrasing vetoes it. */
+    private fun correctiveImpliesResolved(raw: String): Boolean {
+        val t = " ${raw.lowercase()} "
+        val notDone = listOf(
+            "in progress", "need to", "needs to", "await", "waiting on", "waiting for",
+            "on order", "to be ordered", "pending", "tomorrow", "not complete", "incomplete",
+            "still ", "to do ", "todo", "will ", "next shift", "follow up", "follow-up", "monitor"
+        )
+        if (notDone.any { t.contains(it) }) return false
+        val done = listOf(
+            "ops check good", "ops check normal", "ops normal", "op check good",
+            "operational check good", "tested satisfactory", "tested good", "tested ok",
+            "function tested", "functional check good", "checks good", "check good",
+            "no leaks", "no leak", "leak check good", "5x5", "five by five",
+            "returned to service", "return to service", "rts complete", "signed off",
+            "sign-off", "sign off", "complete", "completed", "corrected", "repaired",
+            "replaced and tested", "serviceable", "airworthy", "good to go", "resolved",
+            "rectified", "c/w", "carried out", "ops good"
+        )
+        return done.any { t.contains(it) }
+    }
+
     suspend fun updateSquawk(
         squawkId: String,
         title: String,
@@ -514,6 +538,13 @@ object SharedStore {
             caChanged -> Instant.now().toString()
             else -> existing.correctedAt
         }
+        // AI assist: if the corrective action reads like a completed fix and the
+        // squawk is still in a non-terminal state, auto-move it to Resolved.
+        // Always reversible via the status pills.
+        val autoResolve = ca.isNotBlank() &&
+            existing.status in setOf("open", "inProgress", "waitingOnParts") &&
+            correctiveImpliesResolved(ca)
+        val newStatus = if (autoResolve) "resolved" else existing.status
         return try {
             cloud.updateSquawkFields(
                 id = squawkId,
@@ -527,6 +558,7 @@ object SharedStore {
                 correctedByUserName = correctedByName,
                 correctedAt = correctedAt
             )
+            if (autoResolve) cloud.updateSquawkStatus(squawkId, "resolved")
             _state.update { s ->
                 s.copy(squawks = s.squawks.map {
                     if (it.id == squawkId) it.copy(
@@ -535,6 +567,7 @@ object SharedStore {
                         planeTailNumber = planeTailNumber.trim().uppercase(),
                         category = category,
                         notes = notes.trim(),
+                        status = newStatus,
                         correctiveAction = ca,
                         correctedByUserId = correctedById,
                         correctedByUserName = correctedByName,
