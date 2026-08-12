@@ -155,7 +155,13 @@ fun RequestTimeOffSheet(onDismiss: () -> Unit) {
                         saveError = "Couldn't resolve your profile. Sign out and back in."
                         return@Button
                     }
-                    val userId = user.id
+                    // The row's user_id MUST be the Supabase AUTH user id, not
+                    // the profile row id — the hf_time_off_requests RLS insert
+                    // policy checks `auth.uid() = user_id`. profile.id differs
+                    // from the auth id, so sending user.id got every request
+                    // rejected (403) and silently discarded. Prefer authUserId
+                    // (same convention the other writes here use).
+                    val userId = user.authUserId ?: user.id
                     val userName = user.displayName
                     isSaving = true
                     saveError = null

@@ -101,8 +101,13 @@ private fun ScheduleHubContent(
 
     // Calendar events visible to this user, expanded into a per-day index.
     val myUserId = shopState.currentUser?.id
-    val calendarByDay = remember(shopState.calendarEvents, isAdmin, myUserId) {
-        buildCalendarEventIndex(shopState.calendarEvents, isAdmin, myUserId)
+    // Calendar rows record the Supabase *auth* uid in created_by_user_id,
+    // which is not the profile id used elsewhere on this screen. Comparing
+    // the two never matched, so authors could not see their own "personal"
+    // entries. Prefer the auth id and keep the profile id as the fallback.
+    val myAuthUserId = shopState.currentUser?.authUserId ?: shopState.currentUser?.id
+    val calendarByDay = remember(shopState.calendarEvents, isAdmin, myAuthUserId) {
+        buildCalendarEventIndex(shopState.calendarEvents, isAdmin, myAuthUserId)
     }
     val eventDayKeys = remember(planeEvents, calendarByDay) {
         planeEvents.keys + calendarByDay.keys
@@ -138,14 +143,14 @@ private fun ScheduleHubContent(
                 modifier = Modifier.weight(1f),
                 onClick = onRequestTimeOff
             )
-            if (canManage) {
-                ActionButton(
-                    label = "Add Event",
-                    accent = HFColors.StatusBlue,
-                    modifier = Modifier.weight(1f),
-                    onClick = { onAddEvent(selectedDay ?: today) }
-                )
-            }
+            // Open to techs too — they pick the audience in the sheet,
+            // so a note meant for the office stays with the office.
+            ActionButton(
+                label = if (canManage) "Add Event" else "Add Note",
+                accent = HFColors.StatusBlue,
+                modifier = Modifier.weight(1f),
+                onClick = { onAddEvent(selectedDay ?: today) }
+            )
         }
 
         Spacer(Modifier.height(16.dp))
@@ -188,13 +193,18 @@ private fun ScheduleHubContent(
                 )
                 DayGroup(title = "EVENTS (${dayCalendarEvents.size})", accent = HFColors.StatusBlue) {
                     if (dayCalendarEvents.isEmpty()) {
-                        EmptyGroupText("No admin events.")
+                        EmptyGroupText("Nothing on the calendar.")
                     } else {
                         dayCalendarEvents.forEach { ev ->
+                            // Your own note is yours to change; everything
+                            // else needs admin or lead. RLS agrees, so a
+                            // stale UI can't get a write through.
+                            val mine = ev.createdByUserId != null &&
+                                ev.createdByUserId == myAuthUserId
                             CalendarEventRow(
                                 event = ev,
-                                canDelete = isAdmin,
-                                canEdit = canManage,
+                                canDelete = canManage || mine,
+                                canEdit = canManage || mine,
                                 onEdit = { onEditEvent(ev) },
                                 scope = scope
                             )
@@ -792,17 +802,27 @@ private fun parseDate(iso: String?): LocalDate? {
 // ----- Calendar events -----
 
 /** Expand each visible calendar event across its inclusive day range,
- *  applying the visibility test (public/admin_only/personal). */
+ *  applying the visibility test (public/admin_only/personal).
+ *
+ *  `myAuthUserId` must be the Supabase auth uid, since that is what
+ *  created_by_user_id holds — not the profile id.
+ *
+ *  The server now applies the same test in RLS, so an admin-only note
+ *  should never reach a tech's device at all. This stays as the second
+ *  line: a snapshot cached before the policy landed could still hold
+ *  rows this client should not draw. */
 private fun buildCalendarEventIndex(
     events: List<com.hangarflow.app.data.model.HFCalendarEvent>,
     isAdmin: Boolean,
-    myUserId: String?
+    myAuthUserId: String?
 ): Map<LocalDate, List<com.hangarflow.app.data.model.HFCalendarEvent>> {
     val out = mutableMapOf<LocalDate, MutableList<com.hangarflow.app.data.model.HFCalendarEvent>>()
     events.forEach { ev ->
-        val visible = when (ev.visibility) {
+        val mine = ev.createdByUserId != null && ev.createdByUserId == myAuthUserId
+        // Authors always see their own entry, whatever its audience.
+        val visible = mine || when (ev.visibility) {
             "admin_only" -> isAdmin
-            "personal" -> ev.createdByUserId != null && ev.createdByUserId == myUserId
+            "personal" -> false
             else -> true
         }
         if (!visible) return@forEach
@@ -898,6 +918,8 @@ private fun AddCalendarEventSheet(
     existing: com.hangarflow.app.data.model.HFCalendarEvent? = null
 ) {
     val shopState by SharedStore.state.collectAsState()
+    val sheetAuth by com.hangarflow.app.auth.AuthManager.state.collectAsState()
+    val sheetCanManage = sheetAuth.isAdmin || sheetAuth.isLeadTech
     val scope = rememberCoroutineScope()
 
     var title by remember { mutableStateOf(existing?.title ?: "") }
@@ -932,7 +954,16 @@ private fun AddCalendarEventSheet(
 
     androidx.compose.material3.AlertDialog(
         onDismissRequest = { if (!saving) onDismiss() },
-        title = { Text(if (isEdit) "Edit event" else "Add to schedule", color = HFColors.OnSurface, fontWeight = FontWeight.Bold) },
+        title = {
+            Text(
+                when {
+                    isEdit -> "Edit entry"
+                    sheetCanManage -> "Add to schedule"
+                    else -> "Add a note"
+                },
+                color = HFColors.OnSurface, fontWeight = FontWeight.Bold
+            )
+        },
         text = {
             Column(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
@@ -969,7 +1000,13 @@ private fun AddCalendarEventSheet(
                 Text("WHO CAN SEE IT", color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     ScopeChip("Everyone", visibility == "public") { visibility = "public" }
-                    ScopeChip("Admins", visibility == "admin_only") { visibility = "admin_only" }
+                    // Same stored value for both roles; only the framing
+                    // differs. "Admins" reads as "hidden from me" to a
+                    // tech, when for them it means "send to the office".
+                    ScopeChip(
+                        if (sheetCanManage) "Admins" else "Office only",
+                        visibility == "admin_only"
+                    ) { visibility = "admin_only" }
                     ScopeChip("Only me", visibility == "personal") { visibility = "personal" }
                 }
 

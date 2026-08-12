@@ -23,6 +23,11 @@ data class HFSquawk(
     @SerialName("corrected_by_user_id") val correctedByUserId: String? = null,
     @SerialName("corrected_by_user_name") val correctedByUserName: String = "",
     @SerialName("corrected_at") val correctedAt: String? = null,
+    /** Work log created alongside this squawk (Apple pairs them at
+     *  report time). The server keeps the two statuses in step, so
+     *  resolving one resolves the other. This client doesn't create
+     *  pairs, but it carries the field so a round-trip can't drop it. */
+    @SerialName("linked_work_log_id") val linkedWorkLogId: String? = null,
     @SerialName("created_at") val createdAt: String? = null,
     @SerialName("updated_at") val updatedAt: String? = null
 )

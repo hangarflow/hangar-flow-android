@@ -214,6 +214,16 @@ private fun PartRequestCard(
                         Spacer(Modifier.width(6.dp))
                     }
                     UrgencyPill(urgency.label, urgency.color)
+                    // In-house requests are chased with the operator, not
+                    // a distributor, so the board has to say which it is.
+                    if (request.orderSource == "company") {
+                        Spacer(Modifier.width(6.dp))
+                        MetaPill("IN HOUSE", HFColors.StatusBlue)
+                    }
+                    if (request.supplierName.isNotBlank()) {
+                        Spacer(Modifier.width(6.dp))
+                        MetaPill(request.supplierName, HFColors.OnSurface.copy(alpha = 0.55f))
+                    }
                 }
             }
             Box(

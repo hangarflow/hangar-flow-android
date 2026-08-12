@@ -83,6 +83,35 @@ fun ClockOutSheet(onDismiss: () -> Unit) {
     val cloud = remember { HFCloudSyncService() }
 
     var summary by remember { mutableStateOf("") }
+
+    // Aircraft the tech touched today, pre-split evenly across the shift.
+    //
+    // Pre-filled rather than blank because the common case is "I worked the
+    // planes I logged work against, roughly evenly", and a form that is already
+    // right is one the tech accepts instead of skipping. Anything they change
+    // is rescaled to the clock in SharedStore, so the split can never disagree
+    // with the hours payroll actually pays.
+    val techName = shopState.currentUser?.displayName ?: "Tech"
+    val planeCandidates = remember(shopState.workLogs, techName) {
+        SharedStore.planesWorkedToday(techName)
+    }
+    val activeShift by SharedStore.activeShift.collectAsState()
+    val shiftMinutes = remember(activeShift) {
+        activeShift?.let {
+            java.time.temporal.ChronoUnit.MINUTES
+                .between(it.startedAt, java.time.Instant.now())
+                .toInt()
+                .coerceIn(1, 16 * 60)
+        } ?: 0
+    }
+    val planeHours = remember(planeCandidates, shiftMinutes) {
+        mutableStateMapOf<String, String>().apply {
+            if (planeCandidates.isNotEmpty() && shiftMinutes > 0) {
+                val each = shiftMinutes.toDouble() / planeCandidates.size / 60.0
+                planeCandidates.forEach { put(it.planeTailNumber, "%.1f".format(each)) }
+            }
+        }
+    }
     var aiDrafting by remember { mutableStateOf(false) }
     val rows = remember { mutableStateListOf<PendingReimbursement>() }
     var editingPhotoFor by remember { mutableStateOf<String?>(null) }
@@ -220,6 +249,72 @@ fun ClockOutSheet(onDismiss: () -> Unit) {
                 )
             }
 
+            if (planeCandidates.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val assigned = planeHours.values.sumOf { it.toDoubleOrNull() ?: 0.0 }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            "HOURS BY AIRCRAFT",
+                            color = HFColors.OnSurface.copy(alpha = 0.55f),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.6.sp,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text(
+                            "%.1f of %.1f h".format(assigned, shiftMinutes / 60.0),
+                            color = HFColors.OnSurface.copy(alpha = 0.55f),
+                            fontSize = 12.sp
+                        )
+                    }
+                    Text(
+                        "Split your shift across what you worked. Leave one at 0 if you " +
+                            "didn't touch it — the totals get scaled to your clocked hours " +
+                            "either way.",
+                        color = HFColors.OnSurface.copy(alpha = 0.50f),
+                        fontSize = 12.sp
+                    )
+                    planeCandidates.forEach { cand ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    cand.planeTailNumber,
+                                    color = HFColors.OnSurface,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    if (cand.workLogCount == 1) "1 work log today"
+                                    else "${cand.workLogCount} work logs today",
+                                    color = HFColors.OnSurface.copy(alpha = 0.45f),
+                                    fontSize = 11.sp
+                                )
+                            }
+                            OutlinedTextField(
+                                value = planeHours[cand.planeTailNumber] ?: "",
+                                onValueChange = { planeHours[cand.planeTailNumber] = it },
+                                singleLine = true,
+                                suffix = { Text("h", color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 12.sp) },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                modifier = Modifier.width(104.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
+                                    unfocusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
+                                    focusedBorderColor = HFColors.OnSurface.copy(alpha = 0.25f),
+                                    unfocusedBorderColor = HFColors.OnSurface.copy(alpha = 0.10f),
+                                    focusedTextColor = HFColors.OnSurface,
+                                    unfocusedTextColor = HFColors.OnSurface,
+                                    cursorColor = HFColors.OnSurface
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
@@ -309,7 +404,15 @@ fun ClockOutSheet(onDismiss: () -> Unit) {
                             return@launch
                         }
 
-                        val timeEntryId = SharedStore.clockOutWithSummary(summary)
+                        val splits = planeCandidates.mapNotNull { cand ->
+                            val h = planeHours[cand.planeTailNumber]?.toDoubleOrNull() ?: 0.0
+                            if (h <= 0) null else SharedStore.PlaneSplit(
+                                planeId = cand.planeId,
+                                planeTailNumber = cand.planeTailNumber,
+                                minutes = (h * 60).toInt()
+                            )
+                        }
+                        val timeEntryId = SharedStore.clockOutWithSummary(summary, splits)
                         if (timeEntryId == null) {
                             submitting = false
                             errorMessage = "No active shift to close."

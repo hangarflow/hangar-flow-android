@@ -46,9 +46,12 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         PushNotifications.ensureRegistered(this)
         com.hangarflow.app.push.FcmTokenManager.ensureRegistered(this)
-        HFPerfMonitor.start(
+        val hfVersion =
             runCatching { packageManager.getPackageInfo(packageName, 0).versionName }.getOrNull() ?: ""
-        )
+        HFPerfMonitor.start(hfVersion)
+        // Installed early so a crash during start-up is still captured. Sending
+        // waits for an org — see below.
+        com.hangarflow.app.perf.HFCrashReporter.install(applicationContext, hfVersion)
         setContent {
             HangarFlowTheme {
                 // safeDrawing covers status bar, gesture/3-button nav,

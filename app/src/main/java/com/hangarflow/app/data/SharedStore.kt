@@ -80,6 +80,11 @@ object SharedStore {
         if (!force && bootstrappedOrgId == orgId) return
         bootstrappedOrgId = orgId
 
+        // Flush any crash from a previous run now that we know which org it
+        // belongs to. Deliberately here rather than at launch: a crash row with
+        // no org is invisible to the admin who needs to see it.
+        com.hangarflow.app.perf.HFCrashReporter.uploadPending(scope)
+
         // Hydrate from disk first so the UI shows something useful
         // instantly even if the hangar's wifi is flaky. The cloud pull
         // will overwrite this as soon as it completes.
@@ -747,8 +752,53 @@ object SharedStore {
      * become the entry. If the tech somehow clocks out while still on
      * lunch we close the lunch bracket first so the math stays honest.
      */
+    /** Longest shift recordable from one clock-in/clock-out pair.
+     *  Not an overtime policy — a sanity bound. Past this it is a punch that
+     *  was never closed, not a day that was worked. */
+    private const val MAX_PLAUSIBLE_SHIFT_MINUTES = 16 * 60
+
     fun clockOut() {
         scope.launch { clockOutWithSummary("") }
+    }
+
+    /** How a tech's shift divides across the aircraft they touched. */
+    data class PlaneSplit(
+        val planeId: String?,
+        val planeTailNumber: String,
+        val minutes: Int
+    )
+
+    /** An aircraft this tech plausibly worked on today, offered at clock-out. */
+    data class PlaneCandidate(
+        val planeId: String?,
+        val planeTailNumber: String,
+        val workLogCount: Int
+    )
+
+    /**
+     * Aircraft this tech touched today, newest activity first.
+     *
+     * Derived from their own work logs rather than asked cold, because a tech
+     * at 5pm remembers what they did far better than how long it took. Offering
+     * the right two or three tails turns attribution into a tap instead of a
+     * recall exercise.
+     */
+    fun planesWorkedToday(userName: String): List<PlaneCandidate> {
+        val today = java.time.LocalDate.now().toString()
+        return _state.value.workLogs
+            .asSequence()
+            .filter { it.assignedUserName == userName || it.createdByUserName == userName }
+            .filter { (it.updatedAt ?: it.createdAt ?: "").startsWith(today) }
+            .filter { it.planeTailNumber.isNotBlank() }
+            .groupBy { it.planeTailNumber }
+            .map { (tail, logs) ->
+                PlaneCandidate(
+                    planeId = logs.firstNotNullOfOrNull { it.planeId },
+                    planeTailNumber = tail,
+                    workLogCount = logs.size
+                )
+            }
+            .sortedByDescending { it.workLogCount }
     }
 
     /**
@@ -757,41 +807,107 @@ object SharedStore {
      * the returned time entry id. Returns null if there's no active
      * shift or no org loaded. The summary string is appended to the
      * lunch suffix so the admin sees both in one notes column.
+     *
+     * `splits` attributes the shift across aircraft, writing one time entry per
+     * plane. Optional on purpose: clocking out must never be blocked by an
+     * attribution the tech cannot face at the end of a shift, so an empty list
+     * writes a single unattributed entry exactly as before. The id returned is
+     * always the first entry, which is what reimbursements link to.
      */
-    suspend fun clockOutWithSummary(summary: String): String? {
+    suspend fun clockOutWithSummary(
+        summary: String,
+        splits: List<PlaneSplit> = emptyList()
+    ): String? {
+        // Claim the shift before any suspension point.
+        //
+        // This function suspends on the network write, and the clock-out button
+        // stays live while it does. A tech who taps again — or taps once more
+        // because the sheet has not dismissed yet — used to get a second entry,
+        // each computing now-minus-start against the same shift, so the day was
+        // paid twice. Taking the shift out of the field first, synchronously,
+        // means the second call finds nothing and returns.
         val shift = _activeShift.value ?: return null
         val orgId = bootstrappedOrgId ?: return null
+        _activeShift.value = null
         val end = Instant.now()
         val totalMin = ChronoUnit.MINUTES.between(shift.startedAt, end).toInt().coerceAtLeast(1)
         val tailLunch = shift.lunchStartedAt?.let {
             ChronoUnit.MINUTES.between(it, end).toInt().coerceAtLeast(0)
         } ?: 0
         val totalLunch = shift.lunchMinutesAccrued + tailLunch
-        val minutes = (totalMin - totalLunch).coerceAtLeast(1)
-        _activeShift.value = null
-        ShiftPersistence.clear()
+        val rawMinutes = (totalMin - totalLunch).coerceAtLeast(1)
+
+        // Cap a forgotten clock-out.
+        //
+        // `coerceAtLeast` guards the floor; nothing guarded the ceiling, so a
+        // shift left open while the app was closed wrote `now - startedAt` as a
+        // single entry. In production that produced rows of 527 and 474 hours
+        // and put 1,649 impossible hours into one customer's payroll. Nobody
+        // works a 16-hour shift; past that this is a punch that was never
+        // closed.
+        //
+        // Capped rather than dropped, and the note says so — the tech really
+        // was on the clock, we just cannot know for how long, so a human has to
+        // settle it instead of the app silently inventing a number.
+        val minutes = rawMinutes.coerceAtMost(MAX_PLAUSIBLE_SHIFT_MINUTES)
+        ShiftPersistence.clear()   // _activeShift was already claimed above
         return try {
             val trimmedSummary = summary.trim()
             val lunchPart = if (totalLunch > 0) "Lunch: ${formatLunch(totalLunch)}" else ""
-            val notes = listOf(trimmedSummary, lunchPart)
+            val capPart = if (rawMinutes > MAX_PLAUSIBLE_SHIFT_MINUTES) {
+                "Clock-out was ${"%.1f".format(rawMinutes / 60.0)}h after clock-in — " +
+                    "capped at ${MAX_PLAUSIBLE_SHIFT_MINUTES / 60}h. Shift was likely " +
+                    "left open; please correct the hours."
+            } else ""
+            val notes = listOf(trimmedSummary, lunchPart, capPart)
                 .filter { it.isNotBlank() }
                 .joinToString("\n\n")
-            val entry = timeEntryService.createTimeEntry(
-                orgId = orgId,
-                userId = shift.userId,
-                userName = shift.userName,
-                planeId = null,
-                planeTailNumber = null,
-                entryDateIso = end.toString(),
-                minutesWorked = minutes,
-                notes = notes
-            )
+
+            // Normalise the split against the clock.
+            //
+            // The timer is the payroll truth; the split only says how that time
+            // divides. Letting them disagree is how you end up with two numbers
+            // and no way to know which one to pay, so anything the tech enters
+            // is scaled to fit the shift exactly, with the rounding remainder
+            // going to the largest slice.
+            val usable = splits.filter { it.minutes > 0 && it.planeTailNumber.isNotBlank() }
+            val plan: List<PlaneSplit> = if (usable.isEmpty()) {
+                listOf(PlaneSplit(null, "", minutes))
+            } else {
+                val entered = usable.sumOf { it.minutes }
+                val scaled = usable.map {
+                    it.copy(minutes = ((it.minutes.toLong() * minutes) / entered).toInt())
+                }
+                val drift = minutes - scaled.sumOf { it.minutes }
+                val biggest = scaled.indexOf(scaled.maxByOrNull { it.minutes })
+                scaled.mapIndexed { i, s ->
+                    if (i == biggest) s.copy(minutes = s.minutes + drift) else s
+                }.filter { it.minutes > 0 }
+            }
+
+            var firstId: String? = null
+            for ((index, slice) in plan.withIndex()) {
+                // The summary rides on the first row only — repeating it on
+                // every plane would make the admin read the same paragraph
+                // three times to find three numbers.
+                val entry = timeEntryService.createTimeEntry(
+                    orgId = orgId,
+                    userId = shift.userId,
+                    userName = shift.userName,
+                    planeId = slice.planeId,
+                    planeTailNumber = slice.planeTailNumber.ifBlank { null },
+                    entryDateIso = end.toString(),
+                    minutesWorked = slice.minutes,
+                    notes = if (index == 0) notes else ""
+                )
+                if (firstId == null) firstId = entry.id
+            }
             cloud.emitOrgEvent(orgId = orgId, sourceDevice = deviceId, eventType = "time_entry_logged")
             // Local refresh so the Today tile ticks up immediately —
             // don't wait for the realtime self-event (we filter
             // self-events out intentionally).
             pullSnapshot(orgId)
-            entry.id
+            firstId
         } catch (t: Throwable) {
             _state.update { it.copy(error = t.message ?: "Failed to save time entry.") }
             null
@@ -1015,7 +1131,7 @@ object SharedStore {
             colorHex = colorHex,
             eventKind = eventKind,
             createdByUserId = authUserId ?: me?.id,
-            createdByUserName = me?.displayName ?: "Admin",
+            createdByUserName = me?.displayName ?: "Teammate",
             visibility = if (visibility in setOf("public", "admin_only", "personal")) visibility else "public",
             remindAt = remindAt,
             remindUserId = remindUserId
