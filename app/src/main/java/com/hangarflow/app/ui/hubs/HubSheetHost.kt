@@ -84,7 +84,9 @@ fun HubSheetHost(
                 HomeDestination.PartsToOrder -> PartsToOrderHub()
                 HomeDestination.PartLocations -> PartsLocationHub()
                 HomeDestination.FindParts -> FindPartsHub()
-                HomeDestination.TimeCard -> TimeCardHub()
+                // Segments, not a running clock. Two records of the same
+                // hours can disagree; the one the office approves wins.
+                HomeDestination.TimeCard -> MyTimeHub()
                 HomeDestination.Settings -> SettingsHub()
                 HomeDestination.Users -> UsersHub()
                 HomeDestination.Schedule -> ScheduleHub()

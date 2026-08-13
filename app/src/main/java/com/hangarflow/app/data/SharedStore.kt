@@ -15,6 +15,7 @@ import com.hangarflow.app.data.model.HFPartRequest
 import com.hangarflow.app.data.model.HFPlane
 import com.hangarflow.app.data.model.HFSquawk
 import com.hangarflow.app.data.model.HFTask
+import com.hangarflow.app.data.model.HFEmployeePay
 import com.hangarflow.app.data.model.HFTimeEntry
 import com.hangarflow.app.data.model.HFUserProfile
 import com.hangarflow.app.data.model.HFWorkLog
@@ -594,6 +595,52 @@ object SharedStore {
     }
 
     // -------- Part request status updates --------
+
+    // ---- Payroll ------------------------------------------------------
+
+    /** Log a worked segment (08:00-12:00). Files as pending — nothing is
+     *  payable until the office approves it. */
+    suspend fun addTimeSegment(
+        startedAtIso: String, endedAtIso: String,
+        planeId: String?, planeTailNumber: String?, notes: String
+    ): Boolean {
+        val orgId = currentOrgId ?: return false
+        val me = _state.value.currentUser
+        return try {
+            cloud.createTimeSegment(
+                orgId = orgId,
+                userId = me?.authUserId ?: me?.id,
+                userName = me?.displayName ?: "",
+                startedAtIso = startedAtIso, endedAtIso = endedAtIso,
+                planeId = planeId, planeTailNumber = planeTailNumber,
+                notes = notes.trim()
+            )
+            runCatching { cloud.fetchTimeEntries(orgId) }
+                .onSuccess { rows -> _state.update { it.copy(timeEntries = rows) } }
+            true
+        } catch (t: Throwable) {
+            _state.update { it.copy(error = t.message) }
+            false
+        }
+    }
+
+    /** Approve or reject timesheet entries. Not optimistic: the server
+     *  stamps the pay rate during approval, so the client re-reads rather
+     *  than guessing a price it does not set. */
+    suspend fun decideTimeEntries(ids: List<String>, approve: Boolean, reason: String? = null): Boolean {
+        val orgId = currentOrgId ?: return false
+        if (ids.isEmpty()) return true
+        val me = _state.value.currentUser
+        return try {
+            cloud.decideTimeEntries(ids, approve, me?.authUserId ?: me?.id, me?.displayName, reason)
+            runCatching { cloud.fetchTimeEntries(orgId) }
+                .onSuccess { rows -> _state.update { it.copy(timeEntries = rows) } }
+            true
+        } catch (t: Throwable) {
+            _state.update { it.copy(error = t.message) }
+            false
+        }
+    }
 
     fun updatePartRequestStatus(partRequestId: String, newStatus: String) {
         val orgId = bootstrappedOrgId ?: return
@@ -2014,6 +2061,7 @@ object SharedStore {
             val manualsD = async { cloud.fetchManuals(orgId) }
             val squawksD = async { cloud.fetchSquawks(orgId) }
             val timeEntriesD = async { cloud.fetchTimeEntries(orgId) }
+            val employeePayD = async { runCatching { cloud.fetchEmployeePay(orgId) }.getOrElse { emptyList() } }
             val partRequestsD = async { cloud.fetchPartRequests(orgId) }
             // Fail-open fetches (tables may be missing on older orgs).
             val partLocationsD = async { runCatching { cloud.fetchPartLocations(orgId) }.getOrElse { emptyList() } }
@@ -2033,6 +2081,7 @@ object SharedStore {
             val manuals = manualsD.await()
             val squawks = squawksD.await()
             val timeEntries = timeEntriesD.await()
+            val employeePay = employeePayD.await()
             val partRequests = partRequestsD.await()
             val partLocations = partLocationsD.await()
             val equipment = equipmentD.await()
@@ -2054,6 +2103,7 @@ object SharedStore {
                 manuals = manuals,
                 squawks = squawks,
                 timeEntries = timeEntries,
+                employeePay = employeePay,
                 partRequests = partRequests,
                 partLocations = partLocations.sortedByDescending { it.updatedAt ?: "" },
                 equipment = equipment.sortedBy { it.name.lowercase() },
@@ -2172,6 +2222,9 @@ data class ShopState(
     val manuals: List<HFManual>,
     val squawks: List<HFSquawk>,
     val timeEntries: List<HFTimeEntry>,
+    /** Pay rate + schedule. RLS returns the whole payroll to admins and
+     *  only their own row to a tech, so this is often a single entry. */
+    val employeePay: List<HFEmployeePay> = emptyList(),
     val partRequests: List<HFPartRequest>,
     val partLocations: List<HFPartLocation>,
     val equipment: List<com.hangarflow.app.data.model.HFEquipment> = emptyList(),

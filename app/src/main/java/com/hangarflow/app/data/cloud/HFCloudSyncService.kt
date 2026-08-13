@@ -10,6 +10,7 @@ import com.hangarflow.app.data.model.HFPartRequest
 import com.hangarflow.app.data.model.HFPlane
 import com.hangarflow.app.data.model.HFSquawk
 import com.hangarflow.app.data.model.HFTask
+import com.hangarflow.app.data.model.HFEmployeePay
 import com.hangarflow.app.data.model.HFTimeEntry
 import com.hangarflow.app.data.model.HFUserProfile
 import com.hangarflow.app.data.model.HFWorkLog
@@ -65,6 +66,61 @@ class HFCloudSyncService {
             .from("hf_squawks")
             .select { filter { eq("org_id", orgId) } }
             .decodeList()
+
+    // ---- Payroll ----------------------------------------------------
+
+    @kotlinx.serialization.Serializable
+    private data class TimeSegmentInsert(
+        val org_id: String, val user_id: String?, val user_name: String,
+        val entry_date: String, val started_at: String, val ended_at: String,
+        val plane_id: String?, val plane_tail_number: String?,
+        val notes: String, val approval_status: String
+    )
+
+    /** minutes_worked is omitted on purpose: a trigger derives it from the
+     *  span so the clock and the duration can never disagree. */
+    suspend fun createTimeSegment(
+        orgId: String, userId: String?, userName: String,
+        startedAtIso: String, endedAtIso: String,
+        planeId: String?, planeTailNumber: String?, notes: String
+    ) {
+        client.postgrest.from("hf_time_entries").insert(
+            TimeSegmentInsert(
+                org_id = orgId, user_id = userId, user_name = userName,
+                entry_date = startedAtIso, started_at = startedAtIso, ended_at = endedAtIso,
+                plane_id = planeId, plane_tail_number = planeTailNumber,
+                notes = notes, approval_status = "pending"
+            )
+        )
+    }
+
+    suspend fun fetchEmployeePay(orgId: String): List<HFEmployeePay> =
+        client.postgrest.from("hf_employee_pay")
+            .select { filter { eq("org_id", orgId) } }
+            .decodeList()
+
+    @kotlinx.serialization.Serializable
+    private data class ApprovalPatch(
+        val approval_status: String, val decided_by_user_id: String?,
+        val decided_by_name: String?, val decided_at: String, val rejection_reason: String?
+    )
+
+    /** pay_rate_applied is not sent — the server stamps the rate as it
+     *  approves, so pricing happens once and cannot be rewritten later. */
+    suspend fun decideTimeEntries(
+        ids: List<String>, approve: Boolean,
+        deciderId: String?, deciderName: String?, reason: String? = null
+    ) {
+        if (ids.isEmpty()) return
+        client.postgrest.from("hf_time_entries").update(
+            ApprovalPatch(
+                approval_status = if (approve) "approved" else "rejected",
+                decided_by_user_id = deciderId, decided_by_name = deciderName,
+                decided_at = java.time.Instant.now().toString(),
+                rejection_reason = if (approve) null else reason
+            )
+        ) { filter { isIn("id", ids) } }
+    }
 
     suspend fun fetchTimeEntries(orgId: String): List<HFTimeEntry> =
         client.postgrest
