@@ -598,6 +598,24 @@ object SharedStore {
 
     // ---- Payroll ------------------------------------------------------
 
+    /** Set what an employee earns and how often. Admin-only; RLS refuses
+     *  the write for anyone else whatever the UI allows. */
+    suspend fun setEmployeePay(
+        userId: String, hourlyRate: Double, paySchedule: String, payAnchorDate: String?
+    ): Boolean {
+        val orgId = currentOrgId ?: return false
+        return try {
+            cloud.upsertEmployeePay(orgId, userId, hourlyRate.coerceAtLeast(0.0), paySchedule, payAnchorDate)
+            runCatching { cloud.fetchEmployeePay(orgId) }
+                .onSuccess { rows -> _state.update { it.copy(employeePay = rows) } }
+            true
+        } catch (t: Throwable) {
+            _state.update { it.copy(error = t.message) }
+            false
+        }
+    }
+
+
     /** Log a worked segment (08:00-12:00). Files as pending — nothing is
      *  payable until the office approves it. */
     suspend fun addTimeSegment(

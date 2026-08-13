@@ -501,7 +501,7 @@ private fun CustomizeHomeSheet(
 }
 
 enum class HomeDestination {
-    Planes, WorkLogs, Tasks, Squawks, PartsToOrder, PartLocations, TimeCard, Manuals, FindParts, Settings, Users, Review, Schedule, ActivityLog, Equipment, QuickPic
+    Planes, WorkLogs, Tasks, Squawks, PartsToOrder, PartLocations, TimeCard, Manuals, FindParts, Settings, Users, Review, Schedule, ActivityLog, Equipment, QuickPic, Payroll
 }
 
 private data class HomeCard(
@@ -627,6 +627,13 @@ private fun cardsForRole(isAdmin: Boolean): List<HomeCard> {
             icon = Icons.Outlined.PeopleAlt,
             accent = HFColors.StatusBlue.copy(alpha = 0.50f),
             destination = HomeDestination.Users
+        ) + HomeCard(
+            id = "payroll",
+            title = "Payroll",
+            subtitle = "Approve hours, set rates, see what's owed",
+            icon = Icons.Outlined.Timer,
+            accent = HFColors.StatusGreen.copy(alpha = 0.50f),
+            destination = HomeDestination.Payroll
         )
     }
     return tech

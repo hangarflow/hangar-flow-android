@@ -87,12 +87,16 @@ fun HubSheetHost(
                 // Segments, not a running clock. Two records of the same
                 // hours can disagree; the one the office approves wins.
                 HomeDestination.TimeCard -> MyTimeHub()
+                // Admin-only inside the hub itself; RLS also returns no pay
+                // rows to anyone else, so a tech sees nothing either way.
+                HomeDestination.Payroll -> PayrollHub()
                 HomeDestination.Settings -> SettingsHub()
                 HomeDestination.Users -> UsersHub()
                 HomeDestination.Schedule -> ScheduleHub()
                 HomeDestination.ActivityLog -> ActivityLogHub()
                 HomeDestination.Equipment -> EquipmentHub()
                 HomeDestination.QuickPic -> QuickPicScreen()
+                HomeDestination.Payroll -> "Approve hours, set rates, and see what is owed."
                 else -> Column(
                     modifier = Modifier
                         .padding(horizontal = 16.dp)
@@ -124,6 +128,7 @@ private val HomeDestination.title: String
         HomeDestination.ActivityLog -> "Activity Log"
         HomeDestination.Equipment -> "Equipment"
         HomeDestination.QuickPic -> "QuickPic"
+        HomeDestination.Payroll -> "Payroll"
     }
 
 private val HomeDestination.subtitle: String
@@ -144,6 +149,7 @@ private val HomeDestination.subtitle: String
         HomeDestination.ActivityLog -> "Who added, imported, or changed what."
         HomeDestination.Equipment -> "Shop gear — maintenance & calibration due."
         HomeDestination.QuickPic -> "Scan or print QR labels for parts & gear."
+        HomeDestination.Payroll -> "Approve hours, set rates, and see what is owed."
     }
 
 private val HomeDestination.phaseMessage: String

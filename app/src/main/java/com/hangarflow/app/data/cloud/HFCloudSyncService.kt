@@ -94,6 +94,22 @@ class HFCloudSyncService {
         )
     }
 
+    @kotlinx.serialization.Serializable
+    private data class EmployeePayUpsert(
+        val org_id: String, val user_id: String,
+        val hourly_rate: Double, val pay_schedule: String, val pay_anchor_date: String?
+    )
+
+    /** The unique index on (org_id, user_id) is what makes this an update
+     *  rather than a duplicate — one pay record per employee. */
+    suspend fun upsertEmployeePay(
+        orgId: String, userId: String, hourlyRate: Double,
+        paySchedule: String, payAnchorDate: String?
+    ) {
+        client.postgrest.from("hf_employee_pay")
+            .upsert(EmployeePayUpsert(orgId, userId, hourlyRate, paySchedule, payAnchorDate))
+    }
+
     suspend fun fetchEmployeePay(orgId: String): List<HFEmployeePay> =
         client.postgrest.from("hf_employee_pay")
             .select { filter { eq("org_id", orgId) } }
