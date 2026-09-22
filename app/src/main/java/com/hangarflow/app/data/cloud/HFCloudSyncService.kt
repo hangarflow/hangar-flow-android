@@ -38,6 +38,34 @@ import kotlinx.coroutines.flow.onStart
 class HFCloudSyncService {
     private val client get() = SupabaseClientProvider.client
 
+    /**
+     * PostgREST caps every response at the project's `db.max_rows` (1000 on
+     * this project) and returns the first page **silently** — no error, no
+     * truncation marker. Any transactional table can pass that, so those page
+     * explicitly instead of trusting one unbounded select. Same defect was
+     * found and fixed on Compose Desktop and on iOS/macOS.
+     */
+    @PublishedApi internal val pagedClient get() = SupabaseClientProvider.client
+
+    @PublishedApi internal suspend inline fun <reified T : Any> fetchAllByOrg(
+        table: String, orgId: String, pageSize: Int = 1000
+    ): List<T> {
+        val all = mutableListOf<T>()
+        var offset = 0L
+        while (true) {
+            val page: List<T> = pagedClient.postgrest.from(table)
+                .select {
+                    filter { eq("org_id", orgId) }
+                    range(offset, offset + pageSize - 1)
+                }
+                .decodeList()
+            all += page
+            if (page.size < pageSize) break
+            offset += pageSize
+        }
+        return all
+    }
+
     suspend fun fetchPlanes(orgId: String): List<HFPlane> =
         client.postgrest
             .from("hf_aircraft")
@@ -45,10 +73,7 @@ class HFCloudSyncService {
             .decodeList()
 
     suspend fun fetchWorkLogs(orgId: String): List<HFWorkLog> =
-        client.postgrest
-            .from("hf_work_logs")
-            .select { filter { eq("org_id", orgId) } }
-            .decodeList()
+        fetchAllByOrg("hf_work_logs", orgId)
 
     suspend fun fetchUserProfiles(orgId: String): List<HFUserProfile> =
         client.postgrest
@@ -63,10 +88,7 @@ class HFCloudSyncService {
             .decodeList()
 
     suspend fun fetchSquawks(orgId: String): List<HFSquawk> =
-        client.postgrest
-            .from("hf_squawks")
-            .select { filter { eq("org_id", orgId) } }
-            .decodeList()
+        fetchAllByOrg("hf_squawks", orgId)
 
     // ---- Payroll ----------------------------------------------------
 
@@ -140,16 +162,10 @@ class HFCloudSyncService {
     }
 
     suspend fun fetchTimeEntries(orgId: String): List<HFTimeEntry> =
-        client.postgrest
-            .from("hf_time_entries")
-            .select { filter { eq("org_id", orgId) } }
-            .decodeList()
+        fetchAllByOrg("hf_time_entries", orgId)
 
     suspend fun fetchPartRequests(orgId: String): List<HFPartRequest> =
-        client.postgrest
-            .from("hf_part_requests")
-            .select { filter { eq("org_id", orgId) } }
-            .decodeList()
+        fetchAllByOrg("hf_part_requests", orgId)
 
     suspend fun fetchPartLocations(orgId: String): List<HFPartLocation> =
         client.postgrest
@@ -196,10 +212,7 @@ class HFCloudSyncService {
             .decodeList()
 
     suspend fun fetchTasks(orgId: String): List<HFTask> =
-        client.postgrest
-            .from("hf_tasks")
-            .select { filter { eq("org_id", orgId) } }
-            .decodeList()
+        fetchAllByOrg("hf_tasks", orgId)
 
     suspend fun upsertTask(task: HFTask) {
         client.postgrest.from("hf_tasks").upsert(task)
