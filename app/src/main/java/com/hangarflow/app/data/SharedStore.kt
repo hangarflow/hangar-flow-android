@@ -11,6 +11,7 @@ import com.hangarflow.app.data.model.HFEquipmentMaintenanceItem
 import com.hangarflow.app.data.model.HFEquipmentServiceEntry
 import com.hangarflow.app.data.model.HFManual
 import com.hangarflow.app.data.model.HFPartLocation
+import com.hangarflow.app.data.model.HFPartMovement
 import com.hangarflow.app.data.model.HFPartRequest
 import com.hangarflow.app.data.model.HFPlane
 import com.hangarflow.app.data.model.HFSquawk
@@ -986,6 +987,229 @@ object SharedStore {
         object Success : CreateResult()
         data class Error(val message: String) : CreateResult()
     }
+
+    // ---------------------------------------------------------------------
+    // Parts in & out. Ported from Desktop; the load-bearing rules are the
+    // same, because they're rules about money and traceability, not about
+    // which screen you're on.
+    // ---------------------------------------------------------------------
+
+    private suspend fun refreshPartMovements(orgId: String) {
+        runCatching { cloud.fetchPartMovements(orgId) }
+            .onSuccess { rows -> _state.update { it.copy(partMovements = rows) } }
+    }
+
+    /**
+     * Log a part that landed.
+     *
+     * If the shop owes a core, this ALSO opens the matching core-return row
+     * with its deadline, in the same call. A deposit logged without a return
+     * to chase is exactly how the money gets forgotten.
+     */
+    suspend fun receivePart(
+        partNumber: String, description: String, serialNumber: String?, quantity: Int,
+        vendorName: String, planeId: String?, planeTailNumber: String?,
+        carrier: String?, trackingNumber: String?, condition: String?,
+        coreOwed: Boolean, coreDepositCents: Long?, coreWindowDays: Int?,
+        notes: String
+    ): CreateResult {
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        val me = _state.value.currentUser
+        val nowIso = java.time.Instant.now().toString()
+        return try {
+            cloud.insertPartMovement(
+                orgId = orgId, direction = "in", kind = "purchase",
+                partNumber = partNumber, description = description,
+                serialNumber = serialNumber, quantity = quantity,
+                vendorName = vendorName, planeId = planeId, planeTailNumber = planeTailNumber,
+                carrier = carrier, trackingNumber = trackingNumber,
+                shippedAt = null, receivedAt = nowIso,
+                coreDueBackBy = null, coreDepositCents = null,
+                condition = condition, status = "received", notes = notes,
+                byUserId = me?.id, byUserName = me?.displayName
+            )
+
+            if (coreOwed || (coreDepositCents != null && coreDepositCents > 0)) {
+                val due = java.time.LocalDate.now()
+                    .plusDays((coreWindowDays ?: 30).toLong()).toString()
+                cloud.insertPartMovement(
+                    orgId = orgId, direction = "out", kind = "core_return",
+                    partNumber = partNumber,
+                    description = description.ifBlank { "Core for $partNumber" },
+                    // Blank ON PURPOSE. The unit going back comes off the
+                    // aircraft and carries a different serial; nobody has
+                    // pulled it yet. It gets typed in from the data plate.
+                    serialNumber = null, quantity = quantity,
+                    vendorName = vendorName, planeId = planeId,
+                    planeTailNumber = planeTailNumber,
+                    carrier = null, trackingNumber = null,
+                    shippedAt = null, receivedAt = null,
+                    coreDueBackBy = due,
+                    // Null rather than 0 when nothing was charged — the card
+                    // and the at-risk total both key off "is there money" and
+                    // a stored zero would read as a $0.00 deposit.
+                    coreDepositCents = coreDepositCents?.takeIf { it > 0 },
+                    // Plain words, not a machine token: condition is free
+                    // text a mechanic reads and edits, and "as_removed" showed
+                    // up verbatim in the edit sheet.
+                    condition = "As removed", status = "awaiting",
+                    notes = if (coreDepositCents == null || coreDepositCents <= 0)
+                        "Core owed back — no deposit charged. Vendor may invoice the full core value if it isn't returned."
+                    else "Opened automatically when the replacement was received.",
+                    byUserId = me?.id, byUserName = me?.displayName
+                )
+            }
+            refreshPartMovements(orgId)
+            CreateResult.Success
+        } catch (t: Throwable) {
+            CreateResult.Error(t.message ?: "Couldn't log that part.")
+        }
+    }
+
+    /** Move a movement along: shipped, delivered, refunded, written off. */
+    suspend fun updatePartMovement(movementId: String, status: String): CreateResult {
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        val nowIso = java.time.Instant.now().toString()
+        return try {
+            cloud.updatePartMovementStatus(
+                movementId = movementId, status = status,
+                shippedAt = if (status == "in_transit") nowIso else null,
+                receivedAt = if (status in setOf("received", "delivered")) nowIso else null
+            )
+            refreshPartMovements(orgId)
+            CreateResult.Success
+        } catch (t: Throwable) {
+            CreateResult.Error(t.message ?: "Couldn't update that.")
+        }
+    }
+
+    /**
+     * Add a received part to stock, then close the movement.
+     *
+     * Increments an existing inventory row when the part number is already
+     * known to the org, otherwise creates one. Closing it is what makes the
+     * card leave the board.
+     */
+    suspend fun putReceivedPartOnShelf(movementId: String, location: String = ""): CreateResult {
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        val m = _state.value.partMovements.firstOrNull { it.id == movementId }
+            ?: return CreateResult.Error("That part is no longer in the list.")
+        val me = _state.value.currentUser
+        val key = m.partNumber.trim().lowercase()
+        return try {
+            val existing = if (key.isBlank()) null else _state.value.partLocations
+                .firstOrNull { it.partNumber.trim().lowercase() == key }
+
+            val inventoryId: String
+            if (existing != null) {
+                inventoryId = existing.id
+                cloud.updatePartLocationQuantity(existing.id, existing.quantity + m.quantity)
+            } else {
+                inventoryId = cloud.createPartLocation(
+                    orgId = orgId,
+                    partName = m.description.ifBlank { m.partNumber },
+                    partNumber = m.partNumber,
+                    serialNumber = m.serialNumber ?: "",
+                    location = location,
+                    quantity = m.quantity,
+                    stockStatus = "ok",
+                    planeIds = emptyList(),
+                    notes = if (m.vendorName.isBlank()) "" else "Received from ${m.vendorName}.",
+                    updatedByUserId = me?.id,
+                    updatedByUserName = me?.displayName ?: ""
+                )
+            }
+
+            cloud.setPartMovementDisposition(movementId, "shelf", inventoryId)
+            m.partRequestId?.let { runCatching { cloud.updatePartRequestStatus(it, "received") } }
+
+            refreshPartMovements(orgId)
+            runCatching { cloud.fetchPartLocations(orgId) }
+                .onSuccess { rows -> _state.update { s -> s.copy(partLocations = rows) } }
+            CreateResult.Success
+        } catch (t: Throwable) {
+            CreateResult.Error(t.message ?: "Couldn't add that to stock.")
+        }
+    }
+
+    /**
+     * Fitted on arrival — deliberately does NOT touch stock.
+     *
+     * A part that goes straight onto the aircraft was never on a shelf, and
+     * counting it would inflate what the shop thinks it has.
+     */
+    suspend fun sendReceivedPartToAircraft(movementId: String): CreateResult {
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        val m = _state.value.partMovements.firstOrNull { it.id == movementId }
+            ?: return CreateResult.Error("That part is no longer in the list.")
+        return try {
+            cloud.setPartMovementDisposition(movementId, "aircraft", null)
+            m.partRequestId?.let { runCatching { cloud.updatePartRequestStatus(it, "received") } }
+            refreshPartMovements(orgId)
+            CreateResult.Success
+        } catch (t: Throwable) {
+            CreateResult.Error(t.message ?: "Couldn't record that.")
+        }
+    }
+
+    /**
+     * Correct a movement's details — above all, the serial on a core going
+     * back, which is blank until someone pulls the unit.
+     */
+    suspend fun editPartMovement(
+        movementId: String,
+        partNumber: String, description: String, serialNumber: String?, quantity: Int,
+        vendorName: String, carrier: String?, trackingNumber: String?,
+        condition: String?, coreDueBackBy: String?, coreDepositCents: Long?, notes: String
+    ): CreateResult {
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        return try {
+            cloud.updatePartMovementFields(
+                movementId = movementId,
+                partNumber = partNumber, description = description,
+                serialNumber = serialNumber, quantity = quantity,
+                vendorName = vendorName, carrier = carrier, trackingNumber = trackingNumber,
+                condition = condition, coreDueBackBy = coreDueBackBy,
+                coreDepositCents = coreDepositCents, notes = notes
+            )
+            refreshPartMovements(orgId)
+            CreateResult.Success
+        } catch (t: Throwable) {
+            CreateResult.Error(t.message ?: "Couldn't save those changes.")
+        }
+    }
+
+    suspend fun deletePartMovement(movementId: String): CreateResult {
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        return try {
+            cloud.deletePartMovement(movementId)
+            refreshPartMovements(orgId)
+            CreateResult.Success
+        } catch (t: Throwable) {
+            CreateResult.Error(t.message ?: "Couldn't remove that row.")
+        }
+    }
+
+    /**
+     * Fire-and-forget dispatcher for the actions sheet, so the UI doesn't have
+     * to hold a coroutine scope open across a sheet dismissal.
+     */
+    fun runPartMovementAction(movementId: String, action: String) {
+        scope.launch {
+            when (action) {
+                "__shelf" -> putReceivedPartOnShelf(movementId)
+                "__aircraft" -> sendReceivedPartToAircraft(movementId)
+                "__delete" -> deletePartMovement(movementId)
+                else -> updatePartMovement(movementId, action)
+            }
+        }
+    }
+
+    /** Ask the server what a part number is. Never asks it for a serial. */
+    suspend fun identifyPart(
+        partNumber: String, aircraftType: String? = null
+    ): Result<com.hangarflow.app.data.cloud.HFCloudSyncService.PartIdentifyResult> =
+        runCatching { cloud.aiIdentifyPart(partNumber, aircraftType) }
 
     /** One staged row for the bulk "add work log" sheet. */
     data class NewWorkLogDraft(
@@ -2083,6 +2307,7 @@ object SharedStore {
             val partRequestsD = async { cloud.fetchPartRequests(orgId) }
             // Fail-open fetches (tables may be missing on older orgs).
             val partLocationsD = async { runCatching { cloud.fetchPartLocations(orgId) }.getOrElse { emptyList() } }
+            val partMovementsD = async { runCatching { cloud.fetchPartMovements(orgId) }.getOrElse { emptyList() } }
             val equipmentD = async { runCatching { cloud.fetchEquipment(orgId) }.getOrElse { emptyList() } }
             val equipmentMaintenanceItemsD = async { runCatching { cloud.fetchEquipmentMaintenanceItems(orgId) }.getOrElse { emptyList() } }
             val equipmentServiceLogD = async { runCatching { cloud.fetchEquipmentServiceLog(orgId) }.getOrElse { emptyList() } }
@@ -2102,6 +2327,7 @@ object SharedStore {
             val employeePay = employeePayD.await()
             val partRequests = partRequestsD.await()
             val partLocations = partLocationsD.await()
+            val partMovements = partMovementsD.await()
             val equipment = equipmentD.await()
             val equipmentMaintenanceItems = equipmentMaintenanceItemsD.await()
             val equipmentServiceLog = equipmentServiceLogD.await()
@@ -2124,6 +2350,7 @@ object SharedStore {
                 employeePay = employeePay,
                 partRequests = partRequests,
                 partLocations = partLocations.sortedByDescending { it.updatedAt ?: "" },
+                partMovements = partMovements,
                 equipment = equipment.sortedBy { it.name.lowercase() },
                 equipmentMaintenanceItems = equipmentMaintenanceItems,
                 equipmentServiceLog = equipmentServiceLog,
@@ -2245,6 +2472,7 @@ data class ShopState(
     val employeePay: List<HFEmployeePay> = emptyList(),
     val partRequests: List<HFPartRequest>,
     val partLocations: List<HFPartLocation>,
+    val partMovements: List<HFPartMovement>,
     val equipment: List<com.hangarflow.app.data.model.HFEquipment> = emptyList(),
     val equipmentMaintenanceItems: List<com.hangarflow.app.data.model.HFEquipmentMaintenanceItem> = emptyList(),
     val equipmentServiceLog: List<com.hangarflow.app.data.model.HFEquipmentServiceEntry> = emptyList(),
@@ -2267,6 +2495,7 @@ data class ShopState(
             timeEntries = emptyList(),
             partRequests = emptyList(),
             partLocations = emptyList(),
+            partMovements = emptyList(),
             equipment = emptyList(),
             equipmentMaintenanceItems = emptyList(),
             equipmentServiceLog = emptyList(),

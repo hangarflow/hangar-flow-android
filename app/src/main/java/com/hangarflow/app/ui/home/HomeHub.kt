@@ -35,6 +35,7 @@ import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.automirrored.outlined.ListAlt
 import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material.icons.outlined.Build
+import androidx.compose.material.icons.outlined.LocalShipping
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.ChecklistRtl
@@ -148,7 +149,12 @@ private fun HomeHubContent(onOpenHub: (HomeDestination) -> Unit, onOpenNavigator
     val orderedIds = remember(defaultCards, savedOrder) {
         HomeCardPreferences.applyOrder(defaultCards.map { it.id }, savedOrder).toMutableList()
     }
-    val orderState = remember { mutableStateOf(orderedIds.toList()) }
+    // Keyed on orderedIds. Without the key this froze the card list from the
+    // first frame — which is composed before auth resolves, when isAdmin is
+    // still false — so the admin cards (Users, Payroll, Parts In & Out) never
+    // appeared at all. orderedIds only changes when the role settles or the
+    // saved order loads, so an in-session drag isn't disturbed by this.
+    val orderState = remember(orderedIds) { mutableStateOf(orderedIds.toList()) }
     val cards = orderState.value.mapNotNull { id -> defaultCards.firstOrNull { it.id == id } }
 
     Column(
@@ -501,7 +507,7 @@ private fun CustomizeHomeSheet(
 }
 
 enum class HomeDestination {
-    Planes, WorkLogs, Tasks, Squawks, PartsToOrder, PartLocations, TimeCard, Manuals, FindParts, Settings, Users, Review, Schedule, ActivityLog, Equipment, QuickPic, Payroll
+    Planes, WorkLogs, Tasks, Squawks, PartsToOrder, PartLocations, PartsInOut, TimeCard, Manuals, FindParts, Settings, Users, Review, Schedule, ActivityLog, Equipment, QuickPic, Payroll
 }
 
 private data class HomeCard(
@@ -634,6 +640,16 @@ private fun cardsForRole(isAdmin: Boolean): List<HomeCard> {
             icon = Icons.Outlined.Timer,
             accent = HFColors.StatusGreen.copy(alpha = 0.50f),
             destination = HomeDestination.Payroll
+        ) + HomeCard(
+            // Admin-only by the shop's call. RLS on hf_part_movements is
+            // admin-only for every verb too, so a tech's session reads nothing
+            // even if this card were somehow reachable.
+            id = "partsinout",
+            title = "Parts In & Out",
+            subtitle = "Receiving, cores due back, out for overhaul",
+            icon = Icons.Outlined.LocalShipping,
+            accent = HFColors.StatusOrange.copy(alpha = 0.50f),
+            destination = HomeDestination.PartsInOut
         )
     }
     return tech

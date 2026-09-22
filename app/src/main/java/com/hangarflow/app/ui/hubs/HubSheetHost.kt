@@ -94,6 +94,7 @@ fun HubSheetHost(
                 HomeDestination.Users -> UsersHub()
                 HomeDestination.Schedule -> ScheduleHub()
                 HomeDestination.ActivityLog -> ActivityLogHub()
+                HomeDestination.PartsInOut -> PartsInOutHub()
                 HomeDestination.Equipment -> EquipmentHub()
                 HomeDestination.QuickPic -> QuickPicScreen()
                 HomeDestination.Payroll -> "Approve hours, set rates, and see what is owed."
@@ -126,6 +127,7 @@ private val HomeDestination.title: String
         HomeDestination.Review -> "Needs Review"
         HomeDestination.Schedule -> "Schedule"
         HomeDestination.ActivityLog -> "Activity Log"
+        HomeDestination.PartsInOut -> "Parts In & Out"
         HomeDestination.Equipment -> "Equipment"
         HomeDestination.QuickPic -> "QuickPic"
         HomeDestination.Payroll -> "Payroll"
@@ -147,6 +149,7 @@ private val HomeDestination.subtitle: String
         HomeDestination.Review -> "Imported rows awaiting approval."
         HomeDestination.Schedule -> "Plane drop-offs, RTS deadlines, time-off."
         HomeDestination.ActivityLog -> "Who added, imported, or changed what."
+        HomeDestination.PartsInOut -> "Receiving, cores due back, and units out for overhaul."
         HomeDestination.Equipment -> "Shop gear — maintenance & calibration due."
         HomeDestination.QuickPic -> "Scan or print QR labels for parts & gear."
         HomeDestination.Payroll -> "Approve hours, set rates, and see what is owed."

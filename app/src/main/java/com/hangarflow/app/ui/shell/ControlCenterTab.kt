@@ -23,10 +23,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Build
+import androidx.compose.material.icons.outlined.LocalShipping
 import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,7 +42,9 @@ import androidx.compose.ui.text.font.FontWeight
 import com.hangarflow.app.ui.common.hfPressClickable
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.hangarflow.app.auth.AuthManager
 import com.hangarflow.app.ui.hubs.EquipmentHub
+import com.hangarflow.app.ui.hubs.PartsInOutHub
 import com.hangarflow.app.ui.hubs.QuickPicScreen
 import com.hangarflow.app.ui.theme.HFColors
 
@@ -52,8 +56,14 @@ private enum class CCTool(
     val accent: Color
 ) {
     Equipment("Equipment", "Shop gear — maintenance & calibration due", Icons.Outlined.Build, HFColors.StatusGreen),
-    QuickPic("QuickPic", "Scan or print QR labels for parts & equipment", Icons.Outlined.QrCodeScanner, HFColors.StatusBlue)
+    QuickPic("QuickPic", "Scan or print QR labels for parts & equipment", Icons.Outlined.QrCodeScanner, HFColors.StatusBlue),
+    // Admin-only. RLS on hf_part_movements is admin-only for every verb, so
+    // hiding the tile and restricting the data agree.
+    PartsInOut("Parts In & Out", "Receiving, cores due back, out for overhaul", Icons.Outlined.LocalShipping, HFColors.StatusOrange)
 }
+
+/** Tools a tech never sees. RLS enforces the same boundary server-side. */
+private val ADMIN_ONLY_TOOLS = setOf(CCTool.PartsInOut)
 
 @Composable
 fun ControlCenterTab() {
@@ -79,6 +89,7 @@ fun ControlCenterTab() {
             null -> CCToolGrid(onOpen = { active = it })
             CCTool.Equipment -> ToolFrame("Equipment", onBack = { active = null }) { EquipmentHub() }
             CCTool.QuickPic -> ToolFrame("QuickPic", onBack = { active = null }) { QuickPicScreen() }
+            CCTool.PartsInOut -> ToolFrame("Parts In & Out", onBack = { active = null }) { PartsInOutHub() }
         }
     }
 }
@@ -102,9 +113,10 @@ private fun CCToolGrid(onOpen: (CCTool) -> Unit) {
             fontWeight = FontWeight.Medium
         )
         Spacer(Modifier.size(4.dp))
-        CCTool.entries.forEach { tool ->
-            ToolCard(tool, onClick = { onOpen(tool) })
-        }
+        val isAdmin = AuthManager.state.collectAsState().value.isAdmin
+        CCTool.entries
+            .filter { isAdmin || it !in ADMIN_ONLY_TOOLS }
+            .forEach { tool -> ToolCard(tool, onClick = { onOpen(tool) }) }
     }
 }
 

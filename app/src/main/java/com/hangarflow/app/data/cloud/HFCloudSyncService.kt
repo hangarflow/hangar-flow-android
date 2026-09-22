@@ -6,6 +6,7 @@ import com.hangarflow.app.data.model.HFEquipmentMaintenanceItem
 import com.hangarflow.app.data.model.HFEquipmentServiceEntry
 import com.hangarflow.app.data.model.HFManual
 import com.hangarflow.app.data.model.HFPartLocation
+import com.hangarflow.app.data.model.HFPartMovement
 import com.hangarflow.app.data.model.HFPartRequest
 import com.hangarflow.app.data.model.HFPlane
 import com.hangarflow.app.data.model.HFSquawk
@@ -309,6 +310,190 @@ class HFCloudSyncService {
     suspend fun updatePartLocationQuantity(id: String, quantity: Int) {
         client.postgrest.from("hf_part_locations")
             .update(mapOf("quantity" to quantity.coerceAtLeast(0))) { filter { eq("id", id) } }
+    }
+
+    // ----------------------------------------------------------------------
+    // Parts in & out — receiving, cores owed back, units out for overhaul.
+    // Same table and same rules as Desktop; this is the client half only.
+    // ----------------------------------------------------------------------
+
+    suspend fun fetchPartMovements(orgId: String): List<HFPartMovement> =
+        client.postgrest
+            .from("hf_part_movements")
+            .select { filter { eq("org_id", orgId) } }
+            .decodeList()
+
+    @kotlinx.serialization.Serializable
+    private data class PartMovementRow(
+        val id: String,
+        val org_id: String,
+        val direction: String,
+        val kind: String,
+        val part_number: String,
+        val description: String,
+        val serial_number: String?,
+        val quantity: Int,
+        val vendor_name: String,
+        val plane_id: String?,
+        val plane_tail_number: String?,
+        val carrier: String?,
+        val tracking_number: String?,
+        val shipped_at: String?,
+        val received_at: String?,
+        val core_due_back_by: String?,
+        val core_deposit_cents: Long?,
+        val condition: String?,
+        val status: String,
+        val notes: String,
+        val created_by_user_id: String?,
+        val created_by_user_name: String?
+    )
+
+    suspend fun insertPartMovement(
+        orgId: String, direction: String, kind: String,
+        partNumber: String, description: String, serialNumber: String?, quantity: Int,
+        vendorName: String, planeId: String?, planeTailNumber: String?,
+        carrier: String?, trackingNumber: String?,
+        shippedAt: String?, receivedAt: String?,
+        coreDueBackBy: String?, coreDepositCents: Long?,
+        condition: String?, status: String, notes: String,
+        byUserId: String?, byUserName: String?
+    ) {
+        client.postgrest.from("hf_part_movements").insert(
+            PartMovementRow(
+                id = java.util.UUID.randomUUID().toString(),
+                org_id = orgId, direction = direction, kind = kind,
+                part_number = partNumber.trim(), description = description.trim(),
+                serial_number = serialNumber?.trim()?.ifBlank { null },
+                quantity = quantity.coerceAtLeast(1),
+                vendor_name = vendorName.trim(), plane_id = planeId,
+                plane_tail_number = planeTailNumber,
+                carrier = carrier?.trim()?.ifBlank { null },
+                tracking_number = trackingNumber?.trim()?.ifBlank { null },
+                shipped_at = shippedAt, received_at = receivedAt,
+                core_due_back_by = coreDueBackBy, core_deposit_cents = coreDepositCents,
+                condition = condition?.trim()?.ifBlank { null },
+                status = status, notes = notes.trim(),
+                created_by_user_id = byUserId, created_by_user_name = byUserName
+            )
+        )
+    }
+
+    suspend fun updatePartMovementStatus(
+        movementId: String, status: String, shippedAt: String?, receivedAt: String?
+    ) {
+        val patch = buildMap {
+            put("status", status)
+            shippedAt?.let { put("shipped_at", it) }
+            receivedAt?.let { put("received_at", it) }
+        }
+        client.postgrest.from("hf_part_movements").update(patch) {
+            filter { eq("id", movementId) }
+        }
+    }
+
+    /**
+     * Correct the details on a movement after the fact.
+     *
+     * The serial matters most here: a core going back to a vendor is a
+     * different physical unit from the one that arrived, so its serial is
+     * typed in by whoever pulled it — never carried over, never inferred.
+     */
+    suspend fun updatePartMovementFields(
+        movementId: String,
+        partNumber: String, description: String, serialNumber: String?, quantity: Int,
+        vendorName: String, carrier: String?, trackingNumber: String?,
+        condition: String?, coreDueBackBy: String?, coreDepositCents: Long?, notes: String
+    ) {
+        val patch = buildMap<String, Any?> {
+            put("part_number", partNumber.trim())
+            put("description", description.trim())
+            put("serial_number", serialNumber?.trim()?.ifBlank { null })
+            put("quantity", quantity.coerceAtLeast(1))
+            put("vendor_name", vendorName.trim())
+            put("carrier", carrier?.trim()?.ifBlank { null })
+            put("tracking_number", trackingNumber?.trim()?.ifBlank { null })
+            put("condition", condition?.trim()?.ifBlank { null })
+            put("core_due_back_by", coreDueBackBy)
+            put("core_deposit_cents", coreDepositCents)
+            put("notes", notes.trim())
+        }
+        client.postgrest.from("hf_part_movements")
+            .update(kotlinx.serialization.json.JsonObject(patch.mapValues { (_, v) ->
+                when (v) {
+                    null -> kotlinx.serialization.json.JsonNull
+                    is String -> kotlinx.serialization.json.JsonPrimitive(v)
+                    is Int -> kotlinx.serialization.json.JsonPrimitive(v)
+                    is Long -> kotlinx.serialization.json.JsonPrimitive(v)
+                    else -> kotlinx.serialization.json.JsonPrimitive(v.toString())
+                }
+            })) { filter { eq("id", movementId) } }
+    }
+
+    /** Record where a received part went — shelf or straight onto the aircraft. */
+    suspend fun setPartMovementDisposition(
+        movementId: String, disposition: String, inventoryPartId: String?
+    ) {
+        client.postgrest.from("hf_part_movements").update(
+            mapOf(
+                "disposition" to disposition,
+                "inventory_part_id" to inventoryPartId,
+                "status" to "closed"
+            )
+        ) { filter { eq("id", movementId) } }
+    }
+
+    suspend fun deletePartMovement(movementId: String) {
+        client.postgrest.from("hf_part_movements").delete { filter { eq("id", movementId) } }
+    }
+
+    // ---------- AI part identification (part-identify edge function) ----------
+
+    @kotlinx.serialization.Serializable
+    data class PartIdentifyRequest(
+        @kotlinx.serialization.SerialName("part_number") val partNumber: String,
+        @kotlinx.serialization.SerialName("aircraft_type") val aircraftType: String? = null
+    )
+
+    /**
+     * What the server is allowed to say about a part number.
+     *
+     * Deliberately absent: serial number. A serial identifies one physical
+     * unit and lives on its data plate — a guessed one would be a fabricated
+     * traceability record. The edge function refuses to emit one.
+     */
+    @kotlinx.serialization.Serializable
+    data class PartIdentifyResult(
+        val description: String? = null,
+        val manufacturer: String? = null,
+        @kotlinx.serialization.SerialName("core_required") val coreRequired: Boolean? = null,
+        @kotlinx.serialization.SerialName("typical_core_value_usd") val typicalCoreValueUsd: Double? = null,
+        val category: String? = null,
+        val confidence: String? = null,
+        /** inventory | history | manual | ai | none — where the answer came from. */
+        val source: String? = null,
+        /** Human-readable provenance, e.g. "PG-0727 · Avanti II AMM.pdf". */
+        val reference: String? = null,
+        val note: String? = null
+    ) {
+        /** Read off the shop's own records or manuals rather than recalled. */
+        val isGrounded: Boolean get() = source in setOf("inventory", "history", "manual")
+
+        val sourceLabel: String
+            get() = when (source) {
+                "inventory" -> "From your inventory"
+                "history" -> "From a part you've handled before"
+                "manual" -> "From your manuals"
+                "ai" -> "AI guess — check it"
+                else -> "No match"
+            }
+    }
+
+    suspend fun aiIdentifyPart(partNumber: String, aircraftType: String?): PartIdentifyResult {
+        val body = PartIdentifyRequest(partNumber = partNumber.trim(), aircraftType = aircraftType)
+        val resp = client.functions.invoke(function = "part-identify", body = body)
+        return kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+            .decodeFromString(PartIdentifyResult.serializer(), resp.bodyAsText())
     }
 
     // ----------------------------------------------------------------------
@@ -1359,15 +1544,38 @@ class HFCloudSyncService {
         displayName: String,
         role: String
     ): String {
+        val wire = when {
+            role.equals("admin", ignoreCase = true) -> "admin"
+            // `lead_tech` is a real value of the memberships enum. Coercing it
+            // to "tech" here is why Desktop could never create a lead tech.
+            role.equals("lead_tech", ignoreCase = true) ||
+                role.equals("leadtech", ignoreCase = true) ||
+                role.equals("lead tech", ignoreCase = true) -> "lead_tech"
+            else -> "tech"
+        }
         val body = InviteEmployeeRequest(
             action = "invite",
             orgId = orgId,
             email = email.trim().lowercase(),
             displayName = displayName.trim(),
-            role = if (role.equals("admin", ignoreCase = true)) "admin" else "tech"
+            role = wire
         )
-        val resp = client.functions.invoke(function = "manage-employee", body = body)
-        return resp.bodyAsText()
+        // The reason a refusal is worth reading lives in the response body
+        // (`{"error": "..."}`), which is lost if we let the driver's own
+        // exception through — that is what put a raw token on screen when a
+        // lead tech was still being denied.
+        var failure: Throwable? = null
+        val text = try {
+            client.functions.invoke(function = "manage-employee", body = body).bodyAsText()
+        } catch (t: Throwable) {
+            failure = t
+            t.message.orEmpty()
+        }
+        val serverError = Regex("\"error\"\\s*:\\s*\"((?:[^\"\\\\]|\\\\.)*)\"")
+            .find(text)?.groupValues?.get(1)
+        if (!serverError.isNullOrBlank()) throw IllegalStateException(serverError)
+        failure?.let { throw it }
+        return text
     }
 
     // ---------- AI parts search (parts-search edge function) ----------
