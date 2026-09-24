@@ -61,15 +61,35 @@ jobs:
           R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
           R2_BUCKET: hangarflow-installers
         run: |
-          if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$R2_ENDPOINT" ]; then
-            echo "::warning::R2 secrets not set — skipping publish step."
-            exit 0
+          # HARD FAIL, not a warning. This used to `exit 0`, which meant a
+          # tagged release with missing secrets produced a green run that
+          # shipped nothing — the run says success, customers keep downloading
+          # the previous build, and nobody finds out until someone checks the
+          # object date on R2. A release that cannot publish is a failed
+          # release and has to look like one.
+          if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$R2_SECRET_ACCESS_KEY" ] || [ -z "$R2_ENDPOINT" ]; then
+            echo "::error::R2 secrets missing (need R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_ENDPOINT). Nothing was published."
+            exit 1
           fi
           aws s3 cp "${{ steps.locate.outputs.apk_path }}" \
             "s3://$R2_BUCKET/Hangar-Flow-Android-Beta.apk" \
             --endpoint-url "$R2_ENDPOINT" \
             --content-type "application/vnd.android.package-archive"
           echo "Published to: https://pub-255b2db29597443abd3ccb6104ab034b.r2.dev/Hangar-Flow-Android-Beta.apk"
+          # Confirm the bytes are really there and are the ones we just built.
+          # `aws s3 cp` exiting 0 is not proof: this is the distribution path
+          # customers actually download from, so the run only goes green once
+          # the object on R2 matches the artifact byte for byte.
+          LOCAL=$(wc -c < "${{ steps.locate.outputs.apk_path}}" | tr -d ' ')
+          REMOTE=$(aws s3api head-object \
+            --bucket "$R2_BUCKET" --key "Hangar-Flow-Android-Beta.apk" \
+            --endpoint-url "$R2_ENDPOINT" \
+            --query ContentLength --output text)
+          echo "local=$LOCAL remote=$REMOTE"
+          if [ "$LOCAL" != "$REMOTE" ]; then
+            echo "::error::R2 object is $REMOTE bytes but the build is $LOCAL — publish did not land."
+            exit 1
+          fi
 
       # Convenience copy for manual download from the Actions tab, only on
       # v* tags / manual runs. continue-on-error so a full Actions artifact
