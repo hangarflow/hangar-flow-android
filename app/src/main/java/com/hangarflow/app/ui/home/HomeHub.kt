@@ -33,7 +33,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.automirrored.outlined.ListAlt
-import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material.icons.outlined.LocalShipping
 import androidx.compose.material.icons.outlined.CalendarMonth
@@ -196,23 +196,35 @@ private fun HomeHubContent(onOpenHub: (HomeDestination) -> Unit, onOpenNavigator
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
                     .background(HFColors.OnSurface.copy(alpha = 0.06f))
-                    .border(1.dp, HFColors.StatusCyan.copy(alpha = 0.35f), RoundedCornerShape(14.dp))
+                    .border(1.dp, HFColors.OnSurface.copy(alpha = 0.10f), RoundedCornerShape(14.dp))
                     .clickable(onClick = onOpenNavigator)
                     .padding(horizontal = 14.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
+                // Question mark in grey, not sparkles in cyan. A shop does not
+                // want to be told it is using AI every time it looks for a
+                // part; it wants the part. Same treatment as the Windows bar.
                 androidx.compose.material3.Icon(
-                    imageVector = Icons.Outlined.AutoAwesome,
+                    imageVector = Icons.Outlined.HelpOutline,
                     contentDescription = null,
-                    tint = HFColors.StatusCyan,
+                    tint = HFColors.OnSurfaceMuted,
                     modifier = Modifier.size(18.dp)
                 )
                 Text(
                     "What are you looking for?",
                     color = HFColors.OnSurface.copy(alpha = 0.70f),
                     fontSize = 15.sp,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.weight(1f)
+                )
+                // The name, said once and quietly.
+                Text(
+                    "HANGAR AI",
+                    color = HFColors.OnSurface.copy(alpha = 0.32f),
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.8.sp
                 )
             }
             IOSLiveViewPanel(
