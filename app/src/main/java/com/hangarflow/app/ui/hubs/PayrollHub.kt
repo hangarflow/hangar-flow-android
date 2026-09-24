@@ -25,7 +25,12 @@ import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
 /**
- * Admin payroll: what each person is owed this period, and approval.
+ * Admin hours approval. NO MONEY — this used to show each person's dollars
+ * owed and their hourly rate, with a "Set pay / Edit pay" button opening a rate
+ * editor, on a phone. Wages belong on the desktops.
+ *
+ * What stays is the shop-floor half: approved vs pending hours, and approving
+ * the pending ones. Hours are not money.
  *
  * Pay is computed only from `payRateApplied` — the rate stamped on an
  * entry when it was approved — never from the employee's current rate.
@@ -36,7 +41,6 @@ fun PayrollHub() {
     val state by SharedStore.state.collectAsState()
     val auth by com.hangarflow.app.auth.AuthManager.state.collectAsState()
     val scope = rememberCoroutineScope()
-    var editing by remember { mutableStateOf<HFUserProfile?>(null) }
     var busy by remember { mutableStateOf<String?>(null) }
     val today = remember { LocalDate.now() }
 
@@ -52,7 +56,7 @@ fun PayrollHub() {
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Text("Payroll", color = HFColors.OnSurface, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-        Text("Approved hours only. Pending time is not payable.",
+        Text("Rates and pay are on the desktop. Approving here only moves hours.",
             color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 11.sp)
 
         state.users.filter { it.isActive }.forEach { user ->
@@ -61,8 +65,6 @@ fun PayrollHub() {
             val mine = state.timeEntries.filter { belongs(it, user) && inRange(it, start, end) }
             val approved = mine.filter { it.approvalStatus == "approved" }
             val pending = mine.filter { it.approvalStatus == "pending" }
-            val owed = approved.mapNotNull { e -> e.payRateApplied?.let { it * e.minutesWorked / 60.0 } }.sum()
-            val unpriced = approved.count { it.payRateApplied == null }
 
             Column(
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
@@ -78,27 +80,13 @@ fun PayrollHub() {
                         Text("${scheduleLabel(pay)} · ${label(start, end)}",
                             color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 10.sp)
                     }
-                    if (pay == null || pay.hourlyRate <= 0.0) {
-                        Text("No rate set", color = HFColors.StatusOrange, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                    } else {
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text(money(owed), color = HFColors.StatusGreen, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                            Text("@ ${money(pay.hourlyRate)}/hr", color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 10.sp)
-                        }
-                    }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     Stat("APPROVED", hrs(approved.sumOf { it.minutesWorked }), HFColors.StatusGreen)
                     Stat("PENDING", hrs(pending.sumOf { it.minutesWorked }),
                         if (pending.isNotEmpty()) HFColors.StatusOrange else HFColors.OnSurface.copy(alpha = 0.4f))
                 }
-                // Saying so beats folding a silent zero into the total.
-                if (unpriced > 0) {
-                    Text("$unpriced approved ${if (unpriced == 1) "entry has" else "entries have"} no rate on record and are excluded.",
-                        color = HFColors.StatusOrange, fontSize = 10.sp)
-                }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Btn(if (pay == null) "Set pay" else "Edit pay", HFColors.StatusBlue) { editing = user }
                     if (pending.isNotEmpty()) {
                         Btn(if (busy == user.id) "Approving…" else "Approve ${hrs(pending.sumOf { it.minutesWorked })}",
                             HFColors.StatusGreen) {
@@ -115,70 +103,13 @@ fun PayrollHub() {
         Spacer(Modifier.height(24.dp))
     }
 
-    editing?.let { user ->
-        SetPaySheet(
-            user = user,
-            existing = state.employeePay.firstOrNull { it.userId == user.authUserId || it.userId == user.id },
-            onDismiss = { editing = null }
-        )
-    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun SetPaySheet(user: HFUserProfile, existing: HFEmployeePay?, onDismiss: () -> Unit) {
-    var rate by remember { mutableStateOf(existing?.hourlyRate?.takeIf { it > 0 }?.toString() ?: "") }
-    var schedule by remember { mutableStateOf(existing?.paySchedule ?: "biweekly") }
-    var busy by remember { mutableStateOf(false) }
-    var err by remember { mutableStateOf<String?>(null) }
-    val scope = rememberCoroutineScope()
-
-    ModalBottomSheet(onDismissRequest = { if (!busy) onDismiss() },
-        containerColor = HFColors.Surface, contentColor = HFColors.OnSurface) {
-        Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 28.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Pay — ${user.displayName}", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = HFColors.OnSurface)
-            OutlinedTextField(rate, { v -> rate = v.filter { it.isDigit() || it == '.' } },
-                label = { Text("Hourly rate (USD)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            Text("PAY SCHEDULE", color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 9.sp,
-                fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("weekly" to "Weekly", "biweekly" to "Bi-weekly", "monthly" to "Monthly").forEach { (v, l) ->
-                    val sel = schedule == v
-                    Box(
-                        Modifier.clip(RoundedCornerShape(100.dp))
-                            .background(if (sel) HFColors.StatusBlue.copy(alpha = 0.15f) else HFColors.OnSurface.copy(alpha = 0.05f))
-                            .border(1.dp, if (sel) HFColors.StatusBlue.copy(alpha = 0.4f) else HFColors.OnSurface.copy(alpha = 0.12f), RoundedCornerShape(100.dp))
-                            .clickable { schedule = v }.padding(horizontal = 14.dp, vertical = 8.dp)
-                    ) { Text(l, color = if (sel) HFColors.StatusBlue else HFColors.OnSurface.copy(alpha = 0.6f), fontSize = 12.sp, fontWeight = FontWeight.SemiBold) }
-                }
-            }
-            Text("Changing the rate only affects work approved from now on. Hours already approved keep the rate they were approved at.",
-                color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 11.sp)
-            err?.let { Text(it, color = HFColors.StatusRed, fontSize = 11.sp) }
-            Box(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
-                    .background(HFColors.StatusGreen.copy(alpha = 0.16f))
-                    .clickable(enabled = !busy) {
-                        val parsed = rate.toDoubleOrNull()
-                        val uid = user.authUserId
-                        when {
-                            parsed == null || parsed < 0 -> err = "Enter a valid hourly rate."
-                            uid.isNullOrBlank() -> err = "This teammate has no login yet, so pay can't be attached."
-                            else -> {
-                                busy = true; err = null
-                                scope.launch {
-                                    if (SharedStore.setEmployeePay(uid, parsed, schedule, existing?.payAnchorDate)) onDismiss()
-                                    else { err = "Couldn't save."; busy = false }
-                                }
-                            }
-                        }
-                    }.padding(vertical = 14.dp),
-                contentAlignment = Alignment.Center
-            ) { Text(if (busy) "Saving…" else "Save", color = HFColors.StatusGreen, fontWeight = FontWeight.Bold) }
-        }
-    }
-}
+// SetPaySheet USED TO LIVE HERE — an hourly-rate editor on a phone. Wages
+// belong on the desktops, so it and its "Set pay / Edit pay" button are gone
+// rather than merely hidden. Rates are set from the Windows payroll panel
+// (ui/time/PayrollPanel.kt).
 
 @Composable private fun Stat(l: String, v: String, c: androidx.compose.ui.graphics.Color) {
     Column { Text(l, color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
@@ -236,4 +167,4 @@ private fun hrs(m: Int): String {
     return when { h == 0 && r == 0 -> "0h"; h == 0 -> "${r}m"; r == 0 -> "${h}h"; else -> "${h}h ${r}m" }
 }
 
-private fun money(v: Double): String = "$" + String.format("%,.2f", v)
+
