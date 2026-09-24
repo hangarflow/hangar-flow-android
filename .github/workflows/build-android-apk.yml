@@ -67,7 +67,7 @@ jobs:
           # the previous build, and nobody finds out until someone checks the
           # object date on R2. A release that cannot publish is a failed
           # release and has to look like one.
-          if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$R2_SECRET_ACCESS_KEY" ] || [ -z "$R2_ENDPOINT" ]; then
+          if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ] || [ -z "$R2_ENDPOINT" ]; then
             echo "::error::R2 secrets missing (need R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_ENDPOINT). Nothing was published."
             exit 1
           fi
@@ -80,7 +80,7 @@ jobs:
           # `aws s3 cp` exiting 0 is not proof: this is the distribution path
           # customers actually download from, so the run only goes green once
           # the object on R2 matches the artifact byte for byte.
-          LOCAL=$(wc -c < "${{ steps.locate.outputs.apk_path}}" | tr -d ' ')
+          LOCAL=$(wc -c < "${{ steps.locate.outputs.apk_path }}" | tr -d ' ')
           REMOTE=$(aws s3api head-object \
             --bucket "$R2_BUCKET" --key "Hangar-Flow-Android-Beta.apk" \
             --endpoint-url "$R2_ENDPOINT" \
