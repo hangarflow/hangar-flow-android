@@ -1710,17 +1710,43 @@ object SharedStore {
 
     suspend fun deletePlaneWithHistory(planeId: String, planeTailNumber: String): CreateResult {
         val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        // Every child delete used to be a bare runCatching, so a step that RLS
+        // filtered out (zero rows, NO exception) or that simply failed vanished
+        // and the tech was told the aircraft and its records were gone. Mirrors
+        // the Desktop fix; Android never got it.
+        val problems = mutableListOf<String>()
+        suspend fun step(what: String, block: suspend () -> Unit) {
+            runCatching { block() }.onFailure {
+                problems += "$what (${it.message ?: "failed"})"
+            }
+        }
         return try {
-            runCatching { cloud.deleteSquawksForPlane(planeId) }
-            runCatching { cloud.deleteTasksForPlane(planeId) }
-            runCatching { cloud.deletePartRequestsForPlane(planeId) }
-            runCatching { cloud.deleteOpenWorkLogsForPlane(planeId) }
-            runCatching { cloud.deleteManualsForPlane(planeId) }
-            runCatching { cloud.deleteManualReferencesForPlane(planeTailNumber) }
+            step("squawks") { cloud.deleteSquawksForPlane(planeId) }
+            step("tasks") { cloud.deleteTasksForPlane(planeId) }
+            step("part requests") { cloud.deletePartRequestsForPlane(planeId) }
+            step("open work logs") { cloud.deleteOpenWorkLogsForPlane(planeId) }
+            // DETACH, not delete. Manuals and their indexed references outlive
+            // the aircraft so the same tail can re-attach them later without a
+            // re-upload and re-index.
+            step("manual attachments") { cloud.detachManualsForPlane(planeId) }
             cloud.deletePlane(planeId)
             cloud.emitOrgEvent(orgId, deviceId, "plane_deleted")
             pullSnapshot(orgId)
-            CreateResult.Success
+
+            // Prove it actually went. The refreshed snapshot is the authority
+            // and costs no extra round trip. An RLS-filtered delete removes
+            // zero rows and raises nothing, so this is the only real check.
+            when {
+                _state.value.planes.any { it.id == planeId } -> CreateResult.Error(
+                    "$planeTailNumber is still there — it wasn't deleted. " +
+                        "Only an admin can delete an aircraft."
+                )
+                problems.isNotEmpty() -> CreateResult.Error(
+                    "$planeTailNumber was deleted, but some records couldn't be " +
+                        "removed: ${problems.joinToString("; ")}"
+                )
+                else -> CreateResult.Success
+            }
         } catch (t: Throwable) { CreateResult.Error(t.message ?: "Couldn't delete plane.") }
     }
 

@@ -1865,13 +1865,15 @@ class HFCloudSyncService {
         }
     }
 
-    suspend fun deleteManualsForPlane(planeId: String) {
-        client.postgrest.from("hf_manuals").delete { filter { eq("plane_id", planeId) } }
-    }
-
-    suspend fun deleteManualReferencesForPlane(planeTailNumber: String) {
-        client.postgrest.from("hf_manual_references").delete { filter { eq("plane_tail_number", planeTailNumber) } }
-    }
+    // deleteManualsForPlane / deleteManualReferencesForPlane USED TO LIVE HERE
+    // and are deliberately gone. They deleted hf_manuals by plane_id and
+    // hf_manual_references by plane_tail_number, so deleting an aircraft on
+    // Android destroyed its manuals and every extracted reference — the exact
+    // opposite of the "manuals outlive planes" design Desktop implements, and
+    // an expensive loss: those references are a ~20 minute import per manual.
+    // Worse, keying references on plane_tail_number also took out references
+    // belonging to a manual shared with another aircraft.
+    // Use detachManualsForPlane instead.
 
     suspend fun deleteSquawksForPlane(planeId: String) {
         client.postgrest.from("hf_squawks").delete { filter { eq("plane_id", planeId) } }
@@ -1984,6 +1986,21 @@ class HFCloudSyncService {
     ) {
         client.postgrest.from("hf_manual_plane_assignments")
             .insert(ManualPlaneAssignmentRow(orgId, manualId, planeId, planeTailNumber))
+    }
+
+    /**
+     * Detach EVERY manual from a plane (junction-table delete only).
+     *
+     * This is what plane deletion must use. It deletes assignments, never
+     * `hf_manuals` and never `hf_manual_references`: manuals outlive planes by
+     * design, so when the same tail rolls back in the admin re-attaches them
+     * from "use existing files" instead of re-uploading and re-indexing a
+     * 164 MB AMM. Desktop has always done it this way; Android did not.
+     */
+    suspend fun detachManualsForPlane(planeId: String) {
+        client.postgrest.from("hf_manual_plane_assignments").delete {
+            filter { eq("plane_id", planeId) }
+        }
     }
 
     /** Detach a single manual from a plane (junction-table delete). */
