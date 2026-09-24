@@ -8,6 +8,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.net.HttpURLConnection
 import java.net.URI
+import com.hangarflow.app.util.hfSafeMessage
 
 /**
  * User-triggered issue/feedback reporter. Posts to the `report-issue` Edge
@@ -85,6 +86,6 @@ object IssueReporter {
                 conn.disconnect()
                 Result.Error("Send failed: $errText")
             }
-        }.getOrElse { Result.Error(it.message ?: "Network error") }
+        }.getOrElse { Result.Error(hfSafeMessage(it) ?: "Network error") }
     }
 }

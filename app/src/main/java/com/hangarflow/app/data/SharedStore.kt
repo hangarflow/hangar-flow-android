@@ -35,6 +35,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.UUID
+import com.hangarflow.app.util.hfSafeMessage
 
 /**
  * Kotlin port of iOS `HFSharedStore`. Single process-wide store that
@@ -400,7 +401,7 @@ object SharedStore {
             cloud.emitOrgEvent(orgId = orgId, sourceDevice = deviceId, eventType = "task_updated")
             pullSnapshot(orgId)
             CreateResult.Success
-        } catch (t: Throwable) { CreateResult.Error(t.message ?: "Couldn't create task.") }
+        } catch (t: Throwable) { CreateResult.Error(hfSafeMessage(t) ?: "Couldn't create task.") }
     }
 
     /** Edit an existing task's core fields. Assignee can be cleared (null). */
@@ -425,7 +426,7 @@ object SharedStore {
             cloud.emitOrgEvent(orgId = orgId, sourceDevice = deviceId, eventType = "task_updated")
             pullSnapshot(orgId)
             CreateResult.Success
-        } catch (t: Throwable) { CreateResult.Error(t.message ?: "Couldn't update task.") }
+        } catch (t: Throwable) { CreateResult.Error(hfSafeMessage(t) ?: "Couldn't update task.") }
     }
 
     // -------- Task status updates --------
@@ -591,7 +592,7 @@ object SharedStore {
             pullSnapshot(orgId)
             CreateResult.Success
         } catch (t: Throwable) {
-            CreateResult.Error(t.message ?: "Couldn't update squawk.")
+            CreateResult.Error(hfSafeMessage(t) ?: "Couldn't update squawk.")
         }
     }
 
@@ -1099,7 +1100,7 @@ object SharedStore {
             refreshPartMovements(orgId)
             CreateResult.Success
         } catch (t: Throwable) {
-            CreateResult.Error(t.message ?: "Couldn't log that part.")
+            CreateResult.Error(hfSafeMessage(t) ?: "Couldn't log that part.")
         }
     }
 
@@ -1116,7 +1117,7 @@ object SharedStore {
             refreshPartMovements(orgId)
             CreateResult.Success
         } catch (t: Throwable) {
-            CreateResult.Error(t.message ?: "Couldn't update that.")
+            CreateResult.Error(hfSafeMessage(t) ?: "Couldn't update that.")
         }
     }
 
@@ -1165,7 +1166,7 @@ object SharedStore {
                 .onSuccess { rows -> _state.update { s -> s.copy(partLocations = rows) } }
             CreateResult.Success
         } catch (t: Throwable) {
-            CreateResult.Error(t.message ?: "Couldn't add that to stock.")
+            CreateResult.Error(hfSafeMessage(t) ?: "Couldn't add that to stock.")
         }
     }
 
@@ -1185,7 +1186,7 @@ object SharedStore {
             refreshPartMovements(orgId)
             CreateResult.Success
         } catch (t: Throwable) {
-            CreateResult.Error(t.message ?: "Couldn't record that.")
+            CreateResult.Error(hfSafeMessage(t) ?: "Couldn't record that.")
         }
     }
 
@@ -1212,7 +1213,7 @@ object SharedStore {
             refreshPartMovements(orgId)
             CreateResult.Success
         } catch (t: Throwable) {
-            CreateResult.Error(t.message ?: "Couldn't save those changes.")
+            CreateResult.Error(hfSafeMessage(t) ?: "Couldn't save those changes.")
         }
     }
 
@@ -1223,7 +1224,7 @@ object SharedStore {
             refreshPartMovements(orgId)
             CreateResult.Success
         } catch (t: Throwable) {
-            CreateResult.Error(t.message ?: "Couldn't remove that row.")
+            CreateResult.Error(hfSafeMessage(t) ?: "Couldn't remove that row.")
         }
     }
 
@@ -1388,7 +1389,7 @@ object SharedStore {
             pullSnapshot(orgId)
             CreateResult.Success
         } catch (t: Throwable) {
-            CreateResult.Error(t.message ?: "Couldn't submit correction.")
+            CreateResult.Error(hfSafeMessage(t) ?: "Couldn't submit correction.")
         }
     }
 
@@ -1419,7 +1420,7 @@ object SharedStore {
             pullSnapshot(orgId)
             CreateResult.Success
         } catch (t: Throwable) {
-            CreateResult.Error(t.message ?: "Couldn't update correction.")
+            CreateResult.Error(hfSafeMessage(t) ?: "Couldn't update correction.")
         }
     }
 
@@ -1470,7 +1471,7 @@ object SharedStore {
             pullSnapshot(orgId)
             CreateResult.Success
         } catch (t: Throwable) {
-            CreateResult.Error(t.message ?: "Couldn't save the event.")
+            CreateResult.Error(hfSafeMessage(t) ?: "Couldn't save the event.")
         }
     }
 
@@ -1483,7 +1484,7 @@ object SharedStore {
             cloud.emitOrgEvent(orgId, deviceId, "calendar_event_deleted")
             CreateResult.Success
         } catch (t: Throwable) {
-            CreateResult.Error(t.message ?: "Couldn't delete the event.")
+            CreateResult.Error(hfSafeMessage(t) ?: "Couldn't delete the event.")
         }
     }
 
@@ -1530,7 +1531,7 @@ object SharedStore {
             logAudit("calendar_event", eventId, "updated", "Event \"${updated.title}\" edited")
             CreateResult.Success
         } catch (t: Throwable) {
-            CreateResult.Error(t.message ?: "Couldn't update the event.")
+            CreateResult.Error(hfSafeMessage(t) ?: "Couldn't update the event.")
         }
     }
 
@@ -1606,7 +1607,7 @@ object SharedStore {
             pullSnapshot(orgId)
             CreateResult.Success
         } catch (t: Throwable) {
-            CreateResult.Error(t.message ?: "Couldn't create plane.")
+            CreateResult.Error(hfSafeMessage(t) ?: "Couldn't create plane.")
         }
     }
 
@@ -1627,7 +1628,7 @@ object SharedStore {
             pullSnapshot(orgId)
             CreateResult.Success
         } catch (t: Throwable) {
-            CreateResult.Error(t.message ?: "Couldn't create work log.")
+            CreateResult.Error(hfSafeMessage(t) ?: "Couldn't create work log.")
         }
     }
 
@@ -1645,7 +1646,7 @@ object SharedStore {
             pullSnapshot(orgId)
             CreateResult.Success
         } catch (t: Throwable) {
-            CreateResult.Error(t.message ?: "Couldn't send invite.")
+            CreateResult.Error(hfSafeMessage(t) ?: "Couldn't send invite.")
         }
     }
 
@@ -1702,7 +1703,7 @@ object SharedStore {
             pullSnapshot(orgId)
             CreateResult.Success
         } catch (t: Throwable) {
-            CreateResult.Error(t.message ?: "Couldn't save part location.")
+            CreateResult.Error(hfSafeMessage(t) ?: "Couldn't save part location.")
         }
     }
 
@@ -1747,7 +1748,7 @@ object SharedStore {
                 )
                 else -> CreateResult.Success
             }
-        } catch (t: Throwable) { CreateResult.Error(t.message ?: "Couldn't delete plane.") }
+        } catch (t: Throwable) { CreateResult.Error(hfSafeMessage(t) ?: "Couldn't delete plane.") }
     }
 
     suspend fun deleteWorkLog(id: String): CreateResult {
@@ -1757,7 +1758,7 @@ object SharedStore {
             cloud.emitOrgEvent(orgId, deviceId, "work_log_deleted")
             pullSnapshot(orgId)
             CreateResult.Success
-        } catch (t: Throwable) { CreateResult.Error(t.message ?: "Couldn't delete.") }
+        } catch (t: Throwable) { CreateResult.Error(hfSafeMessage(t) ?: "Couldn't delete.") }
     }
 
     suspend fun deleteSquawk(id: String): CreateResult {
@@ -1767,7 +1768,7 @@ object SharedStore {
             cloud.emitOrgEvent(orgId, deviceId, "squawk_deleted")
             pullSnapshot(orgId)
             CreateResult.Success
-        } catch (t: Throwable) { CreateResult.Error(t.message ?: "Couldn't delete.") }
+        } catch (t: Throwable) { CreateResult.Error(hfSafeMessage(t) ?: "Couldn't delete.") }
     }
 
     suspend fun deleteUser(userId: String): CreateResult {
@@ -1777,7 +1778,7 @@ object SharedStore {
             cloud.emitOrgEvent(orgId, deviceId, "user_deleted")
             pullSnapshot(orgId)
             CreateResult.Success
-        } catch (t: Throwable) { CreateResult.Error(t.message ?: "Couldn't delete user.") }
+        } catch (t: Throwable) { CreateResult.Error(hfSafeMessage(t) ?: "Couldn't delete user.") }
     }
 
     suspend fun updateUserRole(userId: String, newRole: String): CreateResult {
@@ -1787,7 +1788,7 @@ object SharedStore {
             cloud.emitOrgEvent(orgId, deviceId, "user_role_changed")
             pullSnapshot(orgId)
             CreateResult.Success
-        } catch (t: Throwable) { CreateResult.Error(t.message ?: "Couldn't update role.") }
+        } catch (t: Throwable) { CreateResult.Error(hfSafeMessage(t) ?: "Couldn't update role.") }
     }
 
     /** Distinct aircraft types known to the org (from tagged manuals + planes). */
@@ -1819,7 +1820,7 @@ object SharedStore {
             cloud.emitOrgEvent(orgId, deviceId, "plane_updated")
             pullSnapshot(orgId)
             CreateResult.Success
-        } catch (t: Throwable) { CreateResult.Error(t.message ?: "Couldn't update plane.") }
+        } catch (t: Throwable) { CreateResult.Error(hfSafeMessage(t) ?: "Couldn't update plane.") }
     }
 
     /** Persist the optional Times & Cycles intake reference for a plane.
@@ -1847,7 +1848,7 @@ object SharedStore {
             cloud.emitOrgEvent(orgId, deviceId, "plane_updated")
             pullSnapshot(orgId)
             CreateResult.Success
-        } catch (t: Throwable) { CreateResult.Error(t.message ?: "Couldn't save times & cycles.") }
+        } catch (t: Throwable) { CreateResult.Error(hfSafeMessage(t) ?: "Couldn't save times & cycles.") }
     }
 
     // ---------- Parity wave: archive, manual assignments, ref linking, bulk ----------
@@ -1891,7 +1892,7 @@ object SharedStore {
             cloud.emitOrgEvent(orgId, deviceId, "manual_attached")
             pullSnapshot(orgId)
             CreateResult.Success
-        } catch (t: Throwable) { CreateResult.Error(t.message ?: "Couldn't attach manuals.") }
+        } catch (t: Throwable) { CreateResult.Error(hfSafeMessage(t) ?: "Couldn't attach manuals.") }
     }
 
     /** Purge a manual from the Files page (admin only). Indexed references
@@ -1903,7 +1904,7 @@ object SharedStore {
             cloud.emitOrgEvent(orgId, deviceId, "manual_purged")
             pullSnapshot(orgId)
             CreateResult.Success
-        } catch (t: Throwable) { CreateResult.Error(t.message ?: "Couldn't delete manual.") }
+        } catch (t: Throwable) { CreateResult.Error(hfSafeMessage(t) ?: "Couldn't delete manual.") }
     }
 
     /** Link (or, with null fields, clear) a work log's manual reference.
@@ -1969,7 +1970,7 @@ object SharedStore {
             cloud.emitOrgEvent(orgId, deviceId, "work_log_created")
             pullSnapshot(orgId)
             CreateResult.Success
-        } catch (t: Throwable) { CreateResult.Error(t.message ?: "Couldn't create work logs.") }
+        } catch (t: Throwable) { CreateResult.Error(hfSafeMessage(t) ?: "Couldn't create work logs.") }
     }
 
     /** Reassign a work log. Optimistic local update + org event so every
@@ -2072,7 +2073,7 @@ object SharedStore {
             pullSnapshot(orgId)
             CreateResult.Success
         } catch (t: Throwable) {
-            CreateResult.Error(t.message ?: "Couldn't save equipment.")
+            CreateResult.Error(hfSafeMessage(t) ?: "Couldn't save equipment.")
         }
     }
 
@@ -2154,7 +2155,7 @@ object SharedStore {
             pullSnapshot(orgId)
             CreateResult.Success
         } catch (t: Throwable) {
-            CreateResult.Error(t.message ?: "Couldn't save maintenance item.")
+            CreateResult.Error(hfSafeMessage(t) ?: "Couldn't save maintenance item.")
         }
     }
 
@@ -2224,7 +2225,7 @@ object SharedStore {
             pullSnapshot(orgId)
             CreateResult.Success
         } catch (t: Throwable) {
-            CreateResult.Error(t.message ?: "Couldn't log service.")
+            CreateResult.Error(hfSafeMessage(t) ?: "Couldn't log service.")
         }
     }
 
@@ -2254,7 +2255,7 @@ object SharedStore {
             pullSnapshot(orgId)
             CreateResult.Success
         } catch (t: Throwable) {
-            CreateResult.Error(t.message ?: "Couldn't upload photo.")
+            CreateResult.Error(hfSafeMessage(t) ?: "Couldn't upload photo.")
         }
     }
 
@@ -2277,7 +2278,7 @@ object SharedStore {
             pullSnapshot(orgId)
             CreateResult.Success
         } catch (t: Throwable) {
-            CreateResult.Error(t.message ?: "Couldn't attach document.")
+            CreateResult.Error(hfSafeMessage(t) ?: "Couldn't attach document.")
         }
     }
 
