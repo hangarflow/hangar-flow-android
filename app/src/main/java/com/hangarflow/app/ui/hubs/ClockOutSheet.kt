@@ -49,6 +49,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.util.UUID
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.runtime.mutableStateMapOf
 
 /**
  * Full-screen sheet shown when a tech taps Clock Out. Captures:
@@ -92,8 +95,25 @@ fun ClockOutSheet(onDismiss: () -> Unit) {
     // is rescaled to the clock in SharedStore, so the split can never disagree
     // with the hours payroll actually pays.
     val techName = shopState.currentUser?.displayName ?: "Tech"
-    val planeCandidates = remember(shopState.workLogs, techName) {
+    // Planes they logged work against come first and pre-filled. When there
+    // are none, offer the whole hangar rather than an empty list — an empty
+    // list meant the shift was written with NO aircraft at all, which is how
+    // Open Sky ended up with 34 entries and 62.8 hours that can never be
+    // costed to an aeroplane or billed. `hf_time_entries_needs_plane` refuses
+    // such a row from 2026-11-01, so this has to collect it by then.
+    val workedToday = remember(shopState.workLogs, techName) {
         SharedStore.planesWorkedToday(techName)
+    }
+    val prefilled = workedToday.isNotEmpty()
+    // What each aircraft's hours were against, keyed by tail. Null = plane
+    // level only, which is the right answer for towing or cleaning.
+    val jobFor = remember { mutableStateMapOf<String, SharedStore.JobChoice?>() }
+    val planeCandidates = remember(workedToday, shopState.planes) {
+        if (workedToday.isNotEmpty()) workedToday
+        else shopState.planes
+            .filter { !it.isArchived }
+            .sortedBy { it.tailNumber }
+            .map { SharedStore.PlaneCandidate(it.id, it.tailNumber, 0) }
     }
     val activeShift by SharedStore.activeShift.collectAsState()
     val shiftMinutes = remember(activeShift) {
@@ -106,7 +126,7 @@ fun ClockOutSheet(onDismiss: () -> Unit) {
     }
     val planeHours = remember(planeCandidates, shiftMinutes) {
         mutableStateMapOf<String, String>().apply {
-            if (planeCandidates.isNotEmpty() && shiftMinutes > 0) {
+            if (prefilled && planeCandidates.isNotEmpty() && shiftMinutes > 0) {
                 val each = shiftMinutes.toDouble() / planeCandidates.size / 60.0
                 planeCandidates.forEach { put(it.planeTailNumber, "%.1f".format(each)) }
             }
@@ -268,9 +288,13 @@ fun ClockOutSheet(onDismiss: () -> Unit) {
                         )
                     }
                     Text(
-                        "Split your shift across what you worked. Leave one at 0 if you " +
-                            "didn't touch it — the totals get scaled to your clocked hours " +
-                            "either way.",
+                        if (prefilled)
+                            "Split your shift across what you worked. Leave one at 0 if you " +
+                                "didn't touch it — the totals get scaled to your clocked hours " +
+                                "either way."
+                        else
+                            "Put your hours against the aircraft you worked on. You didn't " +
+                                "log any work today, so nothing is pre-filled.",
                         color = HFColors.OnSurface.copy(alpha = 0.50f),
                         fontSize = 12.sp
                     )
@@ -287,10 +311,23 @@ fun ClockOutSheet(onDismiss: () -> Unit) {
                                     fontWeight = FontWeight.SemiBold
                                 )
                                 Text(
-                                    if (cand.workLogCount == 1) "1 work log today"
-                                    else "${cand.workLogCount} work logs today",
+                                    when (cand.workLogCount) {
+                                        0 -> "No work logged today"
+                                        1 -> "1 work log today"
+                                        else -> "${cand.workLogCount} work logs today"
+                                    },
                                     color = HFColors.OnSurface.copy(alpha = 0.45f),
                                     fontSize = 11.sp
+                                )
+                                // WHICH job the hours went on. Optional, and
+                                // NOT used for billing — the invoice bills the
+                                // book figure. It exists so job costing can
+                                // show what a job actually cost in labour
+                                // versus what was charged for it.
+                                JobPicker(
+                                    options = SharedStore.jobOptionsFor(cand.planeId),
+                                    selected = jobFor[cand.planeTailNumber],
+                                    onSelect = { jobFor[cand.planeTailNumber] = it }
                                 )
                             }
                             OutlinedTextField(
@@ -404,11 +441,25 @@ fun ClockOutSheet(onDismiss: () -> Unit) {
                             return@launch
                         }
 
+                        // An unattributed shift is the single biggest source of
+                        // hours that can't be costed or billed, and the database
+                        // refuses one from 2026-11-01. Say so here rather than
+                        // letting the write fail with a constraint error.
+                        if (planeCandidates.isNotEmpty() &&
+                            planeCandidates.none { (planeHours[it.planeTailNumber]?.toDoubleOrNull() ?: 0.0) > 0 }
+                        ) {
+                            submitting = false
+                            errorMessage = "Put your hours against at least one aircraft before clocking out."
+                            return@launch
+                        }
+
                         val splits = planeCandidates.mapNotNull { cand ->
                             val h = planeHours[cand.planeTailNumber]?.toDoubleOrNull() ?: 0.0
                             if (h <= 0) null else SharedStore.PlaneSplit(
                                 planeId = cand.planeId,
                                 planeTailNumber = cand.planeTailNumber,
+                                squawkId = jobFor[cand.planeTailNumber]?.squawkId,
+                                workLogId = jobFor[cand.planeTailNumber]?.workLogId,
                                 minutes = (h * 60).toInt()
                             )
                         }
@@ -579,4 +630,49 @@ private fun decodeUriToBitmap(context: android.content.Context, uri: Uri): Bitma
             BitmapFactory.decodeStream(stream)
         }
     }.getOrNull()
+}
+
+/**
+ * Flat picker of the open work on one aircraft — squawks and work logs in one
+ * list, matching the Desktop client. "Nothing specific" is always offered
+ * because towing and cleaning are real answers.
+ */
+@Composable
+private fun JobPicker(
+    options: List<SharedStore.JobChoice>,
+    selected: SharedStore.JobChoice?,
+    onSelect: (SharedStore.JobChoice?) -> Unit
+) {
+    if (options.isEmpty()) return
+    var open by remember { mutableStateOf(false) }
+    Box {
+        Text(
+            selected?.label ?: "What was it on? (optional)",
+            color = if (selected == null) HFColors.OnSurface.copy(alpha = 0.45f) else HFColors.StatusBlue,
+            fontSize = 11.sp,
+            fontWeight = if (selected == null) FontWeight.Medium else FontWeight.SemiBold,
+            modifier = Modifier
+                .padding(top = 2.dp)
+                .clickable { open = true }
+        )
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            DropdownMenuItem(
+                text = {
+                    Text("Nothing specific", color = HFColors.OnSurfaceMuted, fontSize = 12.sp)
+                },
+                onClick = { onSelect(null); open = false }
+            )
+            options.forEach { opt ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            (if (opt.kind == "squawk") "Squawk · " else "Work · ") + opt.label,
+                            color = HFColors.OnSurface, fontSize = 12.sp
+                        )
+                    },
+                    onClick = { onSelect(opt); open = false }
+                )
+            }
+        }
+    }
 }

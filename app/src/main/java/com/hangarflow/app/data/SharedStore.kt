@@ -831,8 +831,43 @@ object SharedStore {
     data class PlaneSplit(
         val planeId: String?,
         val planeTailNumber: String,
-        val minutes: Int
+        val minutes: Int,
+        // WHICH job these hours went on. Optional — a tech who spent the
+        // morning towing should not have to invent one — but when it IS a
+        // squawk or a work log this is the only place that fact is captured.
+        //
+        // It is NOT for billing. The invoice bills the book figure (an annual
+        // is "120 hours at $145" whatever the clock says). This is so job
+        // costing can compare what a job actually COST in labour against what
+        // was charged for it — a shop billing 120 book hours on a job that ate
+        // 90 real ones is barely making money, and nothing showed that.
+        val squawkId: String? = null,
+        val workLogId: String? = null
     )
+
+    /** One thing a tech's hours can be against. Squawks and work logs are
+     *  offered in ONE flat list — at a bench a tech thinks "I was on the brake
+     *  job", not "I was on a discrepancy record versus a maintenance entry". */
+    data class JobChoice(
+        val label: String,
+        val kind: String,            // "squawk" | "worklog"
+        val squawkId: String? = null,
+        val workLogId: String? = null
+    )
+
+    /** Open work on this aircraft, squawks first — they are what a tech is
+     *  most likely to have spent a shift on. Mirrors the Desktop client. */
+    fun jobOptionsFor(planeId: String?): List<JobChoice> {
+        if (planeId == null) return emptyList()
+        val st = _state.value
+        val squawks = st.squawks
+            .filter { it.planeId == planeId && it.status.lowercase() !in setOf("resolved", "converted_to_task") }
+            .map { JobChoice(it.title.ifBlank { "Squawk" }, "squawk", squawkId = it.id) }
+        val logs = st.workLogs
+            .filter { it.planeId == planeId && it.status.lowercase() != "done" }
+            .map { JobChoice(it.title.ifBlank { "Work log" }, "worklog", workLogId = it.id) }
+        return (squawks + logs).take(40)
+    }
 
     /** An aircraft this tech plausibly worked on today, offered at clock-out. */
     data class PlaneCandidate(
@@ -964,7 +999,9 @@ object SharedStore {
                     planeTailNumber = slice.planeTailNumber.ifBlank { null },
                     entryDateIso = end.toString(),
                     minutesWorked = slice.minutes,
-                    notes = if (index == 0) notes else ""
+                    notes = if (index == 0) notes else "",
+                    linkedSquawkId = slice.squawkId,
+                    linkedWorkLogId = slice.workLogId
                 )
                 if (firstId == null) firstId = entry.id
             }

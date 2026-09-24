@@ -180,26 +180,30 @@ private fun EquipmentSummary(equipment: List<HFEquipment>, items: List<HFEquipme
     val soon = equipment.count { eq ->
         worstDueSeverity(items.filter { it.equipmentId == eq.id }, eq.usageHours) == EquipmentDueSeverity.DUE_SOON
     }
+    // Blue / orange / red, matching every other summary strip in the app.
+    // This used to be cyan / yellow / red, which appear nowhere else.
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        EquipStat("GEAR", equipment.size.toString(), HFColors.StatusCyan, Modifier.weight(1f))
-        EquipStat("DUE SOON", soon.toString(), HFColors.StatusYellow, Modifier.weight(1f))
-        EquipStat("OVERDUE", overdue.toString(), HFColors.StatusRed, Modifier.weight(1f))
+        EquipStat("Gear", equipment.size.toString(), HFColors.StatusBlue, Modifier.weight(1f))
+        EquipStat("Due soon", soon.toString(), HFColors.StatusOrange, Modifier.weight(1f))
+        EquipStat("Overdue", overdue.toString(), HFColors.StatusRed, Modifier.weight(1f))
     }
 }
 
+// Same shape as MiniStat in PartsInOutHub — the app's summary-tile pattern.
+// This used to be a 30sp centred number over a tracked uppercase label inside an
+// accent-coloured outline, which is the only place that styling appeared and is
+// why the Equipment page read as a different app.
 @Composable
 private fun EquipStat(label: String, value: String, accent: Color, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(16.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.04f))
-            .border(1.dp, accent.copy(alpha = 0.40f), RoundedCornerShape(16.dp))
-            .padding(horizontal = 12.dp, vertical = 14.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .clip(RoundedCornerShape(18.dp))
+            .background(Color.White.copy(alpha = 0.04f))
+            .border(1.dp, Color.White.copy(alpha = 0.06f), RoundedCornerShape(18.dp))
+            .padding(12.dp)
     ) {
-        Text(label, color = accent, fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
-        Spacer(Modifier.size(6.dp))
-        Text(value, color = HFColors.OnSurface, fontSize = 30.sp, fontWeight = FontWeight.Bold)
+        Text(value, color = accent, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        Text(label, color = HFColors.OnSurfaceMuted, fontSize = 10.sp)
     }
 }
 
