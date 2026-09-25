@@ -38,6 +38,11 @@ android {
     }
     buildFeatures {
         compose = true
+        // BuildConfig.VERSION_NAME is the single source of truth for the
+        // version shown on the boot screen and attached to issue reports.
+        // It was a hand-typed literal in IssueReporter and had drifted to
+        // 1.7.0 while the app shipped 1.7.2.
+        buildConfig = true
     }
     packaging {
         resources {

@@ -34,7 +34,7 @@ object IssueReporter {
         val user_role: String?
     )
 
-    private const val APP_VERSION = "1.7.0"
+    private val APP_VERSION = com.hangarflow.app.BuildConfig.VERSION_NAME
     private const val TIMEOUT_MS = 10_000
 
     sealed class Result {

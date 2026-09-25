@@ -3,14 +3,12 @@ package com.hangarflow.app.ui.shell
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import android.content.Context
@@ -22,7 +20,7 @@ import com.hangarflow.app.ui.hubs.HubSheetHost
 import com.hangarflow.app.ui.theme.HFColors
 
 /**
- * Auth gate. Spinner during session restore. Login screen when signed
+ * Auth gate. Branded boot screen during session restore. Login screen when signed
  * out. Home hub (iOS-style) when signed in. Feature sheets overlay on
  * top when a card is tapped, matching the iOS presentation model.
  */
@@ -37,11 +35,7 @@ fun RootScreen() {
             .background(HFColors.Background)
     ) {
         when {
-            state.loading && !state.isSignedIn ->
-                CircularProgressIndicator(
-                    color = HFColors.OnSurface,
-                    modifier = Modifier.align(Alignment.Center)
-                )
+            state.loading && !state.isSignedIn -> HFLaunchSplash()
 
             state.isSignedIn -> {
                 val context = LocalContext.current

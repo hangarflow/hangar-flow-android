@@ -8,9 +8,14 @@
             <solid android:color="@color/hf_background" />
         </shape>
     </item>
+    <!-- Only used on API 26-30. From API 31 Android draws its own splash
+         from the launcher icon at a platform-fixed size and ignores this
+         drawable, so changing these values has no effect on modern devices
+         (verified on API 35). Kept in step with HFLaunchSplash's LOGO_SIZE
+         so the pre-Android-12 handoff matches too. -->
     <item
         android:drawable="@drawable/hf_brand_logo"
         android:gravity="center"
-        android:width="180dp"
-        android:height="180dp" />
+        android:width="122dp"
+        android:height="122dp" />
 </layer-list>
