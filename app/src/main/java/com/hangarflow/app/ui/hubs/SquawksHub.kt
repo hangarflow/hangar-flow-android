@@ -59,6 +59,8 @@ import com.hangarflow.app.ui.common.HFPullToRefreshHost
 import com.hangarflow.app.ui.theme.HFColors
 import androidx.compose.ui.platform.LocalContext
 import kotlin.math.roundToInt
+import com.hangarflow.app.R
+import androidx.compose.ui.res.stringResource
 
 /**
  * Squawks hub. Lists every open squawk with its plane tail, title,
@@ -155,7 +157,7 @@ private fun SquawksHubContent(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                "New Squawk",
+                stringResource(R.string.sq_new),
                 color = HFColors.BrandInk,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold
@@ -249,7 +251,7 @@ private fun SquawksHubContent(
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { deleteConfirmFor = null },
             containerColor = HFColors.Surface,
-            title = { Text("Delete squawk?", color = HFColors.StatusRed, fontWeight = FontWeight.Bold) },
+            title = { Text(stringResource(R.string.sq_delete_q), color = HFColors.StatusRed, fontWeight = FontWeight.Bold) },
             text = {
                 Text(
                     "\"${squawk.title.ifBlank { "Untitled squawk" }}\" will be removed for everyone. This can't be undone.",
@@ -261,11 +263,11 @@ private fun SquawksHubContent(
                     val id = squawk.id
                     deleteScope.launch { SharedStore.deleteSquawk(id) }
                     deleteConfirmFor = null
-                }) { Text("Delete", color = HFColors.StatusRed, fontWeight = FontWeight.Bold) }
+                }) { Text(stringResource(R.string.action_delete), color = HFColors.StatusRed, fontWeight = FontWeight.Bold) }
             },
             dismissButton = {
                 androidx.compose.material3.TextButton(onClick = { deleteConfirmFor = null }) {
-                    Text("Cancel", color = HFColors.OnSurface.copy(alpha = 0.7f))
+                    Text(stringResource(R.string.action_cancel), color = HFColors.OnSurface.copy(alpha = 0.7f))
                 }
             }
         )
@@ -280,7 +282,7 @@ private fun SquawkStatusPickerSheet(current: String, onPick: (String) -> Unit) {
     val options = listOf("open", "inProgress", "waitingOnParts", "convertedToTask", "resolved", "deferred")
     Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
         Text(
-            "Change Status".uppercase(),
+            stringResource(R.string.sq_change_status).uppercase(),
             color = HFColors.OnSurface.copy(alpha = 0.55f),
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
@@ -355,7 +357,7 @@ private fun SquawkSearchBar(query: String, onChange: (String) -> Unit, onClear: 
             singleLine = true,
             placeholder = {
                 Text(
-                    "Search squawks",
+                    stringResource(R.string.sq_search),
                     color = HFColors.OnSurface.copy(alpha = 0.4f),
                     fontSize = 14.sp
                 )
@@ -452,7 +454,7 @@ private fun SquawkCard(
                     .padding(horizontal = 6.dp, vertical = 2.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text("Edit", color = HFColors.OnSurface.copy(alpha = 0.75f), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.action_edit), color = HFColors.OnSurface.copy(alpha = 0.75f), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             }
             Spacer(Modifier.width(2.dp))
             // Anyone (including techs) can delete a squawk.
@@ -463,7 +465,7 @@ private fun SquawkCard(
                     .padding(horizontal = 6.dp, vertical = 2.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text("Delete", color = HFColors.StatusRed.copy(alpha = 0.85f), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.action_delete), color = HFColors.StatusRed.copy(alpha = 0.85f), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             }
         }
 
@@ -502,7 +504,7 @@ private fun SquawkCard(
                     .padding(10.dp)
             ) {
                 Text(
-                    "CORRECTIVE ACTION",
+                    stringResource(R.string.sq_corrective_caps),
                     color = HFColors.StatusGreen,
                     fontSize = 9.sp,
                     fontWeight = FontWeight.Bold,
@@ -599,7 +601,7 @@ private fun RelatedManualsSection(squawk: HFSquawk) {
                 .padding(vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("✦ Related in Manuals", color = HFColors.StatusCyan, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.sq_related_manuals), color = HFColors.StatusCyan, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.weight(1f))
             if (loading) {
                 CircularProgressIndicator(Modifier.size(14.dp), color = HFColors.StatusCyan, strokeWidth = 2.dp)
@@ -638,7 +640,7 @@ private fun RelatedManualsSection(squawk: HFSquawk) {
                     }
                 }
             } else if (loaded && !loading) {
-                Text("No related manual pages found.", color = HFColors.OnSurface.copy(alpha = 0.4f), fontSize = 12.sp, modifier = Modifier.padding(vertical = 4.dp))
+                Text(stringResource(R.string.sq_no_related), color = HFColors.OnSurface.copy(alpha = 0.4f), fontSize = 12.sp, modifier = Modifier.padding(vertical = 4.dp))
             }
         }
     }

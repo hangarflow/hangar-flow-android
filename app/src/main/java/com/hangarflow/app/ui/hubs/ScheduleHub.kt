@@ -38,6 +38,8 @@ import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
 import kotlinx.coroutines.launch
+import com.hangarflow.app.R
+import androidx.compose.ui.res.stringResource
 
 /**
  * Schedule hub — monthly calendar showing plane arrivals (drop-offs)
@@ -121,10 +123,10 @@ private fun ScheduleHubContent(
             .padding(horizontal = 16.dp)
     ) {
         Spacer(Modifier.height(20.dp))
-        Text("Schedule", color = HFColors.OnSurface, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.nav_schedule), color = HFColors.OnSurface, fontSize = 24.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(2.dp))
         Text(
-            "Plane arrivals, RTS deadlines, and time-off.",
+            stringResource(R.string.sc_sub),
             color = HFColors.OnSurface.copy(alpha = 0.55f),
             fontSize = 13.sp,
             fontWeight = FontWeight.Medium
@@ -193,7 +195,7 @@ private fun ScheduleHubContent(
                 )
                 DayGroup(title = "EVENTS (${dayCalendarEvents.size})", accent = HFColors.StatusBlue) {
                     if (dayCalendarEvents.isEmpty()) {
-                        EmptyGroupText("Nothing on the calendar.")
+                        EmptyGroupText(stringResource(R.string.sc_nothing_cal))
                     } else {
                         dayCalendarEvents.forEach { ev ->
                             // Your own note is yours to change; everything
@@ -213,7 +215,7 @@ private fun ScheduleHubContent(
                 }
                 DayGroup(title = "DROP-OFFS (${arrivals.size})", accent = HFColors.StatusGreen) {
                     if (arrivals.isEmpty()) {
-                        EmptyGroupText("No drop-offs.")
+                        EmptyGroupText(stringResource(R.string.sc_no_dropoffs))
                     } else {
                         arrivals.forEach { ev ->
                             EventRow(ev)
@@ -225,7 +227,7 @@ private fun ScheduleHubContent(
                 }
                 DayGroup(title = "RTS DEADLINES (${deadlines.size})", accent = HFColors.StatusRed) {
                     if (deadlines.isEmpty()) {
-                        EmptyGroupText("No RTS deadlines.")
+                        EmptyGroupText(stringResource(R.string.sc_no_rts))
                     } else {
                         deadlines.forEach { EventRow(it) }
                     }
@@ -425,9 +427,9 @@ private fun StatsStrip(month: YearMonth, plane: List<HFPlane>) {
     }
 
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        StatTile(label = "DROP-OFFS", value = dropOffs.toString(), accent = HFColors.StatusGreen, modifier = Modifier.weight(1f))
-        StatTile(label = "RTS", value = rtsDue.toString(), accent = HFColors.StatusRed, modifier = Modifier.weight(1f))
-        StatTile(label = "ON THE LINE", value = onLine.toString(), accent = HFColors.StatusBlue, modifier = Modifier.weight(1f))
+        StatTile(label = stringResource(R.string.sc_dropoffs_caps), value = dropOffs.toString(), accent = HFColors.StatusGreen, modifier = Modifier.weight(1f))
+        StatTile(label = stringResource(R.string.sc_rts_caps), value = rtsDue.toString(), accent = HFColors.StatusRed, modifier = Modifier.weight(1f))
+        StatTile(label = stringResource(R.string.sc_on_the_line_caps), value = onLine.toString(), accent = HFColors.StatusBlue, modifier = Modifier.weight(1f))
     }
 }
 
@@ -636,14 +638,14 @@ private fun SchedMaintChecklist(plane: HFPlane) {
         verticalArrangement = Arrangement.spacedBy(5.dp)
     ) {
         Text(
-            "SCHEDULED MAINTENANCE",
+            stringResource(R.string.sc_sched_maint_caps),
             color = HFColors.OnSurface.copy(alpha = 0.5f),
             fontSize = 8.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = 0.8.sp
         )
         if (items.isEmpty()) {
-            Text("Nothing listed yet.", color = HFColors.OnSurface.copy(alpha = 0.4f), fontSize = 11.sp)
+            Text(stringResource(R.string.sc_nothing_listed), color = HFColors.OnSurface.copy(alpha = 0.4f), fontSize = 11.sp)
         } else {
             items.forEach { item ->
                 Row(
@@ -714,7 +716,7 @@ private fun SchedMaintChecklist(plane: HFPlane) {
                     .padding(horizontal = 8.dp, vertical = 7.dp)
             ) {
                 if (newTitle.isEmpty()) {
-                    Text("Add item (e.g. 100-hr inspection)", color = HFColors.OnSurface.copy(alpha = 0.35f), fontSize = 11.sp)
+                    Text(stringResource(R.string.sc_add_item_hint), color = HFColors.OnSurface.copy(alpha = 0.35f), fontSize = 11.sp)
                 }
                 BasicTextField(
                     value = newTitle,
@@ -742,7 +744,7 @@ private fun SchedMaintChecklist(plane: HFPlane) {
                     .padding(horizontal = 10.dp, vertical = 7.dp)
             ) {
                 Text(
-                    "Add",
+                    stringResource(R.string.action_add),
                     color = if (canAdd) HFColors.StatusGreen else HFColors.OnSurface.copy(alpha = 0.35f),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold
@@ -784,6 +786,11 @@ private fun buildPlaneEventIndex(planes: List<HFPlane>): Map<LocalDate, List<Pla
                 .add(PlaneScheduleEvent(
                     kind = PlaneEventKind.Deadline,
                     title = "${plane.tailNumber} RTS deadline",
+                    // Literal, not a resource: this runs in
+                    // buildPlaneEventIndex(), a plain function that cannot call
+                    // stringResource. Strings built outside composition need the
+                    // Context-based lookup that the data layer still needs — see
+                    // the note on SharedStore.
                     subtitle = "Return to service"
                 ))
         }
@@ -889,7 +896,7 @@ private fun CalendarEventRow(
                     .padding(horizontal = 8.dp, vertical = 4.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text("Edit", color = HFColors.StatusBlue, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.action_edit), color = HFColors.StatusBlue, fontSize = 10.sp, fontWeight = FontWeight.Bold)
             }
         }
         if (canDelete) {
@@ -901,7 +908,7 @@ private fun CalendarEventRow(
                     .padding(horizontal = 8.dp, vertical = 4.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text("Delete", color = HFColors.StatusRed.copy(alpha = 0.85f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.action_delete), color = HFColors.StatusRed.copy(alpha = 0.85f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -970,23 +977,23 @@ private fun AddCalendarEventSheet(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    "Visible to the org. Use for inspection windows, meetings, training days, etc.",
+                    stringResource(R.string.sc_event_help),
                     color = HFColors.OnSurface.copy(alpha = 0.6f), fontSize = 11.sp
                 )
                 EventField("TITLE", title, "Borescope inspection, team meeting…") { title = it }
                 EventField("DESCRIPTION (OPTIONAL)", description, "Context techs should see.", singleLine = false) { description = it }
 
-                Text("START DATE", color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+                Text(stringResource(R.string.sc_start_date_caps), color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
                 DateStepperRow(startDate, dateFmt) {
                     startDate = it
                     if (endDate.isBefore(it)) endDate = it
                 }
-                Text("END DATE", color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+                Text(stringResource(R.string.sc_end_date_caps), color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
                 DateStepperRow(endDate, dateFmt) {
                     endDate = if (it.isBefore(startDate)) startDate else it
                 }
 
-                Text("PLANE (OPTIONAL)", color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+                Text(stringResource(R.string.sc_plane_optional_caps), color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
                 Row(
                     modifier = Modifier.horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -997,7 +1004,7 @@ private fun AddCalendarEventSheet(
                     }
                 }
 
-                Text("WHO CAN SEE IT", color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+                Text(stringResource(R.string.sc_who_sees_caps), color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     ScopeChip("Everyone", visibility == "public") { visibility = "public" }
                     // Same stored value for both roles; only the framing
@@ -1015,7 +1022,7 @@ private fun AddCalendarEventSheet(
                 // Reminder: notify a teammate at a date + hour.
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("SEND A REMINDER", color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+                        Text(stringResource(R.string.sc_send_reminder_caps), color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
                         Text("Push a notification when it's due.", color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 11.sp)
                     }
                     androidx.compose.material3.Switch(checked = remindOn, onCheckedChange = { remindOn = it })

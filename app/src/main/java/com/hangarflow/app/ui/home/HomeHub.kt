@@ -48,6 +48,9 @@ import androidx.compose.material.icons.outlined.ShoppingCart
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material.icons.rounded.Flight
+import androidx.annotation.StringRes
+import androidx.compose.ui.res.stringResource
+import com.hangarflow.app.R
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -355,8 +358,8 @@ private fun ReorderableHomeGrid(
                         .zIndex(if (isDragged) 10f else 0f)
                 ) {
                     IOSHomeFeatureCard(
-                        title = card.title,
-                        subtitle = card.subtitle,
+                        title = stringResource(card.title),
+                        subtitle = stringResource(card.subtitle),
                         icon = card.icon,
                         accent = if (isHovered) HFColors.BrandWhite else card.accent,
                         onClick = { onTapCard(card) },
@@ -459,13 +462,13 @@ private fun CustomizeHomeSheet(
                 ) {
                     androidx.compose.foundation.layout.Column(modifier = Modifier.weight(1f)) {
                         androidx.compose.material3.Text(
-                            card.title,
+                            stringResource(card.title),
                             color = HFColors.OnSurface,
                             fontSize = 14.sp,
                             fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
                         )
                         androidx.compose.material3.Text(
-                            card.subtitle,
+                            stringResource(card.subtitle),
                             color = HFColors.OnSurface.copy(alpha = 0.60f),
                             fontSize = 11.sp,
                             fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
@@ -525,8 +528,12 @@ enum class HomeDestination {
 
 private data class HomeCard(
     val id: String,
-    val title: String,
-    val subtitle: String,
+    // Resource ids rather than text: cardsForRole() is a plain function, not a
+    // composable, so it cannot resolve strings itself. Holding the id defers
+    // the lookup to the renderer, which is also what makes the grid follow a
+    // language change without rebuilding this list.
+    @StringRes val title: Int,
+    @StringRes val subtitle: Int,
     val icon: ImageVector,
     val accent: Color,
     val destination: HomeDestination
@@ -541,96 +548,96 @@ private fun cardsForRole(isAdmin: Boolean): List<HomeCard> {
         // studies stay visually consistent across iPad and Android tablet.
         HomeCard(
             id = "timecard",
-            title = "Time Card",
-            subtitle = "Clean overview of time, hours, and recent activity",
+            title = R.string.card_timecard_t,
+            subtitle = R.string.card_timecard_s,
             icon = Icons.Outlined.Timer,
             accent = HFColors.StatusGreen.copy(alpha = 0.44f),
             destination = HomeDestination.TimeCard
         ),
         HomeCard(
             id = "tasks",
-            title = "Assigned Tasks / Progress",
-            subtitle = "Admin-only task oversight and progress review",
+            title = R.string.card_tasks_t,
+            subtitle = R.string.card_tasks_s,
             icon = Icons.Outlined.CheckCircle,
             accent = HFColors.StatusBlue.copy(alpha = 0.44f),
             destination = HomeDestination.Tasks
         ),
         HomeCard(
             id = "planes",
-            title = "Planes",
-            subtitle = "Open plane records and select an active aircraft",
+            title = R.string.card_planes_t,
+            subtitle = R.string.card_planes_s,
             icon = Icons.Rounded.Flight,
             accent = HFColors.StatusBlue.copy(alpha = 0.50f),
             destination = HomeDestination.Planes
         ),
         HomeCard(
             id = "worklogs",
-            title = "Work Logs",
-            subtitle = "Plane logs and categorized maintenance history",
+            title = R.string.card_worklogs_t,
+            subtitle = R.string.card_worklogs_s,
             icon = Icons.AutoMirrored.Outlined.ListAlt,
             accent = HFColors.StatusCyan.copy(alpha = 0.44f),
             destination = HomeDestination.WorkLogs
         ),
         HomeCard(
             id = "squawks",
-            title = "Squawk Lists",
-            subtitle = "Add squawks and parts needs",
+            title = R.string.card_squawks_t,
+            subtitle = R.string.card_squawks_s,
             icon = Icons.Outlined.ReportProblem,
             accent = HFColors.StatusOrange.copy(alpha = 0.44f),
             destination = HomeDestination.Squawks
         ),
         HomeCard(
             id = "findparts",
-            title = "Find Parts",
-            subtitle = "Search manuals for part numbers and references",
+            title = R.string.card_findparts_t,
+            subtitle = R.string.card_findparts_s,
             icon = Icons.Outlined.Search,
             accent = HFColors.StatusCyan.copy(alpha = 0.44f),
             destination = HomeDestination.FindParts
         ),
         HomeCard(
             id = "manuals",
-            title = "Manuals",
-            subtitle = "Manual references and full PDFs",
+            title = R.string.card_manuals_t,
+            subtitle = R.string.card_manuals_s,
             icon = Icons.AutoMirrored.Outlined.MenuBook,
             accent = HFColors.StatusPurple.copy(alpha = 0.44f),
             destination = HomeDestination.Manuals
         ),
         HomeCard(
             id = "partlocations",
-            title = "Parts Inventory",
-            subtitle = "Shared inventory — where parts live in the hangar",
+            title = R.string.card_partlocations_t,
+            subtitle = R.string.card_partlocations_s,
             icon = Icons.Outlined.Inventory2,
             accent = HFColors.StatusYellow.copy(alpha = 0.44f),
             destination = HomeDestination.PartLocations
         ),
         HomeCard(
             id = "equipment",
-            title = "Equipment",
-            subtitle = "Shop gear — maintenance & calibration due",
+            title = R.string.card_equipment_t,
+            subtitle = R.string.card_equipment_s,
             icon = Icons.Outlined.Build,
             accent = HFColors.StatusGreen.copy(alpha = 0.46f),
             destination = HomeDestination.Equipment
         ),
         HomeCard(
             id = "quickpic",
-            title = "QuickPic",
-            subtitle = "Scan or print QR labels for parts & gear",
+            title = R.string.card_quickpic_t,
+            subtitle = R.string.card_quickpic_s,
             icon = Icons.Outlined.QrCode2,
             accent = HFColors.StatusCyan.copy(alpha = 0.46f),
             destination = HomeDestination.QuickPic
         ),
         HomeCard(
             id = "schedule",
-            title = "Schedule",
-            subtitle = "Plane drop-offs, RTS deadlines, and time-off",
+            title = R.string.card_schedule_t,
+            subtitle = R.string.card_schedule_s,
             icon = Icons.Outlined.CalendarMonth,
             accent = HFColors.StatusBlue.copy(alpha = 0.44f),
             destination = HomeDestination.Schedule
         ),
         HomeCard(
             id = "activitylog",
-            title = "Activity Log",
-            subtitle = "Paper trail — who added, imported, or changed what",
+            title = R.string.card_activitylog_t,
+            subtitle = R.string.card_activitylog_s,
             icon = Icons.AutoMirrored.Outlined.ListAlt,
             accent = HFColors.OnSurface.copy(alpha = 0.30f),
             destination = HomeDestination.ActivityLog
@@ -641,15 +648,15 @@ private fun cardsForRole(isAdmin: Boolean): List<HomeCard> {
     if (isAdmin) {
         return tech + HomeCard(
             id = "users",
-            title = "Users",
-            subtitle = "Manage roles, invite teammates, deactivate access",
+            title = R.string.card_users_t,
+            subtitle = R.string.card_users_s,
             icon = Icons.Outlined.PeopleAlt,
             accent = HFColors.StatusBlue.copy(alpha = 0.50f),
             destination = HomeDestination.Users
         ) + HomeCard(
             id = "payroll",
-            title = "Payroll",
-            subtitle = "Approve hours, set rates, see what's owed",
+            title = R.string.card_payroll_t,
+            subtitle = R.string.card_payroll_s,
             icon = Icons.Outlined.Timer,
             accent = HFColors.StatusGreen.copy(alpha = 0.50f),
             destination = HomeDestination.Payroll
@@ -658,8 +665,8 @@ private fun cardsForRole(isAdmin: Boolean): List<HomeCard> {
             // admin-only for every verb too, so a tech's session reads nothing
             // even if this card were somehow reachable.
             id = "partsinout",
-            title = "Parts In & Out",
-            subtitle = "Receiving, cores due back, out for overhaul",
+            title = R.string.card_partsinout_t,
+            subtitle = R.string.card_partsinout_s,
             icon = Icons.Outlined.LocalShipping,
             accent = HFColors.StatusOrange.copy(alpha = 0.50f),
             destination = HomeDestination.PartsInOut

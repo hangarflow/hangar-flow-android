@@ -50,6 +50,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import com.hangarflow.app.auth.AuthManager
 import com.hangarflow.app.data.cloud.HFCloudSyncService
 import kotlinx.coroutines.launch
+import com.hangarflow.app.R
+import androidx.compose.ui.res.stringResource
+import androidx.annotation.StringRes
 
 /**
  * Source bubbles for the Work Logs list — slice items by where they
@@ -57,11 +60,14 @@ import kotlinx.coroutines.launch
  *   All · Due List · Work Card · Inspections
  * Mirrors the Desktop/macOS WorkLogSource filter.
  */
-private enum class WorkLogSource(val label: String) {
-    ALL("All"),
-    DUE_LIST("Due List"),
-    WORK_CARD("Work Card"),
-    INSPECTIONS("Inspections");
+// @StringRes rather than text: enum constants initialise once at class load,
+// so a resolved string would freeze whichever language was active then and
+// survive a language change. The id is resolved at the render site instead.
+private enum class WorkLogSource(@StringRes val label: Int) {
+    ALL(R.string.wl_all),
+    DUE_LIST(R.string.wt_src_due_list),
+    WORK_CARD(R.string.wt_src_work_card),
+    INSPECTIONS(R.string.wt_src_inspections);
 
     fun matches(wl: HFWorkLog): Boolean = when (this) {
         ALL -> true
@@ -118,7 +124,7 @@ private fun WorkLogsViewToggle(viewMode: String, onChange: (String) -> Unit) {
             .padding(4.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        ViewToggleChip("Work Logs", viewMode == "worklogs", Modifier.weight(1f)) { onChange("worklogs") }
+        ViewToggleChip(stringResource(R.string.nav_work_logs), viewMode == "worklogs", Modifier.weight(1f)) { onChange("worklogs") }
         ViewToggleChip("Squawks", viewMode == "squawks", Modifier.weight(1f)) { onChange("squawks") }
     }
 }
@@ -226,7 +232,7 @@ private fun WorkLogsContent() {
 private fun WorkLogsHeader(total: Int, overall: Int) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
-            "Work Logs",
+            stringResource(R.string.nav_work_logs),
             color = HFColors.OnSurface,
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold
@@ -286,7 +292,7 @@ private fun CategoryFilterRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         FilterPill(
-            label = "All",
+            label = stringResource(R.string.wl_all),
             isSelected = selected == null,
             onClick = { onSelect(null) }
         )
@@ -314,7 +320,7 @@ private fun SourceFilterRow(
     ) {
         WorkLogSource.entries.forEach { src ->
             FilterPill(
-                label = "${src.label} · ${counts[src] ?: 0}",
+                label = "${stringResource(src.label)} · ${counts[src] ?: 0}",
                 isSelected = src == selected,
                 onClick = { onSelect(src) }
             )
@@ -636,7 +642,7 @@ private fun WorkLogLinkSheet(log: HFWorkLog, onDismiss: () -> Unit) {
             modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("Link manual reference", color = HFColors.OnSurface, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.wt_link_ref), color = HFColors.OnSurface, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             Text(
                 log.title.ifBlank { "Untitled work log" },
                 color = HFColors.OnSurfaceMuted, fontSize = 13.sp, maxLines = 2
@@ -657,7 +663,7 @@ private fun WorkLogLinkSheet(log: HFWorkLog, onDismiss: () -> Unit) {
                         fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f)
                     )
                     Text(
-                        "Unlink",
+                        stringResource(R.string.wt_unlink),
                         color = HFColors.StatusRed, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.clickable {
                             SharedStore.linkWorkLogToReference(log.id, null, null, null, null, null, null)
@@ -699,7 +705,7 @@ private fun WorkLogLinkSheet(log: HFWorkLog, onDismiss: () -> Unit) {
                         .clickable { runSearch() }
                         .padding(horizontal = 14.dp, vertical = 12.dp)
                 ) {
-                    Text("Search", color = HFColors.StatusBlue, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.action_search), color = HFColors.StatusBlue, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 }
             }
 
@@ -709,7 +715,7 @@ private fun WorkLogLinkSheet(log: HFWorkLog, onDismiss: () -> Unit) {
                     contentAlignment = Alignment.Center
                 ) { CircularProgressIndicator(color = HFColors.OnSurface, strokeWidth = 2.dp, modifier = Modifier.size(22.dp)) }
                 results.isEmpty() -> Text(
-                    "No matches — try a different search term.",
+                    stringResource(R.string.wt_no_matches),
                     color = HFColors.OnSurfaceMuted, fontSize = 13.sp
                 )
                 else -> LazyColumn(
@@ -749,7 +755,7 @@ private fun WorkLogLinkSheet(log: HFWorkLog, onDismiss: () -> Unit) {
                                     }
                                 }
                             }
-                            Text("Link", color = HFColors.StatusBlue, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.wt_link), color = HFColors.StatusBlue, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -788,7 +794,7 @@ private fun WorkLogAIOrganizeCard(log: HFWorkLog) {
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("✨ AI ASSIST", color = HFColors.StatusBlue, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+            Text(stringResource(R.string.wt_ai_assist), color = HFColors.StatusBlue, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
             Spacer(Modifier.weight(1f))
             if (canOrganize) {
                 Box(
@@ -810,7 +816,7 @@ private fun WorkLogAIOrganizeCard(log: HFWorkLog) {
             }
         }
         if (parts.isNotEmpty()) {
-            Text("RECOMMENDED PARTS", color = HFColors.OnSurfaceMuted, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+            Text(stringResource(R.string.wt_recommended_parts), color = HFColors.OnSurfaceMuted, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
             parts.forEach { p ->
                 Column(
                     modifier = Modifier.fillMaxWidth()

@@ -24,6 +24,8 @@ import androidx.compose.ui.unit.sp
 import com.hangarflow.app.data.SharedStore
 import com.hangarflow.app.data.model.HFAuditEvent
 import com.hangarflow.app.ui.theme.HFColors
+import com.hangarflow.app.R
+import androidx.compose.ui.res.stringResource
 
 /** The paper trail — append-only log of who did what, when. Header is
  *  provided by HubSheetHost; this renders the list. Visible to everyone. */
@@ -40,7 +42,7 @@ fun ActivityLogHub() {
 
     Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         when {
-            loading -> Text("Loading…", color = HFColors.OnSurfaceMuted, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
+            loading -> Text(stringResource(R.string.common_loading), color = HFColors.OnSurfaceMuted, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
             events.isEmpty() -> Text(
                 "No activity recorded yet. New work logs, squawks, plane adds, parts requests, and clock-outs show up here.",
                 color = HFColors.OnSurfaceMuted, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp)

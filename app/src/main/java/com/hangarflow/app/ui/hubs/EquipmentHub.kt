@@ -58,6 +58,8 @@ import com.hangarflow.app.ui.common.HFPullToRefreshHost
 import com.hangarflow.app.ui.common.hfPressClickable
 import com.hangarflow.app.ui.theme.HFColors
 import kotlinx.coroutines.launch
+import com.hangarflow.app.R
+import androidx.compose.ui.res.stringResource
 
 // Shop-gear equipment types offered as quick-pick chips.
 private val EQUIPMENT_TYPES = listOf(
@@ -112,7 +114,7 @@ private fun EquipmentHubContent() {
                 singleLine = true,
                 leadingIcon = { Icon(Icons.Outlined.Search, null, tint = HFColors.OnSurface.copy(alpha = 0.55f)) },
                 placeholder = {
-                    Text("Search gear, type, location…", color = HFColors.OnSurface.copy(alpha = 0.45f), fontSize = 13.sp)
+                    Text(stringResource(R.string.eq_search), color = HFColors.OnSurface.copy(alpha = 0.45f), fontSize = 13.sp)
                 },
                 modifier = Modifier.fillMaxWidth(),
                 colors = equipFieldColors()
@@ -222,7 +224,7 @@ private fun AddEquipmentButton(onClick: () -> Unit) {
     ) {
         Icon(Icons.Outlined.Add, null, tint = HFColors.OnSurface, modifier = Modifier.size(18.dp))
         Spacer(Modifier.size(8.dp))
-        Text("Add Equipment", color = HFColors.OnSurface, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.eq_add), color = HFColors.OnSurface, fontSize = 15.sp, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -353,7 +355,7 @@ private fun EquipmentEditSheet(existing: HFEquipment?, onDismiss: () -> Unit) {
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    if (existing == null) "Add Equipment" else "Edit Equipment",
+                    if (existing == null) stringResource(R.string.eq_add) else "Edit Equipment",
                     color = HFColors.OnSurface, fontSize = 20.sp, fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f)
                 )
@@ -468,7 +470,7 @@ private fun EquipmentDetailSheet(
             // ---- service history ----
             SectionHeader("Service History")
             if (serviceLog.isEmpty()) {
-                Text("Nothing logged yet.", color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                Text(stringResource(R.string.eq_nothing_logged), color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 12.sp, fontWeight = FontWeight.Medium)
             } else {
                 serviceLog.sortedByDescending { it.performedAt }.forEach { entry ->
                     ServiceLogRow(entry, onDelete = { SharedStore.deleteServiceEntry(entry.id) })
@@ -503,7 +505,7 @@ private fun UsageHoursRow(equipment: HFEquipment) {
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Hour Meter", color = HFColors.OnSurface, fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+            Text(stringResource(R.string.eq_hour_meter), color = HFColors.OnSurface, fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
             Text("${fmtHours(equipment.usageHours)} hrs", color = HFColors.StatusBlue, fontSize = 15.sp, fontWeight = FontWeight.Bold)
         }
         if (editing) {
@@ -611,7 +613,7 @@ private fun MaintenanceItemSheet(equipmentId: String, onDismiss: () -> Unit) {
             modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("Add Maintenance / Calibration", color = HFColors.OnSurface, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.eq_add_maint), color = HFColors.OnSurface, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             EquipField("Title", title, { title = it }, "Oil change")
 
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -699,9 +701,9 @@ private fun LogServiceSheet(
             modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("Log a Service", color = HFColors.OnSurface, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.eq_log_service), color = HFColors.OnSurface, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             if (maintenanceItemId != null) {
-                Text("This will reset the linked item's due clock.", color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                Text(stringResource(R.string.eq_reset_warning), color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 12.sp, fontWeight = FontWeight.Medium)
             }
             EquipField("Performed (YYYY-MM-DD)", performedAt, { performedAt = it }, "2026-07-14")
             EquipField("Hours at service", hours, { s -> hours = s.filter { it.isDigit() || it == '.' }.take(8) }, "0", KeyboardType.Number)
@@ -806,7 +808,7 @@ private fun DeleteChip(onClick: () -> Unit) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Outlined.Delete, null, tint = HFColors.StatusRed, modifier = Modifier.size(14.dp))
             Spacer(Modifier.size(6.dp))
-            Text("Delete", color = HFColors.StatusRed, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.action_delete), color = HFColors.StatusRed, fontSize = 12.sp, fontWeight = FontWeight.Bold)
         }
     }
 }

@@ -41,6 +41,9 @@ import com.hangarflow.app.data.SharedStore
 import com.hangarflow.app.data.model.HFPartRequest
 import com.hangarflow.app.ui.common.HFPullToRefreshHost
 import com.hangarflow.app.ui.theme.HFColors
+import com.hangarflow.app.R
+import androidx.compose.ui.res.stringResource
+import com.hangarflow.app.i18n.HFStrings
 
 @Composable
 fun PartsToOrderHub() {
@@ -86,24 +89,24 @@ private fun PartsToOrderHubContent() {
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             HubChip(
-                label = "All urgencies",
+                label = stringResource(R.string.po_all_urgencies),
                 isSelected = selectedUrgency == null,
                 onClick = { selectedUrgency = null }
             )
             HubChip(
-                label = "AOG / Urgent",
+                label = stringResource(R.string.po_aog),
                 accent = HFColors.StatusRed,
                 isSelected = selectedUrgency == "urgentAOG",
                 onClick = { selectedUrgency = "urgentAOG" }
             )
             HubChip(
-                label = "Normal",
+                label = stringResource(R.string.po_normal),
                 accent = HFColors.StatusOrange,
                 isSelected = selectedUrgency == "normal",
                 onClick = { selectedUrgency = "normal" }
             )
             HubChip(
-                label = "Low",
+                label = stringResource(R.string.po_low),
                 accent = HFColors.StatusGreen,
                 isSelected = selectedUrgency == "low",
                 onClick = { selectedUrgency = "low" }
@@ -116,12 +119,12 @@ private fun PartsToOrderHubContent() {
             modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            HubChip(label = "Open", isSelected = selectedStatus == "all_open", onClick = { selectedStatus = "all_open" })
-            HubChip(label = "Requested", isSelected = selectedStatus == "requested", onClick = { selectedStatus = "requested" })
-            HubChip(label = "Ordered", isSelected = selectedStatus == "ordered", onClick = { selectedStatus = "ordered" })
-            HubChip(label = "Received", isSelected = selectedStatus == "received", onClick = { selectedStatus = "received" })
-            HubChip(label = "Installed", isSelected = selectedStatus == "installed", onClick = { selectedStatus = "installed" })
-            HubChip(label = "All", isSelected = selectedStatus == "all", onClick = { selectedStatus = "all" })
+            HubChip(label = stringResource(R.string.po_open), isSelected = selectedStatus == "all_open", onClick = { selectedStatus = "all_open" })
+            HubChip(label = stringResource(R.string.po_requested), isSelected = selectedStatus == "requested", onClick = { selectedStatus = "requested" })
+            HubChip(label = stringResource(R.string.po_ordered), isSelected = selectedStatus == "ordered", onClick = { selectedStatus = "ordered" })
+            HubChip(label = stringResource(R.string.po_received), isSelected = selectedStatus == "received", onClick = { selectedStatus = "received" })
+            HubChip(label = stringResource(R.string.po_installed), isSelected = selectedStatus == "installed", onClick = { selectedStatus = "installed" })
+            HubChip(label = stringResource(R.string.wl_all), isSelected = selectedStatus == "all", onClick = { selectedStatus = "all" })
         }
         Spacer(Modifier.size(12.dp))
 
@@ -318,7 +321,7 @@ private fun StatusPickerSheet(current: String, onPick: (String) -> Unit) {
     val options = listOf("requested", "ordered", "received", "installed")
     Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
         Text(
-            "Update Status".uppercase(),
+            stringResource(R.string.tk_update_status).uppercase(),
             color = HFColors.OnSurface.copy(alpha = 0.55f),
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold
@@ -369,10 +372,10 @@ private fun urgencyPresentation(raw: String): PartPreset = when (raw) {
 }
 
 private fun statusPresentation(raw: String): PartPreset = when (raw) {
-    "requested" -> PartPreset("Requested", HFColors.StatusBlue)
-    "ordered" -> PartPreset("Ordered", HFColors.StatusYellow)
-    "received" -> PartPreset("Received", HFColors.StatusCyan)
-    "installed" -> PartPreset("Installed", HFColors.StatusGreen)
+    "requested" -> PartPreset(HFStrings.get(R.string.po_requested, fallback = "REQUESTED"), HFColors.StatusBlue)
+    "ordered" -> PartPreset(HFStrings.get(R.string.po_ordered, fallback = "ORDERED"), HFColors.StatusYellow)
+    "received" -> PartPreset(HFStrings.get(R.string.po_received, fallback = "RECEIVED"), HFColors.StatusCyan)
+    "installed" -> PartPreset(HFStrings.get(R.string.po_installed, fallback = "INSTALLED"), HFColors.StatusGreen)
     else -> PartPreset(raw.replaceFirstChar { it.titlecase() }, HFColors.OnSurface)
 }
 

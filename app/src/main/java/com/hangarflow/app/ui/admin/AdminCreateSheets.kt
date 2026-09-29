@@ -48,6 +48,8 @@ import com.hangarflow.app.data.SharedStore
 import com.hangarflow.app.data.model.HFWorkCategory
 import com.hangarflow.app.ui.theme.HFColors
 import kotlinx.coroutines.launch
+import com.hangarflow.app.R
+import androidx.compose.ui.res.stringResource
 
 /**
  * Admin-only create sheet. Three modes live behind one entry point:
@@ -162,7 +164,7 @@ private fun CreatePlaneForm(onDone: () -> Unit) {
         else state.manuals.filter { (it.planeTailNumber ?: "").uppercase() == t }
     }
 
-    FormField(label = "Tail Number", value = tail, onChange = { tail = it.uppercase() }, placeholder = "N123AB")
+    FormField(label = stringResource(R.string.ac_tail_number), value = tail, onChange = { tail = it.uppercase() }, placeholder = "N123AB")
     Spacer(Modifier.size(8.dp))
     // Tail-number auto-fill — FAA registry + AI normalize (Phase 3).
     Box(
@@ -205,21 +207,21 @@ private fun CreatePlaneForm(onDone: () -> Unit) {
         Text(it, color = HFColors.OnSurface.copy(alpha = 0.60f), fontSize = 11.sp, fontWeight = FontWeight.Medium)
     }
     Spacer(Modifier.size(10.dp))
-    FormField(label = "Display Name", value = display, onChange = { display = it }, placeholder = "Pilatus PC12")
+    FormField(label = stringResource(R.string.ac_display_name), value = display, onChange = { display = it }, placeholder = "Pilatus PC12")
     Spacer(Modifier.size(10.dp))
-    FormField(label = "Manufacturer", value = manufacturer, onChange = { manufacturer = it }, placeholder = "Cessna")
+    FormField(label = stringResource(R.string.ac_manufacturer), value = manufacturer, onChange = { manufacturer = it }, placeholder = "Cessna")
     Spacer(Modifier.size(8.dp))
-    FormField(label = "Model", value = model, onChange = { model = it }, placeholder = "R172K")
+    FormField(label = stringResource(R.string.ac_model), value = model, onChange = { model = it }, placeholder = "R172K")
     Spacer(Modifier.size(8.dp))
-    FormField(label = "Serial Number", value = serialNumber, onChange = { serialNumber = it }, placeholder = "R172-2842")
+    FormField(label = stringResource(R.string.ac_serial), value = serialNumber, onChange = { serialNumber = it }, placeholder = "R172-2842")
     Spacer(Modifier.size(8.dp))
-    FormField(label = "Year", value = year, onChange = { year = it }, placeholder = "1977")
+    FormField(label = stringResource(R.string.ac_year), value = year, onChange = { year = it }, placeholder = "1977")
     Spacer(Modifier.size(8.dp))
-    FormField(label = "Registered Owner", value = registeredOwner, onChange = { registeredOwner = it }, placeholder = "Owner name")
+    FormField(label = stringResource(R.string.ac_owner), value = registeredOwner, onChange = { registeredOwner = it }, placeholder = stringResource(R.string.ac_owner_hint))
     Spacer(Modifier.size(8.dp))
-    FormField(label = "Engine Model", value = engineModel, onChange = { engineModel = it }, placeholder = "Continental IO-360")
+    FormField(label = stringResource(R.string.ac_engine_model), value = engineModel, onChange = { engineModel = it }, placeholder = "Continental IO-360")
     Spacer(Modifier.size(8.dp))
-    FormField(label = "Propeller Model", value = propModel, onChange = { propModel = it }, placeholder = "optional")
+    FormField(label = stringResource(R.string.ac_prop_model), value = propModel, onChange = { propModel = it }, placeholder = stringResource(R.string.ac_optional))
     Spacer(Modifier.size(12.dp))
     Label("Outline Color")
     Spacer(Modifier.size(6.dp))
@@ -296,7 +298,7 @@ private fun CreatePlaneForm(onDone: () -> Unit) {
     // Phase 4 — aircraft type/model. Manuals tagged with that type are
     // suggested for attach (checked by default).
     Spacer(Modifier.size(14.dp))
-    FormField(label = "Aircraft Type / Model", value = aircraftType, onChange = { aircraftType = it }, placeholder = "Pilatus PC-12")
+    FormField(label = stringResource(R.string.ac_aircraft_type), value = aircraftType, onChange = { aircraftType = it }, placeholder = "Pilatus PC-12")
     val knownTypes = remember(state.manuals, state.planes) { SharedStore.knownAircraftTypes() }
     if (knownTypes.isNotEmpty()) {
         Spacer(Modifier.size(6.dp))
@@ -366,8 +368,8 @@ private fun CreatePlaneForm(onDone: () -> Unit) {
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Icon(Icons.Outlined.Speed, null, tint = HFColors.StatusCyan, modifier = Modifier.size(16.dp))
-            Text("Times & Cycles", color = HFColors.OnSurface, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-            Text("optional", color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 10.sp)
+            Text(stringResource(R.string.ac_times_cycles), color = HFColors.OnSurface, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.ac_optional), color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 10.sp)
             Spacer(Modifier.weight(1f))
             Icon(
                 if (showTimesAndCycles) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
@@ -543,7 +545,7 @@ private fun CreateWorkLogForm(onDone: () -> Unit) {
                     modifier = Modifier.weight(1f)
                 )
                 Text(
-                    "Remove",
+                    stringResource(R.string.ac_remove),
                     color = HFColors.StatusRed,
                     fontSize = 11.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -555,7 +557,7 @@ private fun CreateWorkLogForm(onDone: () -> Unit) {
     }
 
     Spacer(Modifier.size(12.dp))
-    FormField(label = "Title", value = title, onChange = { title = it }, placeholder = "Replace landing light")
+    FormField(label = stringResource(R.string.ac_title), value = title, onChange = { title = it }, placeholder = "Replace landing light")
     Spacer(Modifier.size(12.dp))
     Label("Category")
     Spacer(Modifier.size(6.dp))
@@ -569,10 +571,10 @@ private fun CreateWorkLogForm(onDone: () -> Unit) {
     }
     Spacer(Modifier.size(12.dp))
     FormField(
-        label = "Details",
+        label = stringResource(R.string.ac_details),
         value = details,
         onChange = { details = it },
-        placeholder = "Notes, manual reference, parts needed…",
+        placeholder = stringResource(R.string.ac_details_hint),
         singleLine = false
     )
 
@@ -596,7 +598,7 @@ private fun CreateWorkLogForm(onDone: () -> Unit) {
         contentAlignment = Alignment.Center
     ) {
         Text(
-            "+ Add another work log to this list",
+            stringResource(R.string.ac_add_another),
             color = if (pendingCurrent) HFColors.StatusGreen else HFColors.OnSurface.copy(alpha = 0.4f),
             fontSize = 13.sp,
             fontWeight = FontWeight.SemiBold
@@ -642,14 +644,14 @@ private fun InviteUserForm(onDone: () -> Unit) {
     fun roleLabel(r: String) = when (r) { "lead_tech" -> "Lead Tech"; "admin" -> "Admin"; else -> "Tech" }
 
     FormField(
-        label = "Email",
+        label = stringResource(R.string.login_email),
         value = email,
         onChange = { email = it },
         placeholder = "name@shop.com",
         keyboardType = KeyboardType.Email
     )
     Spacer(Modifier.size(10.dp))
-    FormField(label = "Display Name", value = name, onChange = { name = it }, placeholder = "Jane Doe")
+    FormField(label = stringResource(R.string.ac_display_name), value = name, onChange = { name = it }, placeholder = "Jane Doe")
     Spacer(Modifier.size(12.dp))
     Label("Role")
     Spacer(Modifier.size(6.dp))

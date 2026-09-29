@@ -41,6 +41,8 @@ import com.hangarflow.app.data.model.HFUserProfile
 import com.hangarflow.app.ui.common.HFPullToRefreshHost
 import com.hangarflow.app.ui.theme.HFColors
 import kotlinx.coroutines.launch
+import com.hangarflow.app.R
+import androidx.compose.ui.res.stringResource
 
 /**
  * Admin-only user roster. Lists every user in the org with role badge,
@@ -246,7 +248,7 @@ private fun UserActionsSheet(
         // Lead techs can delete non-admin members; admins can delete anyone.
         if (canDeleteThis) {
             ActionRow(
-                label = "Delete User…",
+                label = stringResource(R.string.us_delete_user),
                 destructive = true,
                 enabled = !isSelf,
                 onClick = { confirmDelete = true }
@@ -255,7 +257,7 @@ private fun UserActionsSheet(
         if (isSelf) {
             Spacer(Modifier.size(8.dp))
             Text(
-                "You can't change your own role or remove yourself. Ask another admin.",
+                stringResource(R.string.us_cant_self),
                 color = HFColors.OnSurface.copy(alpha = 0.50f),
                 fontSize = 11.sp
             )
@@ -282,12 +284,12 @@ private fun UserActionsSheet(
                     scope.launch { SharedStore.deleteUser(user.id) }
                     onClose()
                 }) {
-                    Text("Yes, Remove", color = HFColors.StatusRed, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.us_yes_remove), color = HFColors.StatusRed, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { confirmDelete = false }) {
-                    Text("Cancel", color = HFColors.OnSurface)
+                    Text(stringResource(R.string.action_cancel), color = HFColors.OnSurface)
                 }
             }
         )

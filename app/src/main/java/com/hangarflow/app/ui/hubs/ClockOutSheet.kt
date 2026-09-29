@@ -52,6 +52,8 @@ import java.util.UUID
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.runtime.mutableStateMapOf
+import com.hangarflow.app.R
+import androidx.compose.ui.res.stringResource
 
 /**
  * Full-screen sheet shown when a tech taps Clock Out. Captures:
@@ -184,7 +186,7 @@ fun ClockOutSheet(onDismiss: () -> Unit) {
             verticalAlignment = Alignment.Top
         ) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("Clock Out", color = HFColors.OnSurface, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.clock_out), color = HFColors.OnSurface, fontSize = 24.sp, fontWeight = FontWeight.Bold)
                 Text(
                     "Log what you worked on and any reimbursements before closing the shift.",
                     color = HFColors.OnSurface.copy(alpha = 0.68f),
@@ -525,7 +527,7 @@ fun ClockOutSheet(onDismiss: () -> Unit) {
                 if (submitting) {
                     CircularProgressIndicator(color = Color.White, modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                 } else {
-                    Text("Clock Out", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.clock_out), color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }

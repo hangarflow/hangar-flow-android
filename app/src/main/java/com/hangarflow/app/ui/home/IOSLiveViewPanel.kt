@@ -25,6 +25,8 @@ import androidx.compose.material.icons.outlined.WifiOff
 import androidx.compose.material.icons.outlined.WorkOutline
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.ui.res.stringResource
+import com.hangarflow.app.R
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -161,10 +163,10 @@ fun IOSLiveViewPanel(
 private fun ClockCycleButton(phase: ClockPhase, onAction: () -> Unit) {
     // Label + accent color + icon depend on what the user should do next.
     val (label, accent, icon) = when (phase) {
-        ClockPhase.Idle -> Triple("Clock In", HFColors.StatusGreen, Icons.Filled.PlayCircle)
-        ClockPhase.Working -> Triple("Lunch Out", HFColors.StatusOrange, Icons.Outlined.Restaurant)
-        ClockPhase.OnLunch -> Triple("Lunch In", HFColors.StatusCyan, Icons.Outlined.WorkOutline)
-        ClockPhase.ReadyToClockOut -> Triple("Clock Out", HFColors.StatusRed, Icons.Filled.StopCircle)
+        ClockPhase.Idle -> Triple(stringResource(R.string.clock_in), HFColors.StatusGreen, Icons.Filled.PlayCircle)
+        ClockPhase.Working -> Triple(stringResource(R.string.clock_lunch_out), HFColors.StatusOrange, Icons.Outlined.Restaurant)
+        ClockPhase.OnLunch -> Triple(stringResource(R.string.clock_lunch_in), HFColors.StatusCyan, Icons.Outlined.WorkOutline)
+        ClockPhase.ReadyToClockOut -> Triple(stringResource(R.string.clock_out), HFColors.StatusRed, Icons.Filled.StopCircle)
     }
     Row(
         modifier = Modifier

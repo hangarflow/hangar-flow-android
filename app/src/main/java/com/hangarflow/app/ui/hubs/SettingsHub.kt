@@ -19,6 +19,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import android.app.Activity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -30,12 +31,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.hangarflow.app.auth.AuthManager
 import com.hangarflow.app.data.IssueReporter
 import com.hangarflow.app.data.SharedStore
+import com.hangarflow.app.i18n.HFLanguageSettingsRow
+import com.hangarflow.app.R
 import com.hangarflow.app.ui.theme.HFColors
 import kotlinx.coroutines.launch
 
@@ -54,55 +58,60 @@ fun SettingsHub() {
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp)
     ) {
-        SettingsCard(title = "Shop") {
-            Row(label = "Organization", value = authState.orgName)
-            Row(label = "Your role", value = authState.role.replaceFirstChar { it.titlecase() })
+        SettingsCard(title = stringResource(R.string.settings_shop)) {
+            Row(label = stringResource(R.string.set_organization), value = authState.orgName)
+            Row(label = stringResource(R.string.set_your_role), value = authState.role.replaceFirstChar { it.titlecase() })
             shopState.currentUser?.let { me ->
-                Row(label = "Display name", value = me.displayName.ifBlank { "—" })
-                Row(label = "Email", value = me.email.ifBlank { "—" })
-                Row(label = "Initials", value = me.initials.ifBlank { "—" })
+                Row(label = stringResource(R.string.set_display_name), value = me.displayName.ifBlank { "—" })
+                Row(label = stringResource(R.string.login_email), value = me.email.ifBlank { "—" })
+                Row(label = stringResource(R.string.set_initials), value = me.initials.ifBlank { "—" })
             }
         }
         Spacer(Modifier.size(14.dp))
 
-        SettingsCard(title = "Sync") {
+        SettingsCard(title = stringResource(R.string.settings_language)) {
+            HFLanguageSettingsRow()
+        }
+        Spacer(Modifier.size(14.dp))
+
+        SettingsCard(title = stringResource(R.string.settings_sync)) {
             Row(
-                label = "Backend",
+                label = stringResource(R.string.set_backend),
                 value = if (shopState.loading) "Checking…" else "Connected"
             )
-            Row(label = "Planes", value = "${shopState.planes.size}")
-            Row(label = "Work logs", value = "${shopState.workLogs.size}")
-            Row(label = "Squawks", value = "${shopState.squawks.size}")
-            Row(label = "Manuals", value = "${shopState.manuals.size}")
-            Row(label = "Part requests", value = "${shopState.partRequests.size}")
-            Row(label = "Time entries", value = "${shopState.timeEntries.size}")
+            Row(label = stringResource(R.string.nav_planes), value = "${shopState.planes.size}")
+            Row(label = stringResource(R.string.set_work_logs), value = "${shopState.workLogs.size}")
+            Row(label = stringResource(R.string.nav_squawks), value = "${shopState.squawks.size}")
+            Row(label = stringResource(R.string.nav_manuals), value = "${shopState.manuals.size}")
+            Row(label = stringResource(R.string.set_part_requests), value = "${shopState.partRequests.size}")
+            Row(label = stringResource(R.string.set_time_entries), value = "${shopState.timeEntries.size}")
         }
         Spacer(Modifier.size(14.dp))
 
-        SettingsCard(title = "About") {
-            Row(label = "App", value = "Hangar Flow")
-            Row(label = "Version", value = packageInfo)
-            Row(label = "Device ID", value = SharedStore.deviceIdentifier().take(8))
+        SettingsCard(title = stringResource(R.string.settings_about)) {
+            Row(label = stringResource(R.string.set_app), value = "Hangar Flow")
+            Row(label = stringResource(R.string.set_version), value = packageInfo)
+            Row(label = stringResource(R.string.set_device_id), value = SharedStore.deviceIdentifier().take(8))
         }
         Spacer(Modifier.size(14.dp))
 
-        SettingsCard(title = "Account") {
+        SettingsCard(title = stringResource(R.string.settings_account)) {
             ChangePasswordRow()
             Spacer(Modifier.size(2.dp))
             ChangeEmailRow(currentEmail = shopState.currentUser?.email.orEmpty())
         }
         Spacer(Modifier.size(14.dp))
 
-        SettingsCard(title = "Support") {
-            LinkRow(label = "Report an Issue") { showReportIssue = true }
+        SettingsCard(title = stringResource(R.string.settings_support)) {
+            LinkRow(label = stringResource(R.string.set_report_issue)) { showReportIssue = true }
         }
         Spacer(Modifier.size(14.dp))
 
-        SettingsCard(title = "Legal") {
-            LinkRow(label = "Privacy Policy") {
+        SettingsCard(title = stringResource(R.string.settings_legal)) {
+            LinkRow(label = stringResource(R.string.set_privacy)) {
                 openUrl(context, "https://hangarflow.com/privacy")
             }
-            LinkRow(label = "Terms of Service") {
+            LinkRow(label = stringResource(R.string.set_terms)) {
                 openUrl(context, "https://hangarflow.com/terms")
             }
         }
@@ -121,17 +130,17 @@ fun SettingsHub() {
             containerColor = HFColors.Background,
             titleContentColor = HFColors.OnSurface,
             textContentColor = HFColors.OnSurface.copy(alpha = 0.78f),
-            title = { Text("Sign out?") },
-            text = { Text("You'll be returned to the login screen and live sync will stop until you sign back in.") },
+            title = { Text(stringResource(R.string.sign_out_title)) },
+            text = { Text(stringResource(R.string.sign_out_body)) },
             confirmButton = {
                 TextButton(onClick = {
                     confirmSignOut = false
                     AuthManager.signOut()
-                }) { Text("Sign out", color = HFColors.StatusRed, fontWeight = FontWeight.Bold) }
+                }) { Text(stringResource(R.string.action_sign_out), color = HFColors.StatusRed, fontWeight = FontWeight.Bold) }
             },
             dismissButton = {
                 TextButton(onClick = { confirmSignOut = false }) {
-                    Text("Cancel", color = HFColors.OnSurface)
+                    Text(stringResource(R.string.action_cancel), color = HFColors.OnSurface)
                 }
             }
         )
@@ -158,7 +167,7 @@ private fun ReportIssueDialog(onDismiss: () -> Unit) {
         textContentColor = HFColors.OnSurface.copy(alpha = 0.78f),
         title = {
             Text(
-                if (sent) "Thanks — we'll take a look" else "Report an Issue",
+                if (sent) "Thanks — we'll take a look" else stringResource(R.string.set_report_issue),
                 fontWeight = FontWeight.Bold
             )
         },
@@ -178,7 +187,7 @@ private fun ReportIssueDialog(onDismiss: () -> Unit) {
                     OutlinedTextField(
                         value = subject,
                         onValueChange = { subject = it.take(120) },
-                        label = { Text("Subject") },
+                        label = { Text(stringResource(R.string.set_subject)) },
                         singleLine = true,
                         enabled = !sending,
                         modifier = Modifier.fillMaxWidth()
@@ -186,7 +195,7 @@ private fun ReportIssueDialog(onDismiss: () -> Unit) {
                     OutlinedTextField(
                         value = body,
                         onValueChange = { body = it.take(4000) },
-                        label = { Text("Description") },
+                        label = { Text(stringResource(R.string.set_description)) },
                         enabled = !sending,
                         maxLines = 8,
                         modifier = Modifier.fillMaxWidth().height(160.dp)
@@ -200,7 +209,7 @@ private fun ReportIssueDialog(onDismiss: () -> Unit) {
         confirmButton = {
             if (sent) {
                 TextButton(onClick = onDismiss) {
-                    Text("Done", color = HFColors.StatusGreen, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.action_done), color = HFColors.StatusGreen, fontWeight = FontWeight.Bold)
                 }
             } else {
                 TextButton(
@@ -225,7 +234,7 @@ private fun ReportIssueDialog(onDismiss: () -> Unit) {
         dismissButton = {
             if (!sent) {
                 TextButton(onClick = onDismiss, enabled = !sending) {
-                    Text("Cancel", color = HFColors.OnSurface)
+                    Text(stringResource(R.string.action_cancel), color = HFColors.OnSurface)
                 }
             }
         }
@@ -303,7 +312,7 @@ private fun LinkRow(label: String, onClick: () -> Unit) {
     ) {
         Text(label, color = HFColors.OnSurface, fontSize = 13.sp)
         Text(
-            "Open ›",
+            stringResource(R.string.set_open),
             color = HFColors.StatusBlue,
             fontSize = 13.sp,
             fontWeight = FontWeight.SemiBold
@@ -336,7 +345,7 @@ private fun SignOutButton(onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            "Sign out",
+            stringResource(R.string.action_sign_out),
             color = HFColors.StatusRed,
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold
@@ -367,9 +376,9 @@ private fun ChangePasswordRow() {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Change Password", color = HFColors.OnSurface, fontSize = 13.sp)
+            Text(stringResource(R.string.set_change_password), color = HFColors.OnSurface, fontSize = 13.sp)
             Text(
-                if (success) "Updated ✓" else if (expanded) "Cancel" else "Edit",
+                if (success) "Updated ✓" else if (expanded) stringResource(R.string.action_cancel) else "Edit",
                 color = if (success) HFColors.StatusGreen else HFColors.StatusBlue,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold
@@ -379,7 +388,7 @@ private fun ChangePasswordRow() {
             OutlinedTextField(
                 value = newPassword,
                 onValueChange = { newPassword = it; error = null },
-                label = { Text("New password") },
+                label = { Text(stringResource(R.string.set_new_password)) },
                 visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
                 singleLine = true,
                 enabled = !saving,
@@ -389,7 +398,7 @@ private fun ChangePasswordRow() {
             OutlinedTextField(
                 value = confirmPassword,
                 onValueChange = { confirmPassword = it; error = null },
-                label = { Text("Confirm new password") },
+                label = { Text(stringResource(R.string.set_confirm_password)) },
                 visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
                 singleLine = true,
                 enabled = !saving,
@@ -464,7 +473,7 @@ private fun ChangeEmailRow(currentEmail: String) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Change Email", color = HFColors.OnSurface, fontSize = 13.sp)
+                Text(stringResource(R.string.set_change_email), color = HFColors.OnSurface, fontSize = 13.sp)
                 Spacer(Modifier.size(2.dp))
                 Text(
                     if (pendingEmail != null) "Pending: confirm via $pendingEmail"
@@ -475,7 +484,7 @@ private fun ChangeEmailRow(currentEmail: String) {
                 )
             }
             Text(
-                if (pendingEmail != null) "Sent ✓" else if (expanded) "Cancel" else "Edit",
+                if (pendingEmail != null) "Sent ✓" else if (expanded) stringResource(R.string.action_cancel) else "Edit",
                 color = if (pendingEmail != null) HFColors.StatusGreen else HFColors.StatusBlue,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold
@@ -485,7 +494,7 @@ private fun ChangeEmailRow(currentEmail: String) {
             OutlinedTextField(
                 value = newEmail,
                 onValueChange = { newEmail = it; error = null },
-                label = { Text("New email") },
+                label = { Text(stringResource(R.string.set_new_email)) },
                 placeholder = { Text("you@example.com") },
                 singleLine = true,
                 enabled = !saving,
@@ -535,3 +544,4 @@ private fun ChangeEmailRow(currentEmail: String) {
         }
     }
 }
+

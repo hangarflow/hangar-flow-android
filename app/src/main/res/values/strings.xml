@@ -5,4 +5,307 @@
     <string name="perm_camera_rationale">Take photos of squawks and completed work so admins can verify repairs.</string>
     <string name="perm_photos_rationale">Attach existing photos to squawks and work logs.</string>
     <string name="perm_notifications_rationale">Get alerts when squawks are filed, work is assigned, or parts arrive.</string>
+
+    <!--
+      TRANSLATION RULE — regulatory and trade terms stay in English.
+
+      Squawk, AD (airworthiness directive), RTS (return to service), A&P, IA,
+      AOG, AMM, IPC, SRM, T&E, N-number, logbook and "core" (the old unit
+      returned to the vendor for credit) are NOT translated in any locale. Non-English shops use the English terms because the manuals, the
+      logbook entries and the regulator use them; translating "squawk" into
+      six languages would invent six words nobody in a hangar says, and a
+      mistranslated airworthiness term in a maintenance record is a safety
+      problem, not a UX one.
+
+      Everything else — verbs, navigation, status, buttons, help text — is
+      translated normally.
+    -->
+
+    <!-- Language picker -->
+    <string name="settings_language">Language</string>
+    <string name="settings_language_desc">Changes the app display language. Aviation terms stay in English.</string>
+    <string name="language_system_default">System default</string>
+
+    <!-- Navigation / tabs -->
+    <string name="nav_planes">Planes</string>
+    <string name="nav_work_logs">Work Logs</string>
+    <string name="nav_squawks">Squawks</string>
+    <string name="nav_tasks">Tasks</string>
+    <string name="nav_schedule">Schedule</string>
+    <string name="nav_manuals">Manuals</string>
+    <string name="nav_parts">Parts</string>
+    <string name="nav_equipment">Equipment</string>
+    <string name="nav_time_card">Time Card</string>
+    <string name="nav_users">Team</string>
+    <string name="nav_settings">Settings</string>
+    <string name="nav_activity_log">Activity Log</string>
+
+    <!-- Common actions -->
+    <string name="action_save">Save</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_done">Done</string>
+    <string name="action_close">Close</string>
+    <string name="action_add">Add</string>
+    <string name="action_edit">Edit</string>
+    <string name="action_search">Search</string>
+    <string name="action_refresh">Refresh</string>
+    <string name="action_retry">Retry</string>
+    <string name="action_sign_out">Sign out</string>
+    <string name="action_sign_in">Sign In</string>
+
+    <!-- Clock -->
+    <string name="clock_in">Clock In</string>
+    <string name="clock_out">Clock Out</string>
+    <string name="clock_lunch_start">Start Lunch</string>
+    <string name="clock_lunch_end">End Lunch</string>
+    <string name="clock_today">Today</string>
+    <string name="clock_this_week">This Week</string>
+    <string name="clock_hours_today">Hours today</string>
+
+    <!-- Roles -->
+    <string name="role_admin">Admin</string>
+    <string name="role_lead_tech">Lead Tech</string>
+    <string name="role_tech">Tech</string>
+
+    <!-- Home -->
+    <string name="home_ai_prompt">What are you looking for?</string>
+    <string name="home_open_work">Open Work</string>
+    <string name="home_in_hangar">In Hangar</string>
+
+    <!-- Sign out dialog -->
+    <string name="sign_out_title">Sign out?</string>
+    <string name="sign_out_body">You\'ll be returned to the login screen and live sync will stop until you sign back in.</string>
+
+    <!-- Settings section headers -->
+    <string name="settings_shop">Shop</string>
+    <string name="settings_sync">Sync</string>
+    <string name="settings_about">About</string>
+    <string name="settings_account">Account</string>
+    <string name="settings_support">Support</string>
+    <string name="settings_legal">Legal</string>
+
+    <!-- Empty states -->
+    <string name="empty_no_planes">No aircraft yet.</string>
+    <string name="empty_no_tasks">No active tasks assigned to you.</string>
+    <string name="empty_no_squawks">No open squawks.</string>
+
+    <!-- Login -->
+    <string name="login_title">Sign in</string>
+    <string name="login_email">Email</string>
+    <string name="login_password">Password</string>
+    <string name="login_show">Show</string>
+    <string name="login_hide">Hide</string>
+    <string name="login_no_account">Don\'t have an account?</string>
+    <string name="login_create_at">Create one at hangarflow.com</string>
+
+    <!-- Home cards + tabs -->
+    <string name="card_timecard_t">Time Card</string>
+    <string name="card_timecard_s">Clean overview of time, hours, and recent activity</string>
+    <string name="card_tasks_t">Assigned Tasks / Progress</string>
+    <string name="card_tasks_s">Admin-only task oversight and progress review</string>
+    <string name="card_planes_t">Planes</string>
+    <string name="card_planes_s">Open plane records and select an active aircraft</string>
+    <string name="card_worklogs_t">Work Logs</string>
+    <string name="card_worklogs_s">Plane logs and categorized maintenance history</string>
+    <string name="card_squawks_t">Squawk Lists</string>
+    <string name="card_squawks_s">Add squawks and parts needs</string>
+    <string name="card_findparts_t">Find Parts</string>
+    <string name="card_findparts_s">Search manuals for part numbers and references</string>
+    <string name="card_manuals_t">Manuals</string>
+    <string name="card_manuals_s">Manual references and full PDFs</string>
+    <string name="card_partlocations_t">Parts Inventory</string>
+    <string name="card_partlocations_s">Shared inventory — where parts live in the hangar</string>
+    <string name="card_equipment_t">Equipment</string>
+    <string name="card_equipment_s">Shop gear — maintenance &amp; calibration due</string>
+    <string name="card_quickpic_t">QuickPic</string>
+    <string name="card_quickpic_s">Scan or print QR labels for parts &amp; gear</string>
+    <string name="card_schedule_t">Schedule</string>
+    <string name="card_schedule_s">Plane drop-offs, RTS deadlines, and time-off</string>
+    <string name="card_activitylog_t">Activity Log</string>
+    <string name="card_activitylog_s">Paper trail — who added, imported, or changed what</string>
+    <string name="card_users_t">Users</string>
+    <string name="card_users_s">Manage roles, invite teammates, deactivate access</string>
+    <string name="card_payroll_t">Payroll</string>
+    <string name="card_payroll_s">Approve hours, set rates, see what\'s owed</string>
+    <string name="card_partsinout_t">Parts In &amp; Out</string>
+    <string name="card_partsinout_s">Receiving, cores due back, out for overhaul</string>
+    <string name="tab_control_center">Control Center</string>
+    <string name="clock_lunch_out">Lunch Out</string>
+    <string name="clock_lunch_in">Lunch In</string>
+
+    <!-- Settings -->
+    <string name="set_organization">Organization</string>
+    <string name="set_your_role">Your role</string>
+    <string name="set_display_name">Display name</string>
+    <string name="set_initials">Initials</string>
+    <string name="set_backend">Backend</string>
+    <string name="set_work_logs">Work logs</string>
+    <string name="set_part_requests">Part requests</string>
+    <string name="set_time_entries">Time entries</string>
+    <string name="set_app">App</string>
+    <string name="set_version">Version</string>
+    <string name="set_device_id">Device ID</string>
+    <string name="set_report_issue">Report an Issue</string>
+    <string name="set_privacy">Privacy Policy</string>
+    <string name="set_terms">Terms of Service</string>
+    <string name="set_open">Open ›</string>
+    <string name="set_change_password">Change Password</string>
+    <string name="set_new_password">New password</string>
+    <string name="set_confirm_password">Confirm new password</string>
+    <string name="set_change_email">Change Email</string>
+    <string name="set_new_email">New email</string>
+    <string name="set_subject">Subject</string>
+    <string name="set_description">Description</string>
+
+    <!-- Time Card -->
+    <string name="tc_request_time_off">Request Time Off</string>
+    <string name="tc_export_csv">Export CSV</string>
+    <string name="tc_history">History</string>
+    <string name="tc_history_sub">Your logged time, grouped by date.</string>
+    <string name="tc_previous_entries">Previous entries</string>
+    <string name="tc_all_shop">All Shop</string>
+    <string name="tc_today_caps">TODAY</string>
+    <string name="tc_this_week_caps">THIS WEEK</string>
+    <string name="tc_biweekly_caps">BI-WEEKLY</string>
+    <string name="tc_this_month_caps">THIS MONTH</string>
+    <string name="tc_rejected_caps">REJECTED</string>
+    <string name="tc_corrections_caps">TIME-ENTRY CORRECTIONS</string>
+    <string name="tc_request_correction">Request correction</string>
+    <string name="tc_correction_help">Describe what\'s wrong with this entry — the admin fixes it for you.</string>
+    <string name="tc_correction_hint">e.g. Should be 8h not 6h — forgot to clock back in</string>
+    <string name="tc_custom_range">Custom date range</string>
+    <string name="tc_total_caps">TOTAL</string>
+    <string name="tc_ai_flags">AI flags — verify before approving.</string>
+
+    <!-- Squawks + Work Logs -->
+    <string name="sq_new">New Squawk</string>
+    <string name="sq_delete_q">Delete squawk?</string>
+    <string name="sq_change_status">Change Status</string>
+    <string name="sq_search">Search squawks</string>
+    <string name="sq_corrective_caps">CORRECTIVE ACTION</string>
+    <string name="sq_related_manuals">✦ Related in Manuals</string>
+    <string name="sq_no_related">No related manual pages found.</string>
+    <string name="wl_plane_logs">Plane Work Logs</string>
+    <string name="wl_plane_logs_sub">Browse every plane. Tap one to see its categories and open work.</string>
+    <string name="wl_assigned">Assigned Work Orders</string>
+    <string name="wl_assigned_sub">Only the work orders assigned to you, grouped by plane.</string>
+    <string name="wl_all">All</string>
+    <string name="wl_assign_to">Assign To</string>
+    <string name="wl_unassigned">Unassigned</string>
+    <string name="wl_open_to_anyone">Open to anyone</string>
+
+    <!-- Planes + Schedule -->
+    <string name="ph_no_planes">No planes yet</string>
+    <string name="ph_no_planes_sub">An admin can add aircraft from the desktop — they\'ll show up here instantly.</string>
+    <string name="sc_sub">Plane arrivals, RTS deadlines, and time-off.</string>
+    <string name="sc_nothing_cal">Nothing on the calendar.</string>
+    <string name="sc_no_dropoffs">No drop-offs.</string>
+    <string name="sc_no_rts">No RTS deadlines.</string>
+    <string name="sc_dropoffs_caps">DROP-OFFS</string>
+    <string name="sc_rts_caps">RTS</string>
+    <string name="sc_on_the_line_caps">ON THE LINE</string>
+    <string name="sc_sched_maint_caps">SCHEDULED MAINTENANCE</string>
+    <string name="sc_nothing_listed">Nothing listed yet.</string>
+    <string name="sc_add_item_hint">Add item (e.g. 100-hr inspection)</string>
+    <string name="sc_return_to_service">Return to service</string>
+    <string name="sc_event_help">Visible to the org. Use for inspection windows, meetings, training days, etc.</string>
+    <string name="sc_start_date_caps">START DATE</string>
+    <string name="sc_end_date_caps">END DATE</string>
+    <string name="sc_plane_optional_caps">PLANE (OPTIONAL)</string>
+    <string name="sc_who_sees_caps">WHO CAN SEE IT</string>
+    <string name="sc_send_reminder_caps">SEND A REMINDER</string>
+
+    <!-- Data-layer messages (resolved via HFStrings, not stringResource) -->
+    <string name="err_no_org">No org loaded.</string>
+    <string name="err_no_org_yet">No org loaded yet.</string>
+    <string name="err_title_required">Title is required.</string>
+    <string name="err_name_required">Name is required.</string>
+    <string name="err_part_gone">That part is no longer in the list.</string>
+    <string name="err_delete_failed">Couldn\'t delete.</string>
+    <string name="err_equipment_missing">Equipment not found.</string>
+    <string name="err_task_create">Couldn\'t create task.</string>
+    <string name="err_task_missing">Task not found.</string>
+    <string name="err_task_update">Couldn\'t update task.</string>
+    <string name="err_squawk_missing">Squawk not found.</string>
+    <string name="err_squawk_update">Couldn\'t update squawk.</string>
+    <string name="err_progress_save">Failed to save progress.</string>
+    <string name="err_time_entry_save">Failed to save time entry.</string>
+    <string name="err_part_log">Couldn\'t log that part.</string>
+    <string name="err_generic_update">Couldn\'t update that.</string>
+
+    <!-- Equipment + admin create sheets. Example values (N123AB, Cessna,
+         Continental IO-360) stay untranslated: they are real-world
+         identifiers, not prose. -->
+    <string name="eq_search">Search gear, type, location…</string>
+    <string name="eq_add">Add Equipment</string>
+    <string name="eq_nothing_logged">Nothing logged yet.</string>
+    <string name="eq_hour_meter">Hour Meter</string>
+    <string name="eq_add_maint">Add Maintenance / Calibration</string>
+    <string name="eq_log_service">Log a Service</string>
+    <string name="eq_reset_warning">This will reset the linked item\'s due clock.</string>
+    <string name="ac_tail_number">Tail Number</string>
+    <string name="ac_display_name">Display Name</string>
+    <string name="ac_manufacturer">Manufacturer</string>
+    <string name="ac_model">Model</string>
+    <string name="ac_serial">Serial Number</string>
+    <string name="ac_year">Year</string>
+    <string name="ac_owner">Registered Owner</string>
+    <string name="ac_owner_hint">Owner name</string>
+    <string name="ac_engine_model">Engine Model</string>
+    <string name="ac_prop_model">Propeller Model</string>
+    <string name="ac_optional">optional</string>
+    <string name="ac_aircraft_type">Aircraft Type / Model</string>
+    <string name="ac_times_cycles">Times &amp; Cycles</string>
+    <string name="ac_remove">Remove</string>
+    <string name="ac_title">Title</string>
+    <string name="ac_details">Details</string>
+    <string name="ac_details_hint">Notes, manual reference, parts needed…</string>
+    <string name="ac_add_another">+ Add another work log to this list</string>
+
+    <!-- Work logs tab, users, tasks, parts to order, find parts -->
+    <string name="wt_link_ref">Link manual reference</string>
+    <string name="wt_unlink">Unlink</string>
+    <string name="wt_no_matches">No matches — try a different search term.</string>
+    <string name="wt_link">Link</string>
+    <string name="wt_ai_assist">✨ AI ASSIST</string>
+    <string name="wt_recommended_parts">RECOMMENDED PARTS</string>
+    <string name="us_delete_user">Delete User…</string>
+    <string name="us_cant_self">You can\'t change your own role or remove yourself. Ask another admin.</string>
+    <string name="us_yes_remove">Yes, Remove</string>
+    <string name="tk_all_planes">All Planes</string>
+    <string name="tk_assigned_me">Assigned to me</string>
+    <string name="tk_new">+ New Task</string>
+    <string name="tk_update_status">Update Status</string>
+    <string name="tk_edit">Edit Task</string>
+    <string name="tk_none_for_plane">No HF tasks for this plane yet.</string>
+    <string name="tk_none">None</string>
+    <string name="po_all_urgencies">All urgencies</string>
+    <string name="po_aog">AOG / Urgent</string>
+    <string name="po_normal">Normal</string>
+    <string name="po_low">Low</string>
+    <string name="po_open">Open</string>
+    <string name="po_requested">Requested</string>
+    <string name="po_ordered">Ordered</string>
+    <string name="po_received">Received</string>
+    <string name="po_installed">Installed</string>
+    <string name="common_loading">Loading…</string>
+    <string name="fp_search">Search manuals for parts, components…</string>
+    <string name="fp_search_all">Search all</string>
+    <string name="fp_find_with_ai">Find a part with AI</string>
+    <string name="fp_order_part">Order Part</string>
+    <string name="fp_loading_manual">Loading manual…</string>
+    <string name="fp_no_pdf">Manual PDF not available</string>
+    <string name="fp_add_to_order">Add to Parts to Order</string>
+    <string name="fp_finding">Finding the part…</string>
+    <string name="fp_ai_verify">AI-assisted — verify against the manual reference before ordering.</string>
+    <string name="fp_no_pn">No confirmed part number</string>
+    <string name="fp_in_stock">IN STOCK</string>
+    <string name="fp_verify_manual">📖 VERIFY IN MANUAL</string>
+    <string name="fp_asking_ai">Asking AI…</string>
+    <string name="fp_ai_answer">✨ AI Answer</string>
+    <string name="fp_ask_ai">✨ Ask AI</string>
+    <string name="wt_src_due_list">Due List</string>
+    <string name="wt_src_work_card">Work Card</string>
+    <string name="wt_src_inspections">Inspections</string>
 </resources>

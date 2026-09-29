@@ -46,6 +46,8 @@ import com.hangarflow.app.data.model.HFWorkCategory
 import com.hangarflow.app.ui.common.HFPullToRefreshHost
 import com.hangarflow.app.ui.theme.HFColors
 import kotlinx.coroutines.launch
+import com.hangarflow.app.R
+import androidx.compose.ui.res.stringResource
 
 /**
  * Tasks hub for the Android tablet (tech) view.
@@ -143,7 +145,7 @@ private fun TasksHubContent() {
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             FilterChipPill(
-                label = "All Planes",
+                label = stringResource(R.string.tk_all_planes),
                 selected = planeFilter.isBlank(),
                 onClick = { planeFilter = "" }
             )
@@ -180,7 +182,7 @@ private fun TasksHubContent() {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        "Assigned to me",
+                        stringResource(R.string.tk_assigned_me),
                         color = if (assignedToMe) HFColors.StatusBlue else HFColors.OnSurface,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold
@@ -209,7 +211,7 @@ private fun TasksHubContent() {
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        "+ New Task",
+                        stringResource(R.string.tk_new),
                         color = HFColors.StatusGreen,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold
@@ -343,7 +345,7 @@ private fun TaskCard(
         if (expanded) {
             Spacer(Modifier.size(12.dp))
             Text(
-                "Update Status",
+                stringResource(R.string.tk_update_status),
                 color = HFColors.OnSurface.copy(alpha = 0.72f),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold
@@ -368,7 +370,7 @@ private fun TaskCard(
                     .clickable(onClick = onEdit)
                     .padding(horizontal = 14.dp, vertical = 7.dp)
             ) {
-                Text("Edit Task", color = HFColors.OnSurface, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.tk_edit), color = HFColors.OnSurface, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             }
         }
     }
@@ -465,7 +467,7 @@ private fun PlaneTaskProgressCard(
         } else if (tasks.isEmpty()) {
             Spacer(Modifier.size(8.dp))
             Text(
-                "No HF tasks for this plane yet.",
+                stringResource(R.string.tk_none_for_plane),
                 color = HFColors.OnSurface.copy(alpha = 0.50f),
                 fontSize = 12.sp
             )
@@ -496,7 +498,7 @@ private fun EmptyTasksPanel(message: String) {
             .padding(20.dp)
     ) {
         Text(
-            "Tasks",
+            stringResource(R.string.nav_tasks),
             color = HFColors.OnSurface.copy(alpha = 0.55f),
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
@@ -557,7 +559,7 @@ private fun TaskEditSheet(existing: HFTask?, onDismiss: () -> Unit) {
                 .padding(horizontal = 20.dp, vertical = 10.dp)
         ) {
             Text(
-                if (existing == null) "New Task" else "Edit Task",
+                if (existing == null) "New Task" else stringResource(R.string.tk_edit),
                 color = HFColors.OnSurface, fontSize = 20.sp, fontWeight = FontWeight.Bold
             )
             Spacer(Modifier.size(16.dp))
@@ -569,7 +571,7 @@ private fun TaskEditSheet(existing: HFTask?, onDismiss: () -> Unit) {
                 modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                FilterChipPill(label = "None", selected = planeId == null) { planeId = null; planeTail = "" }
+                FilterChipPill(label = stringResource(R.string.tk_none), selected = planeId == null) { planeId = null; planeTail = "" }
                 state.planes.forEach { p ->
                     FilterChipPill(label = p.tailNumber, selected = p.id == planeId) {
                         planeId = p.id; planeTail = p.tailNumber
@@ -601,7 +603,7 @@ private fun TaskEditSheet(existing: HFTask?, onDismiss: () -> Unit) {
                 modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                FilterChipPill(label = "Unassigned", selected = assigneeId == null) {
+                FilterChipPill(label = stringResource(R.string.wl_unassigned), selected = assigneeId == null) {
                     assigneeId = null; assigneeName = null
                 }
                 state.users.forEach { u ->

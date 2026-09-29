@@ -1,5 +1,6 @@
 package com.hangarflow.app
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -28,6 +29,13 @@ class MainActivity : ComponentActivity() {
 
     // Live perf watchdog — flags dropped/slow frames per screen.
     private var jankStats: JankStats? = null
+
+    // Applies the saved display language before any resource is read. Must be
+    // attachBaseContext rather than onCreate: by onCreate the theme and the
+    // resource configuration are already resolved.
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(com.hangarflow.app.i18n.HFLocale.wrap(newBase))
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Swap back from the splash theme (black canvas) to the regular

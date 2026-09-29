@@ -36,6 +36,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.UUID
 import com.hangarflow.app.util.hfSafeMessage
+import com.hangarflow.app.R
+import com.hangarflow.app.i18n.HFStrings
 
 /**
  * Kotlin port of iOS `HFSharedStore`. Single process-wide store that
@@ -379,8 +381,8 @@ object SharedStore {
         title: String, details: String, category: String,
         assignedUserId: String?, assignedUserName: String?
     ): CreateResult {
-        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
-        if (title.trim().isBlank()) return CreateResult.Error("Title is required.")
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error(HFStrings.get(R.string.err_no_org, fallback = "No org loaded."))
+        if (title.trim().isBlank()) return CreateResult.Error(HFStrings.get(R.string.err_title_required, fallback = "Title is required."))
         val task = com.hangarflow.app.data.model.HFTask(
             id = java.util.UUID.randomUUID().toString(),
             orgId = orgId,
@@ -401,7 +403,7 @@ object SharedStore {
             cloud.emitOrgEvent(orgId = orgId, sourceDevice = deviceId, eventType = "task_updated")
             pullSnapshot(orgId)
             CreateResult.Success
-        } catch (t: Throwable) { CreateResult.Error(hfSafeMessage(t) ?: "Couldn't create task.") }
+        } catch (t: Throwable) { CreateResult.Error(hfSafeMessage(t) ?: HFStrings.get(R.string.err_task_create, fallback = "Couldn't create task.")) }
     }
 
     /** Edit an existing task's core fields. Assignee can be cleared (null). */
@@ -410,10 +412,10 @@ object SharedStore {
         title: String, details: String, category: String,
         assignedUserId: String?, assignedUserName: String?
     ): CreateResult {
-        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
-        if (title.trim().isBlank()) return CreateResult.Error("Title is required.")
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error(HFStrings.get(R.string.err_no_org, fallback = "No org loaded."))
+        if (title.trim().isBlank()) return CreateResult.Error(HFStrings.get(R.string.err_title_required, fallback = "Title is required."))
         val existing = _state.value.tasks.firstOrNull { it.id == taskId }
-            ?: return CreateResult.Error("Task not found.")
+            ?: return CreateResult.Error(HFStrings.get(R.string.err_task_missing, fallback = "Task not found."))
         val updated = existing.copy(
             title = title.trim(),
             details = details.trim(),
@@ -426,7 +428,7 @@ object SharedStore {
             cloud.emitOrgEvent(orgId = orgId, sourceDevice = deviceId, eventType = "task_updated")
             pullSnapshot(orgId)
             CreateResult.Success
-        } catch (t: Throwable) { CreateResult.Error(hfSafeMessage(t) ?: "Couldn't update task.") }
+        } catch (t: Throwable) { CreateResult.Error(hfSafeMessage(t) ?: HFStrings.get(R.string.err_task_update, fallback = "Couldn't update task.")) }
     }
 
     // -------- Task status updates --------
@@ -522,10 +524,10 @@ object SharedStore {
         notes: String,
         correctiveAction: String
     ): CreateResult {
-        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
-        if (title.trim().isBlank()) return CreateResult.Error("Title is required.")
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error(HFStrings.get(R.string.err_no_org, fallback = "No org loaded."))
+        if (title.trim().isBlank()) return CreateResult.Error(HFStrings.get(R.string.err_title_required, fallback = "Title is required."))
         val existing = _state.value.squawks.firstOrNull { it.id == squawkId }
-            ?: return CreateResult.Error("Squawk not found.")
+            ?: return CreateResult.Error(HFStrings.get(R.string.err_squawk_missing, fallback = "Squawk not found."))
         val me = _state.value.currentUser
         val ca = correctiveAction.trim()
         // Stamp who/when when a corrective action is present. Preserve the
@@ -592,7 +594,7 @@ object SharedStore {
             pullSnapshot(orgId)
             CreateResult.Success
         } catch (t: Throwable) {
-            CreateResult.Error(hfSafeMessage(t) ?: "Couldn't update squawk.")
+            CreateResult.Error(hfSafeMessage(t) ?: HFStrings.get(R.string.err_squawk_update, fallback = "Couldn't update squawk."))
         }
     }
 
@@ -750,7 +752,7 @@ object SharedStore {
                 )
                 pullSnapshot(orgId)
             } catch (t: Throwable) {
-                _state.update { it.copy(error = t.message ?: "Failed to save progress.") }
+                _state.update { it.copy(error = t.message ?: HFStrings.get(R.string.err_progress_save, fallback = "Failed to save progress.")) }
             }
         }
     }
@@ -1013,7 +1015,7 @@ object SharedStore {
             pullSnapshot(orgId)
             firstId
         } catch (t: Throwable) {
-            _state.update { it.copy(error = t.message ?: "Failed to save time entry.") }
+            _state.update { it.copy(error = t.message ?: HFStrings.get(R.string.err_time_entry_save, fallback = "Failed to save time entry.")) }
             null
         }
     }
@@ -1051,7 +1053,7 @@ object SharedStore {
         coreOwed: Boolean, coreDepositCents: Long?, coreWindowDays: Int?,
         notes: String
     ): CreateResult {
-        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error(HFStrings.get(R.string.err_no_org, fallback = "No org loaded."))
         val me = _state.value.currentUser
         val nowIso = java.time.Instant.now().toString()
         return try {
@@ -1100,13 +1102,13 @@ object SharedStore {
             refreshPartMovements(orgId)
             CreateResult.Success
         } catch (t: Throwable) {
-            CreateResult.Error(hfSafeMessage(t) ?: "Couldn't log that part.")
+            CreateResult.Error(hfSafeMessage(t) ?: HFStrings.get(R.string.err_part_log, fallback = "Couldn't log that part."))
         }
     }
 
     /** Move a movement along: shipped, delivered, refunded, written off. */
     suspend fun updatePartMovement(movementId: String, status: String): CreateResult {
-        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error(HFStrings.get(R.string.err_no_org, fallback = "No org loaded."))
         val nowIso = java.time.Instant.now().toString()
         return try {
             cloud.updatePartMovementStatus(
@@ -1117,7 +1119,7 @@ object SharedStore {
             refreshPartMovements(orgId)
             CreateResult.Success
         } catch (t: Throwable) {
-            CreateResult.Error(hfSafeMessage(t) ?: "Couldn't update that.")
+            CreateResult.Error(hfSafeMessage(t) ?: HFStrings.get(R.string.err_generic_update, fallback = "Couldn't update that."))
         }
     }
 
@@ -1129,9 +1131,9 @@ object SharedStore {
      * card leave the board.
      */
     suspend fun putReceivedPartOnShelf(movementId: String, location: String = ""): CreateResult {
-        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error(HFStrings.get(R.string.err_no_org, fallback = "No org loaded."))
         val m = _state.value.partMovements.firstOrNull { it.id == movementId }
-            ?: return CreateResult.Error("That part is no longer in the list.")
+            ?: return CreateResult.Error(HFStrings.get(R.string.err_part_gone, fallback = "That part is no longer in the list."))
         val me = _state.value.currentUser
         val key = m.partNumber.trim().lowercase()
         return try {
@@ -1177,9 +1179,9 @@ object SharedStore {
      * counting it would inflate what the shop thinks it has.
      */
     suspend fun sendReceivedPartToAircraft(movementId: String): CreateResult {
-        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error(HFStrings.get(R.string.err_no_org, fallback = "No org loaded."))
         val m = _state.value.partMovements.firstOrNull { it.id == movementId }
-            ?: return CreateResult.Error("That part is no longer in the list.")
+            ?: return CreateResult.Error(HFStrings.get(R.string.err_part_gone, fallback = "That part is no longer in the list."))
         return try {
             cloud.setPartMovementDisposition(movementId, "aircraft", null)
             m.partRequestId?.let { runCatching { cloud.updatePartRequestStatus(it, "received") } }
@@ -1200,7 +1202,7 @@ object SharedStore {
         vendorName: String, carrier: String?, trackingNumber: String?,
         condition: String?, coreDueBackBy: String?, coreDepositCents: Long?, notes: String
     ): CreateResult {
-        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error(HFStrings.get(R.string.err_no_org, fallback = "No org loaded."))
         return try {
             cloud.updatePartMovementFields(
                 movementId = movementId,
@@ -1218,7 +1220,7 @@ object SharedStore {
     }
 
     suspend fun deletePartMovement(movementId: String): CreateResult {
-        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error(HFStrings.get(R.string.err_no_org, fallback = "No org loaded."))
         return try {
             cloud.deletePartMovement(movementId)
             refreshPartMovements(orgId)
@@ -1371,7 +1373,7 @@ object SharedStore {
         timeEntryId: String,
         requestedChange: String
     ): CreateResult {
-        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error(HFStrings.get(R.string.err_no_org, fallback = "No org loaded."))
         val me = _state.value.currentUser ?: return CreateResult.Error("Not signed in.")
         if (requestedChange.isBlank()) return CreateResult.Error("Describe the change.")
         return try {
@@ -1399,7 +1401,7 @@ object SharedStore {
         correctionId: String,
         applied: Boolean
     ): CreateResult {
-        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error(HFStrings.get(R.string.err_no_org, fallback = "No org loaded."))
         val me = _state.value.currentUser
         val newStatus = if (applied) "applied" else "dismissed"
         return try {
@@ -1441,7 +1443,7 @@ object SharedStore {
         remindAt: String? = null,
         remindUserId: String? = null
     ): CreateResult {
-        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error(HFStrings.get(R.string.err_no_org, fallback = "No org loaded."))
         val me = _state.value.currentUser
         val authUserId = runCatching {
             SupabaseClientProvider.client.auth.currentUserOrNull()?.id
@@ -1477,7 +1479,7 @@ object SharedStore {
 
     /** Delete a calendar event. Optimistic local removal + cloud delete. */
     suspend fun deleteCalendarEvent(eventId: String): CreateResult {
-        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error(HFStrings.get(R.string.err_no_org, fallback = "No org loaded."))
         return try {
             cloud.deleteCalendarEvent(eventId)
             _state.update { s -> s.copy(calendarEvents = s.calendarEvents.filterNot { it.id == eventId }) }
@@ -1504,10 +1506,10 @@ object SharedStore {
         remindAt: String? = null,
         remindUserId: String? = null
     ): CreateResult {
-        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error(HFStrings.get(R.string.err_no_org, fallback = "No org loaded."))
         val existing = _state.value.calendarEvents.firstOrNull { it.id == eventId }
             ?: return CreateResult.Error("Event not found.")
-        if (title.trim().isBlank()) return CreateResult.Error("Title is required.")
+        if (title.trim().isBlank()) return CreateResult.Error(HFStrings.get(R.string.err_title_required, fallback = "Title is required."))
         val updated = existing.copy(
             title = title.trim(),
             description = description.trim(),
@@ -1594,7 +1596,7 @@ object SharedStore {
         engineModel: String? = null,
         propModel: String? = null
     ): CreateResult {
-        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded yet.")
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error(HFStrings.get(R.string.err_no_org_yet, fallback = "No org loaded yet."))
         if (tailNumber.trim().isBlank()) return CreateResult.Error("Tail number is required.")
         val duplicate = _state.value.planes.any {
             it.tailNumber.equals(tailNumber.trim(), ignoreCase = true)
@@ -1618,8 +1620,8 @@ object SharedStore {
         category: String,
         details: String
     ): CreateResult {
-        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded yet.")
-        if (title.trim().isBlank()) return CreateResult.Error("Title is required.")
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error(HFStrings.get(R.string.err_no_org_yet, fallback = "No org loaded yet."))
+        if (title.trim().isBlank()) return CreateResult.Error(HFStrings.get(R.string.err_title_required, fallback = "Title is required."))
         val me = _state.value.currentUser  // paper trail
         return try {
             val wlId = cloud.createWorkLog(orgId, planeId, planeTailNumber, title, category, details, me?.id, me?.displayName)
@@ -1637,9 +1639,9 @@ object SharedStore {
         displayName: String,
         role: String
     ): CreateResult {
-        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded yet.")
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error(HFStrings.get(R.string.err_no_org_yet, fallback = "No org loaded yet."))
         if (email.trim().isBlank()) return CreateResult.Error("Email is required.")
-        if (displayName.trim().isBlank()) return CreateResult.Error("Name is required.")
+        if (displayName.trim().isBlank()) return CreateResult.Error(HFStrings.get(R.string.err_name_required, fallback = "Name is required."))
         return try {
             cloud.inviteEmployee(orgId, email, displayName, role)
             cloud.emitOrgEvent(orgId, deviceId, "user_invited")
@@ -1664,7 +1666,7 @@ object SharedStore {
         notes: String,
         photoPaths: List<String> = emptyList()
     ): CreateResult {
-        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded yet.")
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error(HFStrings.get(R.string.err_no_org_yet, fallback = "No org loaded yet."))
         if (partName.trim().isBlank()) return CreateResult.Error("Part name is required.")
         val me = _state.value.currentUser
         return try {
@@ -1710,7 +1712,7 @@ object SharedStore {
     // ---------- Delete operations (parity with Desktop) ----------
 
     suspend fun deletePlaneWithHistory(planeId: String, planeTailNumber: String): CreateResult {
-        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error(HFStrings.get(R.string.err_no_org, fallback = "No org loaded."))
         // Every child delete used to be a bare runCatching, so a step that RLS
         // filtered out (zero rows, NO exception) or that simply failed vanished
         // and the tech was told the aircraft and its records were gone. Mirrors
@@ -1752,27 +1754,27 @@ object SharedStore {
     }
 
     suspend fun deleteWorkLog(id: String): CreateResult {
-        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error(HFStrings.get(R.string.err_no_org, fallback = "No org loaded."))
         return try {
             cloud.deleteWorkLog(id)
             cloud.emitOrgEvent(orgId, deviceId, "work_log_deleted")
             pullSnapshot(orgId)
             CreateResult.Success
-        } catch (t: Throwable) { CreateResult.Error(hfSafeMessage(t) ?: "Couldn't delete.") }
+        } catch (t: Throwable) { CreateResult.Error(hfSafeMessage(t) ?: HFStrings.get(R.string.err_delete_failed, fallback = "Couldn't delete.")) }
     }
 
     suspend fun deleteSquawk(id: String): CreateResult {
-        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error(HFStrings.get(R.string.err_no_org, fallback = "No org loaded."))
         return try {
             cloud.deleteSquawk(id)
             cloud.emitOrgEvent(orgId, deviceId, "squawk_deleted")
             pullSnapshot(orgId)
             CreateResult.Success
-        } catch (t: Throwable) { CreateResult.Error(hfSafeMessage(t) ?: "Couldn't delete.") }
+        } catch (t: Throwable) { CreateResult.Error(hfSafeMessage(t) ?: HFStrings.get(R.string.err_delete_failed, fallback = "Couldn't delete.")) }
     }
 
     suspend fun deleteUser(userId: String): CreateResult {
-        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error(HFStrings.get(R.string.err_no_org, fallback = "No org loaded."))
         return try {
             cloud.deleteUserProfile(userId)
             cloud.emitOrgEvent(orgId, deviceId, "user_deleted")
@@ -1782,7 +1784,7 @@ object SharedStore {
     }
 
     suspend fun updateUserRole(userId: String, newRole: String): CreateResult {
-        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error(HFStrings.get(R.string.err_no_org, fallback = "No org loaded."))
         return try {
             cloud.updateUserRole(userId, newRole)
             cloud.emitOrgEvent(orgId, deviceId, "user_role_changed")
@@ -1814,7 +1816,7 @@ object SharedStore {
         outlineHex: String, arrivalDate: String?, deadlineDate: String?,
         incomingInspection: String? = null, aircraftType: String? = null
     ): CreateResult {
-        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error(HFStrings.get(R.string.err_no_org, fallback = "No org loaded."))
         return try {
             cloud.updatePlane(planeId, tailNumber, displayName, outlineHex, arrivalDate, deadlineDate, incomingInspection, aircraftType)
             cloud.emitOrgEvent(orgId, deviceId, "plane_updated")
@@ -1835,7 +1837,7 @@ object SharedStore {
         prop1Hours: String?, prop2Hours: String?,
         apuHours: String?, apuCycles: String?
     ): CreateResult {
-        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error(HFStrings.get(R.string.err_no_org, fallback = "No org loaded."))
         fun clean(s: String?) = s?.trim()?.takeIf { it.isNotEmpty() }
         return try {
             cloud.updatePlaneTimesAndCycles(
@@ -1885,7 +1887,7 @@ object SharedStore {
     suspend fun attachManualsToPlane(
         planeId: String, planeTailNumber: String, manualIds: List<String>
     ): CreateResult {
-        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error(HFStrings.get(R.string.err_no_org, fallback = "No org loaded."))
         if (manualIds.isEmpty()) return CreateResult.Success
         return try {
             manualIds.forEach { mid -> cloud.attachManualToPlane(orgId, mid, planeId, planeTailNumber) }
@@ -1898,7 +1900,7 @@ object SharedStore {
     /** Purge a manual from the Files page (admin only). Indexed references
      *  persist by design so the manual can be re-attached later. */
     suspend fun purgeManual(manualId: String): CreateResult {
-        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error(HFStrings.get(R.string.err_no_org, fallback = "No org loaded."))
         return try {
             cloud.deleteManual(manualId)
             cloud.emitOrgEvent(orgId, deviceId, "manual_purged")
@@ -1958,7 +1960,7 @@ object SharedStore {
 
     /** Bulk-create work logs from the staging sheet (one org event + re-pull). */
     suspend fun createWorkLogsBulk(logs: List<NewWorkLogDraft>): CreateResult {
-        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error(HFStrings.get(R.string.err_no_org, fallback = "No org loaded."))
         val valid = logs.filter { it.title.trim().isNotBlank() }
         if (valid.isEmpty()) return CreateResult.Error("Add at least one work log.")
         val me = _state.value.currentUser  // paper trail
@@ -2049,8 +2051,8 @@ object SharedStore {
     // ---------------------------------------------------------------------
 
     suspend fun saveEquipment(draft: HFEquipment): CreateResult {
-        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
-        if (draft.name.trim().isBlank()) return CreateResult.Error("Name is required.")
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error(HFStrings.get(R.string.err_no_org, fallback = "No org loaded."))
+        if (draft.name.trim().isBlank()) return CreateResult.Error(HFStrings.get(R.string.err_name_required, fallback = "Name is required."))
         val me = _state.value.currentUser
         val isNew = draft.id.isBlank()
         val existing = _state.value.equipment.firstOrNull { it.id == draft.id }
@@ -2118,8 +2120,8 @@ object SharedStore {
      *  (on create, when a reminder user is set) drops a calendar event so
      *  the existing fire-due-reminders job pushes a notification. */
     suspend fun saveMaintenanceItem(draft: HFEquipmentMaintenanceItem): CreateResult {
-        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
-        if (draft.title.trim().isBlank()) return CreateResult.Error("Title is required.")
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error(HFStrings.get(R.string.err_no_org, fallback = "No org loaded."))
+        if (draft.title.trim().isBlank()) return CreateResult.Error(HFStrings.get(R.string.err_title_required, fallback = "Title is required."))
         val isNew = draft.id.isBlank()
         val (nextAt, nextHours) = computeEquipmentNextDue(draft)
         val record = draft.copy(
@@ -2184,7 +2186,7 @@ object SharedStore {
         notes: String,
         docPaths: List<HFEquipmentDoc> = emptyList()
     ): CreateResult {
-        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error(HFStrings.get(R.string.err_no_org, fallback = "No org loaded."))
         val me = _state.value.currentUser
         val entry = HFEquipmentServiceEntry(
             id = UUID.randomUUID().toString(),
@@ -2243,9 +2245,9 @@ object SharedStore {
 
     /** Upload an image and append it to the equipment's photo list. */
     suspend fun addEquipmentPhoto(equipmentId: String, data: ByteArray, fileName: String): CreateResult {
-        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error(HFStrings.get(R.string.err_no_org, fallback = "No org loaded."))
         val eq = _state.value.equipment.firstOrNull { it.id == equipmentId }
-            ?: return CreateResult.Error("Equipment not found.")
+            ?: return CreateResult.Error(HFStrings.get(R.string.err_equipment_missing, fallback = "Equipment not found."))
         return try {
             val path = cloud.uploadEquipmentDoc(
                 data, orgId, equipmentId, fileName, io.ktor.http.ContentType.Image.JPEG
@@ -2267,9 +2269,9 @@ object SharedStore {
         contentType: io.ktor.http.ContentType,
         kind: String = "doc"
     ): CreateResult {
-        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error(HFStrings.get(R.string.err_no_org, fallback = "No org loaded."))
         val eq = _state.value.equipment.firstOrNull { it.id == equipmentId }
-            ?: return CreateResult.Error("Equipment not found.")
+            ?: return CreateResult.Error(HFStrings.get(R.string.err_equipment_missing, fallback = "Equipment not found."))
         return try {
             val path = cloud.uploadEquipmentDoc(data, orgId, equipmentId, fileName, contentType)
             val doc = HFEquipmentDoc(path = path, bucket = "equipment-docs", name = fileName, kind = kind)

@@ -33,6 +33,9 @@ import androidx.compose.material.icons.outlined.WarningAmber
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import com.hangarflow.app.i18n.HFLanguageButton
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -113,6 +116,16 @@ fun LoginScreen() {
                 )
             }
         }
+
+        // Language switch BEFORE sign-in. The person who most needs to change
+        // the language is the one who cannot read the screen well enough to
+        // sign in and find Settings, so it has to be reachable from here.
+        HFLanguageButton(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+                .padding(16.dp)
+        )
     }
 }
 
@@ -220,7 +233,7 @@ private fun AuthPanel(
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
         Text(
-            "Sign in",
+            stringResource(R.string.login_title),
             color = Color.White,
             fontSize = 25.sp,
             fontWeight = FontWeight.SemiBold
@@ -228,7 +241,7 @@ private fun AuthPanel(
 
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             UnderlineField(
-                label = "Email",
+                label = stringResource(R.string.login_email),
                 icon = Icons.Outlined.Email,
                 value = email,
                 onChange = onEmailChange,
@@ -238,7 +251,7 @@ private fun AuthPanel(
             )
 
             UnderlineField(
-                label = "Password",
+                label = stringResource(R.string.login_password),
                 icon = Icons.Outlined.Lock,
                 value = password,
                 onChange = onPasswordChange,
@@ -272,13 +285,13 @@ private fun SignUpHint() {
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Text(
-            "Don't have an account?",
+            stringResource(R.string.login_no_account),
             color = Color.White.copy(alpha = 0.60f),
             fontSize = 13.sp,
             fontWeight = FontWeight.Medium
         )
         Text(
-            "Create one at hangarflow.com",
+            stringResource(R.string.login_create_at),
             color = Color.White,
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
@@ -379,7 +392,7 @@ private fun ShowHidePill(showing: Boolean, onClick: () -> Unit) {
             .padding(horizontal = 10.dp, vertical = 6.dp)
     ) {
         Text(
-            if (showing) "Hide" else "Show",
+            if (showing) stringResource(R.string.login_hide) else stringResource(R.string.login_show),
             color = Color.White.copy(alpha = 0.72f),
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold
@@ -436,7 +449,7 @@ private fun SubmitButton(enabled: Boolean, isBusy: Boolean, onClick: () -> Unit)
             Spacer(Modifier.size(10.dp))
         }
         Text(
-            "Sign in",
+            stringResource(R.string.login_title),
             color = Color.Black,
             fontSize = 16.sp,
             fontWeight = FontWeight.SemiBold

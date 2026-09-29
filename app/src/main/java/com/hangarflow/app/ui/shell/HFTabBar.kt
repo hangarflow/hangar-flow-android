@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -77,7 +78,7 @@ private fun HFTabPill(
         )
         Spacer(Modifier.width(8.dp))
         Text(
-            text = tab.title,
+            text = stringResource(tab.title),
             color = contentColor,
             fontSize = 13.sp,
             fontWeight = FontWeight.SemiBold

@@ -39,6 +39,8 @@ import com.hangarflow.app.data.SharedStore
 import com.hangarflow.app.data.model.HFPlane
 import com.hangarflow.app.ui.common.HFPullToRefreshHost
 import com.hangarflow.app.ui.theme.HFColors
+import com.hangarflow.app.R
+import androidx.compose.ui.res.stringResource
 
 /**
  * Planes hub sheet. Matches iOS `IOSPlanesHubView` — a 2-column grid of
@@ -84,14 +86,14 @@ private fun PlanesHubContent(onSelectPlane: (HFPlane) -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                "No planes yet",
+                stringResource(R.string.ph_no_planes),
                 color = HFColors.OnSurface,
                 fontSize = 17.sp,
                 fontWeight = FontWeight.Bold
             )
             Spacer(Modifier.size(8.dp))
             Text(
-                "An admin can add aircraft from the desktop — they'll show up here instantly.",
+                stringResource(R.string.ph_no_planes_sub),
                 color = HFColors.OnSurface.copy(alpha = 0.68f),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium

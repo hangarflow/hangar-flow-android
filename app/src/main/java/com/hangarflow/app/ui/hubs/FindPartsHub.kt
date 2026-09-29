@@ -48,6 +48,8 @@ import kotlinx.coroutines.launch
 import java.io.File
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import com.hangarflow.app.R
+import androidx.compose.ui.res.stringResource
 
 // iOS-parity Find Parts: single scrolling column, AI-driven cards.
 private enum class OrderUrgency(val raw: String, val label: String, val color: Color) {
@@ -69,7 +71,7 @@ fun FindPartsHub(restrictToPlaneTail: String? = null) {
     var selectedHit by remember { mutableStateOf<HFCloudSyncService.ManualSearchHit?>(null) }
     var showOrderDialog by remember { mutableStateOf(false) }
     // Toggleable plane scope. Starts at whatever the entry point passed;
-    // tech can broaden mid-flight by tapping "Search all" in the chip.
+    // tech can broaden mid-flight by tapping stringResource(R.string.fp_search_all) in the chip.
     var restrictedTail by remember { mutableStateOf(restrictToPlaneTail) }
     val cloud = remember { HFCloudSyncService() }
     val scope = rememberCoroutineScope()
@@ -215,7 +217,7 @@ fun FindPartsHub(restrictToPlaneTail: String? = null) {
                 decorationBox = { inner ->
                     if (query.isEmpty()) {
                         Text(
-                            "Search manuals for parts, components…",
+                            stringResource(R.string.fp_search),
                             color = HFColors.OnSurface.copy(alpha = 0.4f),
                             fontSize = 16.sp, fontWeight = FontWeight.Medium, maxLines = 1
                         )
@@ -238,7 +240,7 @@ fun FindPartsHub(restrictToPlaneTail: String? = null) {
             }
         }
 
-        // Plane-scope chip — airplane glyph + "Search all" capsule. Shown
+        // Plane-scope chip — airplane glyph + stringResource(R.string.fp_search_all) capsule. Shown
         // only when restricted to a single plane.
         restrictedTail?.let { tail ->
             Row(
@@ -264,7 +266,7 @@ fun FindPartsHub(restrictToPlaneTail: String? = null) {
                         .padding(horizontal = 10.dp, vertical = 5.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Search all", color = HFColors.OnSurface, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.fp_search_all), color = HFColors.OnSurface, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.width(4.dp))
                     Text("✕", color = HFColors.OnSurface, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
@@ -285,7 +287,7 @@ fun FindPartsHub(restrictToPlaneTail: String? = null) {
                         modifier = Modifier.size(48.dp)
                     )
                     Text(
-                        "Find a part with AI",
+                        stringResource(R.string.fp_find_with_ai),
                         color = HFColors.OnSurface.copy(alpha = 0.6f),
                         fontSize = 17.sp, fontWeight = FontWeight.Bold
                     )
@@ -408,7 +410,7 @@ fun FindPartsHub(restrictToPlaneTail: String? = null) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Outlined.ShoppingCart, null, tint = Color.White, modifier = Modifier.size(14.dp))
                             Spacer(Modifier.width(8.dp))
-                            Text("Order Part", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.fp_order_part), color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -427,14 +429,14 @@ fun FindPartsHub(restrictToPlaneTail: String? = null) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 CircularProgressIndicator(color = HFColors.OnSurface.copy(alpha = 0.55f), strokeWidth = 2.dp, modifier = Modifier.size(20.dp))
                                 Spacer(Modifier.height(8.dp))
-                                Text("Loading manual…", color = HFColors.OnSurface.copy(alpha = 0.40f), fontSize = 12.sp)
+                                Text(stringResource(R.string.fp_loading_manual), color = HFColors.OnSurface.copy(alpha = 0.40f), fontSize = 12.sp)
                             }
                         }
                         pdfFile != null -> InlinePdfPager(file = pdfFile!!, initialPage = pdfPage)
                         else -> Box(Modifier.fillMaxSize().padding(32.dp), contentAlignment = Alignment.Center) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
-                                    "Manual PDF not available",
+                                    stringResource(R.string.fp_no_pdf),
                                     color = HFColors.OnSurface, fontSize = 14.sp, fontWeight = FontWeight.Bold
                                 )
                                 Spacer(Modifier.height(6.dp))
@@ -583,7 +585,9 @@ private fun InlinePdfPage(
         if (b != null) {
             androidx.compose.foundation.Image(
                 bitmap = b.asImageBitmap(),
-                contentDescription = null,
+                // Real content, not decoration: this is the manual page the search landed
+                // on. Null here left a screen reader silent on the one thing this view exists to show.
+                contentDescription = "Manual page",
                 contentScale = androidx.compose.ui.layout.ContentScale.FillWidth,
                 modifier = Modifier.fillMaxSize()
             )
@@ -678,7 +682,7 @@ private fun OrderPartDialog(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Outlined.ShoppingCart, null, tint = HFColors.OnSurface, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(10.dp))
-                Text("Order Part", color = HFColors.OnSurface, fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                Text(stringResource(R.string.fp_order_part), color = HFColors.OnSurface, fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                 Box(Modifier.size(28.dp).clip(CircleShape).clickable(onClick = onDismiss), contentAlignment = Alignment.Center) {
                     Icon(Icons.Outlined.Close, null, tint = HFColors.OnSurface.copy(alpha = 0.55f), modifier = Modifier.size(15.dp))
                 }
@@ -778,7 +782,7 @@ private fun OrderPartDialog(
                         .padding(vertical = 11.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("Cancel", color = HFColors.OnSurface, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                    Text(stringResource(R.string.action_cancel), color = HFColors.OnSurface, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                 }
                 Box(
                     Modifier.weight(1f)
@@ -802,7 +806,7 @@ private fun OrderPartDialog(
                         .padding(vertical = 11.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("Add to Parts to Order", color = Color.Black, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.fp_add_to_order), color = Color.Black, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -883,7 +887,7 @@ private fun StructuredPartsFinder(
             loading -> Row(verticalAlignment = Alignment.CenterVertically) {
                 CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp, color = HFColors.StatusCyan)
                 Spacer(Modifier.width(8.dp))
-                Text("Finding the part…", color = HFColors.OnSurface.copy(alpha = 0.7f), fontSize = 13.sp)
+                Text(stringResource(R.string.fp_finding), color = HFColors.OnSurface.copy(alpha = 0.7f), fontSize = 13.sp)
             }
             error != null -> Text(error, color = HFColors.StatusRed, fontSize = 12.sp)
             ran && results.isEmpty() -> Text(
@@ -897,7 +901,7 @@ private fun StructuredPartsFinder(
                     Spacer(Modifier.height(10.dp))
                 }
                 Text(
-                    "AI-assisted — verify against the manual reference before ordering.",
+                    stringResource(R.string.fp_ai_verify),
                     color = HFColors.OnSurface.copy(alpha = 0.4f), fontSize = 11.sp
                 )
             }
@@ -930,7 +934,7 @@ private fun StructuredPartCard(
                         fontWeight = FontWeight.Black, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
                     )
                 } else {
-                    Text("No confirmed part number", color = HFColors.StatusOrange, fontSize = 11.sp)
+                    Text(stringResource(R.string.fp_no_pn), color = HFColors.StatusOrange, fontSize = 11.sp)
                 }
             }
             if (part.inStock) {
@@ -941,7 +945,7 @@ private fun StructuredPartCard(
                         .padding(horizontal = 8.dp, vertical = 4.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("IN STOCK", color = HFColors.StatusGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.fp_in_stock), color = HFColors.StatusGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -960,10 +964,10 @@ private fun StructuredPartCard(
                     .padding(10.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("📖 VERIFY IN MANUAL", color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.fp_verify_manual), color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.weight(1f))
                     if (canOpen) {
-                        Text("Open ›", color = HFColors.StatusCyan, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.set_open), color = HFColors.StatusCyan, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                     }
                 }
                 Spacer(Modifier.height(3.dp))
@@ -1014,11 +1018,11 @@ private fun AIPartsPanel(
             loading -> Row(verticalAlignment = Alignment.CenterVertically) {
                 CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp, color = HFColors.StatusCyan)
                 Spacer(Modifier.width(8.dp))
-                Text("Asking AI…", color = HFColors.OnSurface.copy(alpha = 0.7f), fontSize = 12.sp)
+                Text(stringResource(R.string.fp_asking_ai), color = HFColors.OnSurface.copy(alpha = 0.7f), fontSize = 12.sp)
             }
             answer != null -> {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("✨ AI Answer", color = HFColors.StatusCyan, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.fp_ai_answer), color = HFColors.StatusCyan, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.weight(1f))
                     Text(
                         "✕",
@@ -1044,7 +1048,7 @@ private fun AIPartsPanel(
                     .clickable(onClick = onAsk).padding(vertical = 9.dp, horizontal = 10.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text("✨ Ask AI", color = HFColors.StatusCyan, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                Text(stringResource(R.string.fp_ask_ai), color = HFColors.StatusCyan, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
             }
         }
         if (error != null) {

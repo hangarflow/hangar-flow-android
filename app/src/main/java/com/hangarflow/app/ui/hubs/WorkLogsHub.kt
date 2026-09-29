@@ -43,6 +43,8 @@ import com.hangarflow.app.data.model.HFWorkCategory
 import com.hangarflow.app.data.model.HFWorkLog
 import com.hangarflow.app.data.model.HFWorkLogStatus
 import com.hangarflow.app.ui.theme.HFColors
+import com.hangarflow.app.R
+import androidx.compose.ui.res.stringResource
 
 /**
  * Work Logs hub sheet. Matches the iOS layout: toggle at top for
@@ -118,15 +120,15 @@ private fun WorkLogsMenu(
     ) {
         Spacer(Modifier.height(4.dp))
         WorkLogsMenuCard(
-            title = "Plane Work Logs",
-            subtitle = "Browse every plane. Tap one to see its categories and open work.",
+            title = stringResource(R.string.wl_plane_logs),
+            subtitle = stringResource(R.string.wl_plane_logs_sub),
             accent = HFColors.StatusBlue,
             statText = "${state.planes.size} planes",
             onClick = onOpenPlaneLogs
         )
         WorkLogsMenuCard(
-            title = "Assigned Work Orders",
-            subtitle = "Only the work orders assigned to you, grouped by plane.",
+            title = stringResource(R.string.wl_assigned),
+            subtitle = stringResource(R.string.wl_assigned_sub),
             accent = HFColors.StatusCyan,
             statText = if (myAssigned == 1) "1 assigned" else "$myAssigned assigned",
             onClick = onOpenAssigned
@@ -204,7 +206,7 @@ private fun PlaneLogsFlow(
     PlaneGridForWorkLogs(
         planes = state.planes,
         workLogs = state.workLogs,
-        headerTitle = "Plane Work Logs",
+        headerTitle = stringResource(R.string.wl_plane_logs),
         onBack = onBackToMenu,
         onSelectPlane = onSelectPlane
     )
@@ -314,7 +316,7 @@ private fun PlaneGridForAssigned(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            PlaneFlowHeader(title = "Assigned Work Orders", onBack = onBack)
+            PlaneFlowHeader(title = stringResource(R.string.wl_assigned), onBack = onBack)
         }
         if (planes.isEmpty()) {
             item {
@@ -590,7 +592,7 @@ private fun WorkLogsHubContent(onOpenWorkLog: (HFWorkLog) -> Unit) {
 
     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
         // Plane picker — mirrors the Mac sidebar's plane list. Primary
-        // filter for what the tech wants to see. "All" is the default.
+        // filter for what the tech wants to see. stringResource(R.string.wl_all) is the default.
         FilterSectionLabel("Plane")
         Spacer(Modifier.height(6.dp))
         IOSPlaneChipRow(
@@ -639,7 +641,7 @@ private fun WorkLogsHubContent(onOpenWorkLog: (HFWorkLog) -> Unit) {
         // obvious what's being shown without scrolling back to the picker.
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = "Work Logs",
+                text = stringResource(R.string.nav_work_logs),
                 color = HFColors.OnSurface,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
@@ -895,7 +897,7 @@ private fun IOSAssignedToMePanel(
 // ---------- filter chips ----------
 
 /**
- * Admin-only chip row: "All" + "Unassigned" + each tech. Each tech chip
+ * Admin-only chip row: stringResource(R.string.wl_all) + stringResource(R.string.wl_unassigned) + each tech. Each tech chip
  * shows their assigned-count so an admin can see workload at a glance.
  */
 @Composable
@@ -976,7 +978,7 @@ private fun IOSCategoryChipRow(
             .horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        IOSFilterChip(label = "All", isSelected = selected == null, onClick = { onSelect(null) })
+        IOSFilterChip(label = stringResource(R.string.wl_all), isSelected = selected == null, onClick = { onSelect(null) })
         HFWorkCategory.entries.forEach { cat ->
             IOSFilterChip(
                 label = cat.label,
@@ -1189,17 +1191,17 @@ private fun AssigneePickerSection(
     Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp)) {
         Spacer(Modifier.height(14.dp))
         Text(
-            "Assign To".uppercase(),
+            stringResource(R.string.wl_assign_to).uppercase(),
             color = HFColors.OnSurface.copy(alpha = 0.55f),
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = 1.2.sp
         )
         Spacer(Modifier.height(10.dp))
-        // "Unassigned" chip first so clearing is obvious.
+        // stringResource(R.string.wl_unassigned) chip first so clearing is obvious.
         AssigneeRow(
-            label = "Unassigned",
-            subtitle = "Open to anyone",
+            label = stringResource(R.string.wl_unassigned),
+            subtitle = stringResource(R.string.wl_open_to_anyone),
             selected = currentAssigneeId.isNullOrBlank(),
             onClick = { onPick(null) }
         )
@@ -1266,7 +1268,7 @@ private fun IOSStatusPickerSheet(
 ) {
     Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
         Text(
-            "Change Status".uppercase(),
+            stringResource(R.string.sq_change_status).uppercase(),
             color = HFColors.OnSurface.copy(alpha = 0.55f),
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,

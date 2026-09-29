@@ -55,6 +55,8 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.time.temporal.ChronoUnit
 import java.time.temporal.TemporalAdjusters
+import com.hangarflow.app.R
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun TimeCardHub() {
@@ -76,8 +78,8 @@ private fun TimeCardHubContent(onRequestTimeOff: () -> Unit = {}) {
 
     val me = shopState.currentUser
 
-    // Admin → any tech (or "All Shop"). Tech → always themselves only.
-    // `null` selectedUserId means "All Shop" (admins only).
+    // Admin → any tech (or stringResource(R.string.tc_all_shop)). Tech → always themselves only.
+    // `null` selectedUserId means stringResource(R.string.tc_all_shop) (admins only).
     val defaultSelection: String? = me?.id
     var selectedUserId by remember(defaultSelection) {
         mutableStateOf<String?>(defaultSelection)
@@ -180,7 +182,7 @@ private fun TimeCardHubContent(onRequestTimeOff: () -> Unit = {}) {
 
     Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         // People picker — admins see every tech in the org, plus an
-        // "All Shop" pill that aggregates everyone's hours. Techs are
+        // stringResource(R.string.tc_all_shop) pill that aggregates everyone's hours. Techs are
         // locked to their own row (no chips shown).
         if (isAdmin && shopState.users.isNotEmpty()) {
             PeoplePicker(
@@ -193,7 +195,7 @@ private fun TimeCardHubContent(onRequestTimeOff: () -> Unit = {}) {
             // Title line: whose hours we're showing.
             Text(
                 when {
-                    selectedUserId == null -> "All Shop"
+                    selectedUserId == null -> stringResource(R.string.tc_all_shop)
                     selectedUser != null -> selectedUser.displayName.ifBlank { "Tech" }
                     else -> "Selected tech"
                 },
@@ -228,7 +230,7 @@ private fun TimeCardHubContent(onRequestTimeOff: () -> Unit = {}) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                "Request Time Off",
+                stringResource(R.string.tc_request_time_off),
                 color = HFColors.StatusBlue,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold
@@ -256,7 +258,7 @@ private fun TimeCardHubContent(onRequestTimeOff: () -> Unit = {}) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "Export CSV",
+                    stringResource(R.string.tc_export_csv),
                     color = HFColors.OnSurface,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold
@@ -290,7 +292,7 @@ private fun TimeCardHubContent(onRequestTimeOff: () -> Unit = {}) {
         // ---- History header (iOS: title + subtitle, Export on the right) ----
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                "History",
+                stringResource(R.string.tc_history),
                 color = HFColors.OnSurface,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
@@ -302,7 +304,7 @@ private fun TimeCardHubContent(onRequestTimeOff: () -> Unit = {}) {
         }
         Spacer(Modifier.size(2.dp))
         Text(
-            "Your logged time, grouped by date.",
+            stringResource(R.string.tc_history_sub),
             color = HFColors.OnSurface.copy(alpha = 0.62f),
             fontSize = 12.sp,
             fontWeight = FontWeight.Medium
@@ -340,7 +342,7 @@ private fun TimeCardHubContent(onRequestTimeOff: () -> Unit = {}) {
         // "Previous entries (n)" header with a count pill.
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                "Previous entries",
+                stringResource(R.string.tc_previous_entries),
                 color = HFColors.OnSurface,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
@@ -445,9 +447,9 @@ private fun PeoplePicker(
             .horizontalScroll(scroll),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // "All Shop" leads so admins can eyeball total shop load fast.
+        // stringResource(R.string.tc_all_shop) leads so admins can eyeball total shop load fast.
         PersonChip(
-            label = "All Shop",
+            label = stringResource(R.string.tc_all_shop),
             initials = "⌂",
             selected = selectedUserId == null,
             onClick = { onSelect(null) }
@@ -582,13 +584,13 @@ private fun PeriodTotalsGrid(totals: PeriodTotals) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             PeriodTile(
-                label = "TODAY",
+                label = stringResource(R.string.tc_today_caps),
                 minutes = totals.today,
                 accent = HFColors.StatusCyan,
                 modifier = Modifier.weight(1f)
             )
             PeriodTile(
-                label = "THIS WEEK",
+                label = stringResource(R.string.tc_this_week_caps),
                 minutes = totals.week,
                 accent = HFColors.StatusBlue,
                 modifier = Modifier.weight(1f)
@@ -596,13 +598,13 @@ private fun PeriodTotalsGrid(totals: PeriodTotals) {
         }
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             PeriodTile(
-                label = "BI-WEEKLY",
+                label = stringResource(R.string.tc_biweekly_caps),
                 minutes = totals.biweekly,
                 accent = HFColors.StatusPurple,
                 modifier = Modifier.weight(1f)
             )
             PeriodTile(
-                label = "THIS MONTH",
+                label = stringResource(R.string.tc_this_month_caps),
                 minutes = totals.month,
                 accent = HFColors.StatusGreen,
                 modifier = Modifier.weight(1f)
@@ -705,7 +707,7 @@ private fun EntryRow(entry: HFTimeEntry, isAdmin: Boolean, isLast: Boolean = tru
                                 .background(HFColors.StatusRed.copy(alpha = 0.18f))
                                 .padding(horizontal = 6.dp, vertical = 2.dp)
                         ) {
-                            Text("REJECTED", color = HFColors.StatusRed, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.tc_rejected_caps), color = HFColors.StatusRed, fontSize = 8.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -912,7 +914,7 @@ private fun CorrectionApprovalsSection(
 
     Spacer(Modifier.size(18.dp))
     Text(
-        "TIME-ENTRY CORRECTIONS",
+        stringResource(R.string.tc_corrections_caps),
         color = HFColors.OnSurface.copy(alpha = 0.55f),
         fontSize = 10.sp,
         fontWeight = FontWeight.Bold,
@@ -969,11 +971,11 @@ private fun RequestCorrectionDialog(entry: HFTimeEntry, onDismiss: () -> Unit) {
         containerColor = HFColors.Background,
         titleContentColor = HFColors.OnSurface,
         textContentColor = HFColors.OnSurface,
-        title = { Text("Request correction", fontWeight = FontWeight.Bold) },
+        title = { Text(stringResource(R.string.tc_request_correction), fontWeight = FontWeight.Bold) },
         text = {
             Column {
                 Text(
-                    "Describe what's wrong with this entry — the admin fixes it for you.",
+                    stringResource(R.string.tc_correction_help),
                     color = HFColors.OnSurface.copy(alpha = 0.66f), fontSize = 12.sp
                 )
                 if (entry.entryDate.isNotBlank() || entry.minutesWorked > 0) {
@@ -989,7 +991,7 @@ private fun RequestCorrectionDialog(entry: HFTimeEntry, onDismiss: () -> Unit) {
                     value = note,
                     onValueChange = { note = it; error = null },
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("e.g. Should be 8h not 6h — forgot to clock back in", color = HFColors.OnSurface.copy(alpha = 0.4f)) },
+                    placeholder = { Text(stringResource(R.string.tc_correction_hint), color = HFColors.OnSurface.copy(alpha = 0.4f)) },
                     minLines = 2,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
@@ -1031,7 +1033,7 @@ private fun RequestCorrectionDialog(entry: HFTimeEntry, onDismiss: () -> Unit) {
         },
         dismissButton = {
             TextButton(enabled = !submitting, onClick = onDismiss) {
-                Text("Cancel", color = HFColors.OnSurface.copy(alpha = 0.7f))
+                Text(stringResource(R.string.action_cancel), color = HFColors.OnSurface.copy(alpha = 0.7f))
             }
         }
     )
@@ -1158,7 +1160,7 @@ private fun CustomRangeRow(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                "Custom date range",
+                stringResource(R.string.tc_custom_range),
                 color = HFColors.OnSurface,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -1229,7 +1231,7 @@ private fun HistoryTotalRow(minutes: Int) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            "TOTAL",
+            stringResource(R.string.tc_total_caps),
             color = HFColors.OnSurface.copy(alpha = 0.50f),
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
@@ -1334,7 +1336,7 @@ private fun ActivityWorkLogRow(wl: com.hangarflow.app.data.model.HFWorkLog) {
                 .padding(horizontal = 6.dp, vertical = 2.dp)
         ) {
             Text(
-                "Done",
+                stringResource(R.string.action_done),
                 color = HFColors.StatusGreen,
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold
@@ -1442,6 +1444,6 @@ private fun HoursAnomalyBanner(flags: List<HFCloudSyncService.HoursFlag>, entrie
             val c = if (f.severity == "warn") HFColors.StatusRed else HFColors.OnSurface.copy(alpha = 0.75f)
             Text("• $who${if (date.isNotBlank()) " ($date)" else ""}: ${f.reason}", color = c, fontSize = 11.sp)
         }
-        Text("AI flags — verify before approving.", color = HFColors.OnSurface.copy(alpha = 0.4f), fontSize = 9.sp)
+        Text(stringResource(R.string.tc_ai_flags), color = HFColors.OnSurface.copy(alpha = 0.4f), fontSize = 9.sp)
     }
 }
