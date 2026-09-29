@@ -171,13 +171,14 @@ private fun HomeHubContent(onOpenHub: (HomeDestination) -> Unit, onOpenNavigator
                 me!!.displayName.substringBefore(' ').trim().ifBlank { me.displayName }
             else -> authState.orgName.ifBlank { "Hangar Flow" }
         }
-        val subtitle = when {
-            !isAdmin -> authState.orgName.takeIf { it.isNotBlank() }
-            else -> "Admin"
-        }
+        // The org line always shows the ORG. The role is its own badge now,
+        // so admins no longer get "Admin" in place of knowing which shop
+        // they are in.
+        val subtitle = authState.orgName.takeIf { it.isNotBlank() }
         IOSHomeHeader(
             primaryTitle = title,
             subtitle = subtitle,
+            roleLabel = authState.roleLabel,
             syncStatus = if (shopState.loading) "Checking" else "Active",
             onGoHome = { /* already home */ },
             onOpenSettings = { onOpenHub(HomeDestination.Settings) },

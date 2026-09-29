@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Apartment
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
+import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,6 +40,7 @@ fun IOSHomeHeader(
     primaryTitle: String,
     subtitle: String?,
     syncStatus: String,
+    roleLabel: String? = null,
     onGoHome: () -> Unit,
     onOpenSettings: () -> Unit,
     onSignOut: () -> Unit
@@ -76,6 +78,12 @@ fun IOSHomeHeader(
                         letterSpacing = 0.8.sp,
                         maxLines = 1
                     )
+                    // WHO you are, beside WHERE you are. Previously the role
+                    // only reached the screen for admins, as the subtitle —
+                    // techs and lead techs saw an identical header and had no
+                    // way to tell why one could open a screen the other could
+                    // not. Same placement as the iOS header.
+                    roleLabel?.takeIf { r -> r.isNotBlank() }?.let { r -> HFRoleBadge(r) }
                 }
             }
             Text(
@@ -113,4 +121,34 @@ private fun HeaderIconButton(icon: ImageVector, onClick: () -> Unit) {
             modifier = Modifier.size(20.dp)
         )
     }
+}
+
+
+/**
+ * Role chip, matched to the iOS/macOS `HFRoleBadge` and the Windows one.
+ *
+ * Monochrome on purpose: green/orange/red each mean something specific
+ * elsewhere in this app, and a role is not a status. Opacity carries the
+ * hierarchy instead of hue.
+ */
+@Composable
+fun HFRoleBadge(label: String, modifier: Modifier = Modifier) {
+    val fg: Float
+    val bg: Float
+    when (label) {
+        "Admin"     -> { fg = 1.00f; bg = 0.18f }
+        "Lead Tech" -> { fg = 0.78f; bg = 0.12f }
+        else        -> { fg = 0.58f; bg = 0.08f }
+    }
+    Text(
+        text = label.uppercase(),
+        color = Color.White.copy(alpha = fg),
+        fontSize = 9.sp,
+        fontWeight = FontWeight.Bold,
+        letterSpacing = 0.7.sp,
+        modifier = modifier
+            .clip(CircleShape)
+            .background(Color.White.copy(alpha = bg))
+            .padding(horizontal = 6.dp, vertical = 2.dp)
+    )
 }
