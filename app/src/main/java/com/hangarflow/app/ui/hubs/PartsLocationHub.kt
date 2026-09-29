@@ -933,7 +933,9 @@ private fun PartLocationSheet(
                         Box {
                             Image(
                                 bitmap = newPhoto!!.asImageBitmap(),
-                                contentDescription = null,
+                                // Real content: the photo of where the part actually lives, which is the
+                                // whole point of the field.
+                                contentDescription = "Photo of where this part is kept",
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier
                                     .size(120.dp)
