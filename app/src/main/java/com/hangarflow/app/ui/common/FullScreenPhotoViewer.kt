@@ -44,6 +44,8 @@ import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.hangarflow.app.data.cloud.HFCloudSyncService
 import com.hangarflow.app.ui.theme.HFColors
+import com.hangarflow.app.R
+import androidx.compose.ui.res.stringResource
 
 /**
  * Full-screen photo viewer with swipe-between-photos + pinch-to-zoom.
@@ -100,7 +102,7 @@ fun FullScreenPhotoViewer(
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Close,
-                    contentDescription = "Close",
+                    contentDescription = stringResource(R.string.action_close),
                     tint = HFColors.OnSurface,
                     modifier = Modifier.size(16.dp)
                 )
@@ -171,7 +173,7 @@ private fun ZoomablePhoto(path: String, signedUrlFor: suspend (String) -> String
                     .data(signedUrl)
                     .crossfade(true)
                     .build(),
-                contentDescription = "Photo",
+                contentDescription = stringResource(R.string.cd_photo),
                 contentScale = ContentScale.Fit,
                 modifier = Modifier
                     .fillMaxSize()

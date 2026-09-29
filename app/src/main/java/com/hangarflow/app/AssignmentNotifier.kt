@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.content.Context
 import androidx.core.app.NotificationCompat
 import com.hangarflow.app.data.model.HFWorkLog
+import com.hangarflow.app.i18n.HFStrings
 
 /**
  * Watches the SharedStore's work-log list and fires a local notification
@@ -40,7 +41,7 @@ object AssignmentNotifier {
     @SuppressLint("MissingPermission")
     private fun notify(context: Context, log: HFWorkLog) {
         PushNotifications.ensureRegistered(context)
-        val title = "New work log assigned"
+        val title = HFStrings.get(R.string.an_new_worklog, "New work log assigned")
         val body = buildString {
             append(log.title.ifBlank { "Untitled work log" })
             val tail = log.planeTailNumber

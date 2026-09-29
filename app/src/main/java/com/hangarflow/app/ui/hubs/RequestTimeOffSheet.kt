@@ -40,6 +40,8 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import com.hangarflow.app.R
+import androidx.compose.ui.res.stringResource
 
 /**
  * Full-screen sheet to submit a PTO request. Picks start/end dates and
@@ -80,9 +82,9 @@ fun RequestTimeOffSheet(onDismiss: () -> Unit) {
             verticalAlignment = Alignment.Top
         ) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("Request Time Off", color = HFColors.OnSurface, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.tc_request_time_off), color = HFColors.OnSurface, fontSize = 24.sp, fontWeight = FontWeight.Bold)
                 Text(
-                    "Pick a date range and optional reason. An admin approves it.",
+                    stringResource(R.string.to_sub),
                     color = HFColors.OnSurface.copy(alpha = 0.68f),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium
@@ -96,7 +98,7 @@ fun RequestTimeOffSheet(onDismiss: () -> Unit) {
                     .clickable { onDismiss() },
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Outlined.Close, contentDescription = "Close", tint = HFColors.OnSurface, modifier = Modifier.size(16.dp))
+                Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.action_close), tint = HFColors.OnSurface, modifier = Modifier.size(16.dp))
             }
         }
 
@@ -108,21 +110,21 @@ fun RequestTimeOffSheet(onDismiss: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             DateField(
-                label = "Start date",
+                label = stringResource(R.string.to_start),
                 value = startDate.format(prettyFormatter),
                 onClick = { showStartPicker = true }
             )
             DateField(
-                label = "End date",
+                label = stringResource(R.string.to_end),
                 value = endDate.format(prettyFormatter),
                 onClick = { showEndPicker = true }
             )
 
-            Text("Reason (optional)", color = HFColors.OnSurface.copy(alpha = 0.68f), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.to_reason), color = HFColors.OnSurface.copy(alpha = 0.68f), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             OutlinedTextField(
                 value = reason,
                 onValueChange = { reason = it },
-                placeholder = { Text("e.g. vacation, doctor", color = HFColors.OnSurface.copy(alpha = 0.40f), fontSize = 13.sp) },
+                placeholder = { Text(stringResource(R.string.to_reason_hint), color = HFColors.OnSurface.copy(alpha = 0.40f), fontSize = 13.sp) },
                 modifier = Modifier.fillMaxWidth().heightIn(min = 80.dp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
@@ -136,7 +138,7 @@ fun RequestTimeOffSheet(onDismiss: () -> Unit) {
             )
 
             if (endDate.isBefore(startDate)) {
-                Text("End date must be on or after start date.", color = HFColors.StatusRed, fontSize = 12.sp)
+                Text(stringResource(R.string.to_end_error), color = HFColors.StatusRed, fontSize = 12.sp)
             }
 
             saveError?.let {
@@ -197,7 +199,7 @@ fun RequestTimeOffSheet(onDismiss: () -> Unit) {
                 if (isSaving) {
                     CircularProgressIndicator(color = Color.White, modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                 } else {
-                    Text("Submit Request", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.to_submit), color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -216,9 +218,9 @@ fun RequestTimeOffSheet(onDismiss: () -> Unit) {
                         if (endDate.isBefore(startDate)) endDate = startDate
                     }
                     showStartPicker = false
-                }) { Text("OK") }
+                }) { Text(stringResource(R.string.to_ok)) }
             },
-            dismissButton = { TextButton(onClick = { showStartPicker = false }) { Text("Cancel") } }
+            dismissButton = { TextButton(onClick = { showStartPicker = false }) { Text(stringResource(R.string.action_cancel)) } }
         ) { DatePicker(state = state) }
     }
 
@@ -234,9 +236,9 @@ fun RequestTimeOffSheet(onDismiss: () -> Unit) {
                         endDate = Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()).toLocalDate()
                     }
                     showEndPicker = false
-                }) { Text("OK") }
+                }) { Text(stringResource(R.string.to_ok)) }
             },
-            dismissButton = { TextButton(onClick = { showEndPicker = false }) { Text("Cancel") } }
+            dismissButton = { TextButton(onClick = { showEndPicker = false }) { Text(stringResource(R.string.action_cancel)) } }
         ) { DatePicker(state = state) }
     }
 }

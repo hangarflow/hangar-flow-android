@@ -40,6 +40,7 @@ import java.util.Locale
 import kotlinx.coroutines.launch
 import com.hangarflow.app.R
 import androidx.compose.ui.res.stringResource
+import com.hangarflow.app.i18n.HFStrings
 
 /**
  * Schedule hub — monthly calendar showing plane arrivals (drop-offs)
@@ -463,7 +464,7 @@ private fun MonthNav(monthLabel: String, onPrev: () -> Unit, onNext: () -> Unit)
                 .clickable { onPrev() },
             contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Previous month", tint = HFColors.OnSurface, modifier = Modifier.size(15.dp))
+            Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.sc_prev_month), tint = HFColors.OnSurface, modifier = Modifier.size(15.dp))
         }
         Text(monthLabel, color = HFColors.OnSurface, fontSize = 15.sp, fontWeight = FontWeight.Bold)
         Box(
@@ -474,7 +475,7 @@ private fun MonthNav(monthLabel: String, onPrev: () -> Unit, onNext: () -> Unit)
                 .clickable { onNext() },
             contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.AutoMirrored.Outlined.ArrowForward, contentDescription = "Next month", tint = HFColors.OnSurface, modifier = Modifier.size(15.dp))
+            Icon(Icons.AutoMirrored.Outlined.ArrowForward, contentDescription = stringResource(R.string.sc_next_month), tint = HFColors.OnSurface, modifier = Modifier.size(15.dp))
         }
     }
 }
@@ -776,8 +777,10 @@ private fun buildPlaneEventIndex(planes: List<HFPlane>): Map<LocalDate, List<Pla
             out.getOrPut(d) { mutableListOf() }
                 .add(PlaneScheduleEvent(
                     kind = PlaneEventKind.Arrival,
-                    title = "${plane.tailNumber} arrives",
-                    subtitle = if (insp != null) "Drop-off · $insp" else "Drop-off",
+                    title = HFStrings.get(R.string.sc_arrives, plane.tailNumber, fallback = "${plane.tailNumber} arrives"),
+                    subtitle = if (insp != null)
+                        HFStrings.get(R.string.sc_dropoff_for, insp, fallback = "Drop-off · $insp")
+                    else HFStrings.get(R.string.sc_dropoff, "Drop-off"),
                     plane = plane
                 ))
         }
@@ -785,13 +788,11 @@ private fun buildPlaneEventIndex(planes: List<HFPlane>): Map<LocalDate, List<Pla
             out.getOrPut(d) { mutableListOf() }
                 .add(PlaneScheduleEvent(
                     kind = PlaneEventKind.Deadline,
-                    title = "${plane.tailNumber} RTS deadline",
-                    // Literal, not a resource: this runs in
-                    // buildPlaneEventIndex(), a plain function that cannot call
-                    // stringResource. Strings built outside composition need the
-                    // Context-based lookup that the data layer still needs — see
-                    // the note on SharedStore.
-                    subtitle = "Return to service"
+                    title = HFStrings.get(R.string.sc_rts_deadline, plane.tailNumber, fallback = "${plane.tailNumber} RTS deadline"),
+                    // buildPlaneEventIndex() is a plain function and cannot call
+                    // stringResource — HFStrings is the Context-based lookup for
+                    // strings built outside composition.
+                    subtitle = HFStrings.get(R.string.sc_return_to_service, "Return to service")
                 ))
         }
     }
@@ -1023,12 +1024,12 @@ private fun AddCalendarEventSheet(
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(stringResource(R.string.sc_send_reminder_caps), color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
-                        Text("Push a notification when it's due.", color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 11.sp)
+                        Text(stringResource(R.string.sc_push_when_due), color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 11.sp)
                     }
                     androidx.compose.material3.Switch(checked = remindOn, onCheckedChange = { remindOn = it })
                 }
                 if (remindOn) {
-                    Text("REMIND WHO", color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+                    Text(stringResource(R.string.sc_remind_who_caps), color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
                     Row(
                         modifier = Modifier.horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -1039,9 +1040,9 @@ private fun AddCalendarEventSheet(
                             ScopeChip(label.ifBlank { "Teammate" }, remindUserAuthId == u.authUserId) { remindUserAuthId = u.authUserId }
                         }
                     }
-                    Text("REMIND ON", color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+                    Text(stringResource(R.string.sc_remind_on_caps), color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
                     DateStepperRow(remindDate, dateFmt) { remindDate = it }
-                    Text("AT", color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+                    Text(stringResource(R.string.sc_at_caps), color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         StepChip("◄") { remindHour = (remindHour + 23) % 24 }
                         Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
@@ -1104,7 +1105,7 @@ private fun AddCalendarEventSheet(
                 }
             ) { Text(if (saving) "Saving…" else "Save", color = HFColors.StatusYellow, fontWeight = FontWeight.Bold) }
         },
-        dismissButton = { androidx.compose.material3.TextButton(onClick = { if (!saving) onDismiss() }) { Text("Cancel") } }
+        dismissButton = { androidx.compose.material3.TextButton(onClick = { if (!saving) onDismiss() }) { Text(stringResource(R.string.action_cancel)) } }
     )
 }
 

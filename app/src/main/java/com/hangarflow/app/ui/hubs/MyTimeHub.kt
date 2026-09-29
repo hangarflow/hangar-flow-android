@@ -23,6 +23,8 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import com.hangarflow.app.R
+import androidx.compose.ui.res.stringResource
 
 /**
  * A tech's own timesheet: the segments they worked, what they did, and
@@ -58,7 +60,7 @@ fun MyTimeHub() {
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("My Time", color = HFColors.OnSurface, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.mt_my_time), color = HFColors.OnSurface, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                 Text(day.format(DateTimeFormatter.ofPattern("EEEE, MMM d")),
                     color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 11.sp)
             }
@@ -71,7 +73,7 @@ fun MyTimeHub() {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(hrs(total), color = HFColors.StatusGreen, fontSize = 26.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.width(8.dp))
-            Text("logged", color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 12.sp)
+            Text(stringResource(R.string.mt_logged), color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 12.sp)
             Spacer(Modifier.weight(1f))
             Box(
                 Modifier.clip(RoundedCornerShape(100.dp))
@@ -79,11 +81,11 @@ fun MyTimeHub() {
                     .border(1.dp, HFColors.StatusGreen.copy(alpha = 0.4f), RoundedCornerShape(100.dp))
                     .clickable { adding = true }
                     .padding(horizontal = 16.dp, vertical = 9.dp)
-            ) { Text("+ Add time", color = HFColors.StatusGreen, fontSize = 13.sp, fontWeight = FontWeight.Bold) }
+            ) { Text(stringResource(R.string.mt_add_time_plus), color = HFColors.StatusGreen, fontSize = 13.sp, fontWeight = FontWeight.Bold) }
         }
 
         if (mine.isEmpty()) {
-            Text("Nothing logged for this day yet.",
+            Text(stringResource(R.string.mt_nothing_day),
                 color = HFColors.OnSurface.copy(alpha = 0.45f), fontSize = 13.sp)
         } else {
             mine.forEach { SegRow(it) }
@@ -167,11 +169,11 @@ private fun AddSegmentSheet(
             Modifier.padding(horizontal = 20.dp).padding(bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("Add time", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = HFColors.OnSurface)
+            Text(stringResource(R.string.mt_add_time), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = HFColors.OnSurface)
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(from, { from = it }, label = { Text("From") },
+                OutlinedTextField(from, { from = it }, label = { Text(stringResource(R.string.mt_from)) },
                     singleLine = true, isError = s == null, modifier = Modifier.weight(1f))
-                OutlinedTextField(to, { to = it }, label = { Text("To") },
+                OutlinedTextField(to, { to = it }, label = { Text(stringResource(R.string.mt_to)) },
                     singleLine = true, isError = e == null, modifier = Modifier.weight(1f))
             }
             Text(
@@ -183,7 +185,7 @@ private fun AddSegmentSheet(
                 color = if (minutes == null) HFColors.StatusOrange else HFColors.OnSurface.copy(alpha = 0.55f),
                 fontSize = 12.sp
             )
-            Text("AIRCRAFT (OPTIONAL)", color = HFColors.OnSurface.copy(alpha = 0.55f),
+            Text(stringResource(R.string.mt_aircraft_optional_caps), color = HFColors.OnSurface.copy(alpha = 0.55f),
                 fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
             Row(Modifier.horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -191,7 +193,7 @@ private fun AddSegmentSheet(
                 state.planes.forEach { p -> Pick(p.tailNumber, tail == p.tailNumber) { tail = p.tailNumber } }
             }
             OutlinedTextField(notes, { notes = it },
-                label = { Text("What did you work on?") },
+                label = { Text(stringResource(R.string.mt_what_worked_on)) },
                 modifier = Modifier.fillMaxWidth(), minLines = 2)
             Box(
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))

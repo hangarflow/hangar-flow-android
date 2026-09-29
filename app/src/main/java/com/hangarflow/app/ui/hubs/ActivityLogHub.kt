@@ -44,7 +44,7 @@ fun ActivityLogHub() {
         when {
             loading -> Text(stringResource(R.string.common_loading), color = HFColors.OnSurfaceMuted, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
             events.isEmpty() -> Text(
-                "No activity recorded yet. New work logs, squawks, plane adds, parts requests, and clock-outs show up here.",
+                stringResource(R.string.al_empty),
                 color = HFColors.OnSurfaceMuted, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp)
             )
             else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {

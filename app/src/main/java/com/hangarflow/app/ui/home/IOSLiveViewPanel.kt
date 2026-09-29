@@ -77,7 +77,7 @@ fun IOSLiveViewPanel(
             verticalAlignment = Alignment.Top
         ) {
             Text(
-                text = "Live View",
+                text = stringResource(R.string.lv_live_view),
                 color = HFColors.OnSurface,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold
@@ -117,7 +117,7 @@ fun IOSLiveViewPanel(
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             IOSStatTile(
                 accent = HFColors.StatusGreen,
-                label = "TODAY",
+                label = stringResource(R.string.lv_today_caps),
                 value = todayHoursLabel,
                 footer = if (userName == null) "shop hours" else "your hours",
                 modifier = Modifier.weight(1f),
@@ -125,7 +125,7 @@ fun IOSLiveViewPanel(
             )
             IOSStatTile(
                 accent = HFColors.StatusOrange,
-                label = "OPEN WORK",
+                label = stringResource(R.string.lv_open_work_caps),
                 value = "$openAssignedCount",
                 footer = if (userName == null) "across shop" else "assigned to you",
                 modifier = Modifier.weight(1f),
@@ -136,7 +136,7 @@ fun IOSLiveViewPanel(
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             IOSStatTile(
                 accent = HFColors.StatusPurple,
-                label = "MANUALS",
+                label = stringResource(R.string.lv_manuals_caps),
                 value = "$manualsCount",
                 footer = "available offline",
                 modifier = Modifier.weight(1f),
@@ -144,7 +144,7 @@ fun IOSLiveViewPanel(
             )
             IOSStatTile(
                 accent = HFColors.StatusRed,
-                label = "SQUAWKS",
+                label = stringResource(R.string.lv_squawks_caps),
                 value = "$openSquawkCount",
                 footer = "still open",
                 modifier = Modifier.weight(1f),
@@ -217,7 +217,7 @@ private fun SkipLunchButton(onClick: () -> Unit) {
         )
         Spacer(Modifier.width(8.dp))
         Text(
-            text = "Skip Lunch",
+            text = stringResource(R.string.lv_skip_lunch),
             color = accent,
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold
@@ -310,7 +310,7 @@ private fun OfflineBanner() {
         )
         Spacer(Modifier.width(6.dp))
         Text(
-            "Working offline — changes will sync when connected",
+            stringResource(R.string.lv_offline),
             color = HFColors.StatusYellow.copy(alpha = 0.85f),
             fontSize = 10.sp,
             fontWeight = FontWeight.Medium

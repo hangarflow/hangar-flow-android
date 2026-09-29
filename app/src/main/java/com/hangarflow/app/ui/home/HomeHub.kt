@@ -192,7 +192,7 @@ private fun HomeHubContent(onOpenHub: (HomeDestination) -> Unit, onOpenNavigator
             modifier = Modifier.padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // AI navigator — "What are you looking for?" Mirrors the iOS
+            // AI navigator — stringResource(R.string.home_ai_prompt) Mirrors the iOS
             // IOSAINavigatorBar: neutral field, cyan sparkle leading icon,
             // muted-white placeholder, cyan hairline border.
             Row(
@@ -216,7 +216,7 @@ private fun HomeHubContent(onOpenHub: (HomeDestination) -> Unit, onOpenNavigator
                     modifier = Modifier.size(18.dp)
                 )
                 Text(
-                    "What are you looking for?",
+                    stringResource(R.string.home_ai_prompt),
                     color = HFColors.OnSurface.copy(alpha = 0.70f),
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Medium,
@@ -396,7 +396,7 @@ private fun CustomizeHomeButton(onClick: () -> Unit) {
         verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
     ) {
         androidx.compose.material3.Text(
-            "Customize home",
+            stringResource(R.string.hh_customize),
             color = HFColors.OnSurface.copy(alpha = 0.80f),
             fontSize = 13.sp,
             fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
@@ -427,14 +427,14 @@ private fun CustomizeHomeSheet(
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
         ) {
             androidx.compose.material3.Text(
-                "Customize home".uppercase(),
+                stringResource(R.string.hh_customize).uppercase(),
                 color = HFColors.OnSurface.copy(alpha = 0.55f),
                 fontSize = 11.sp,
                 fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
                 letterSpacing = 1.2.sp
             )
             androidx.compose.material3.Text(
-                "Toggle which cards show on your home screen.",
+                stringResource(R.string.hh_customize_sub),
                 color = HFColors.OnSurface.copy(alpha = 0.60f),
                 fontSize = 12.sp,
                 fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
@@ -511,7 +511,7 @@ private fun CustomizeHomeSheet(
                 horizontalArrangement = Arrangement.Center
             ) {
                 androidx.compose.material3.Text(
-                    "Done",
+                    stringResource(R.string.action_done),
                     color = HFColors.BrandInk,
                     fontSize = 14.sp,
                     fontWeight = androidx.compose.ui.text.font.FontWeight.Bold

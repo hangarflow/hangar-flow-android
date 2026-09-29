@@ -28,6 +28,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.hangarflow.app.ui.theme.HFColors
+import com.hangarflow.app.R
+import androidx.compose.ui.res.stringResource
 
 /**
  * Top-of-shell header. Mirrors the macOS `HFDesktopHeader` — brand
@@ -97,7 +99,7 @@ fun HFTopBar(
         ) {
             Icon(
                 imageVector = Icons.Outlined.Logout,
-                contentDescription = "Sign out",
+                contentDescription = stringResource(R.string.action_sign_out),
                 tint = HFColors.OnSurface,
                 modifier = Modifier.size(18.dp)
             )
@@ -123,7 +125,7 @@ private fun SyncStatusPill() {
         )
         Spacer(Modifier.width(6.dp))
         Text(
-            text = "Synced",
+            text = stringResource(R.string.tb_synced),
             color = HFColors.StatusGreen,
             fontSize = 11.sp,
             fontWeight = FontWeight.SemiBold

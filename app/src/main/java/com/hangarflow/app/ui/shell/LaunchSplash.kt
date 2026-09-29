@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.sp
 import com.hangarflow.app.BuildConfig
 import com.hangarflow.app.R
 import com.hangarflow.app.ui.theme.HFColors
+import androidx.compose.ui.res.stringResource
 
 /**
  * The boot screen, shown while the session is being restored.
@@ -99,7 +100,7 @@ fun HFLaunchSplash() {
             )
 
             Text(
-                "Aviation maintenance, in order",
+                stringResource(R.string.splash_tagline),
                 color = Color.White.copy(alpha = 0.42f),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Medium,

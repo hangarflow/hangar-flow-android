@@ -382,7 +382,7 @@ private fun SquawkSearchBar(query: String, onChange: (String) -> Unit, onClear: 
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Close,
-                    contentDescription = "Clear",
+                    contentDescription = stringResource(R.string.action_clear),
                     tint = HFColors.OnSurface.copy(alpha = 0.5f),
                     modifier = Modifier.size(16.dp)
                 )
@@ -670,7 +670,7 @@ private fun SquawkPhotoThumb(path: String, onClick: () -> Unit) {
                     .data(signedUrl)
                     .crossfade(true)
                     .build(),
-                contentDescription = "Squawk photo",
+                contentDescription = stringResource(R.string.cd_squawk_photo),
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(10.dp))
             )

@@ -50,6 +50,8 @@ import com.hangarflow.app.data.cloud.HFCloudSyncService
 import com.hangarflow.app.data.model.HFPartMovement
 import com.hangarflow.app.ui.theme.HFColors
 import kotlinx.coroutines.launch
+import com.hangarflow.app.R
+import androidx.compose.ui.res.stringResource
 
 /**
  * The touch answer to the Desktop's right-click menu.
@@ -126,7 +128,7 @@ internal fun MovementActionsSheet(
                 .clickable(onClick = onClose).padding(vertical = 14.dp),
             contentAlignment = Alignment.Center
         ) {
-            Text("Cancel", color = HFColors.OnSurfaceMuted, fontSize = 14.sp,
+            Text(stringResource(R.string.action_cancel), color = HFColors.OnSurfaceMuted, fontSize = 14.sp,
                 fontWeight = FontWeight.SemiBold)
         }
         Spacer(Modifier.height(12.dp))
@@ -186,7 +188,7 @@ internal fun ReceivePartSheet(onDismiss: () -> Unit) {
                 .verticalScroll(rememberScrollState()).navigationBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Text("Receive a part", color = HFColors.OnSurface,
+            Text(stringResource(R.string.pio_receive_a_part), color = HFColors.OnSurface,
                 fontSize = 20.sp, fontWeight = FontWeight.Bold)
 
             Field(partNumber, { partNumber = it }, "Part number")
@@ -201,7 +203,7 @@ internal fun ReceivePartSheet(onDismiss: () -> Unit) {
 
             // Aircraft picker — plain chips rather than a dropdown, because a
             // dropdown in a bottom sheet on a tablet is a fight with the IME.
-            Text("For which aircraft", color = HFColors.OnSurfaceMuted, fontSize = 11.sp,
+            Text(stringResource(R.string.pio_for_which), color = HFColors.OnSurfaceMuted, fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold)
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 PickRow("Not for a specific aircraft", planeId == null) { planeId = null }
@@ -232,7 +234,7 @@ internal fun ReceivePartSheet(onDismiss: () -> Unit) {
                     Modifier.weight(1f).clip(RoundedCornerShape(14.dp))
                         .clickable(enabled = !busy) { onDismiss() }.padding(vertical = 14.dp),
                     contentAlignment = Alignment.Center
-                ) { Text("Cancel", color = HFColors.OnSurfaceMuted, fontSize = 14.sp) }
+                ) { Text(stringResource(R.string.action_cancel), color = HFColors.OnSurfaceMuted, fontSize = 14.sp) }
                 Box(
                     Modifier.weight(1f).clip(RoundedCornerShape(14.dp))
                         .background(HFColors.StatusGreen.copy(alpha = 0.16f))
@@ -411,9 +413,7 @@ internal fun EditMovementSheet(movement: HFPartMovement, onDismiss: () -> Unit) 
             // two serials are not the same number.
             if (movement.isCore) {
                 Text(
-                    "The core going back is the unit that came off the aircraft — a " +
-                        "different serial from the one that arrived. Read it off the data " +
-                        "plate; nothing fills this in for you.",
+                    stringResource(R.string.pi_core_hint),
                     color = HFColors.OnSurfaceMuted, fontSize = 11.sp
                 )
             }
@@ -445,7 +445,7 @@ internal fun EditMovementSheet(movement: HFPartMovement, onDismiss: () -> Unit) 
                     Modifier.weight(1f).clip(RoundedCornerShape(14.dp))
                         .clickable(enabled = !busy) { onDismiss() }.padding(vertical = 14.dp),
                     contentAlignment = Alignment.Center
-                ) { Text("Cancel", color = HFColors.OnSurfaceMuted, fontSize = 14.sp) }
+                ) { Text(stringResource(R.string.action_cancel), color = HFColors.OnSurfaceMuted, fontSize = 14.sp) }
                 Box(
                     Modifier.weight(1f).clip(RoundedCornerShape(14.dp))
                         .background(HFColors.StatusGreen.copy(alpha = 0.16f))

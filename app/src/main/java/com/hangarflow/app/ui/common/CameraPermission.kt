@@ -8,6 +8,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
+import com.hangarflow.app.R
+import androidx.compose.ui.res.stringResource
 
 /**
  * Returns a lambda that checks the CAMERA permission before calling
@@ -17,7 +19,7 @@ import androidx.core.content.ContextCompat
  * Usage:
  * ```
  * val launchCamera = rememberCameraPermissionGate { cameraLauncher.launch(null) }
- * Button(onClick = launchCamera) { Text("Camera") }
+ * Button(onClick = launchCamera) { Text(stringResource(R.string.cs_camera)) }
  * ```
  */
 @Composable

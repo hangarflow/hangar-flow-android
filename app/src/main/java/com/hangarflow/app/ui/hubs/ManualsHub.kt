@@ -46,6 +46,8 @@ import com.hangarflow.app.data.model.HFManual
 import com.hangarflow.app.ui.common.HFPullToRefreshHost
 import com.hangarflow.app.ui.theme.HFColors
 import kotlinx.coroutines.launch
+import com.hangarflow.app.R
+import androidx.compose.ui.res.stringResource
 
 /**
  * Manuals hub — lists every plane's manuals (filtered to real manual
@@ -109,7 +111,7 @@ private fun ManualsHubContent() {
                     .padding(18.dp)
             ) {
                 Text(
-                    "NO MANUALS YET",
+                    stringResource(R.string.mh_no_manuals_caps),
                     color = HFColors.OnSurface.copy(alpha = 0.55f),
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
@@ -117,7 +119,7 @@ private fun ManualsHubContent() {
                 )
                 Spacer(Modifier.size(8.dp))
                 Text(
-                    "Admins import manuals from the desktop. They'll show up here once they sync.",
+                    stringResource(R.string.mh_admins_import),
                     color = HFColors.OnSurface.copy(alpha = 0.68f),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium
@@ -135,7 +137,7 @@ private fun ManualsHubContent() {
         // Section caption — matches iOS "Plane Manuals" header above the list.
         item(key = "__plane_manuals_caption") {
             Text(
-                "PLANE MANUALS",
+                stringResource(R.string.mh_plane_manuals_caps),
                 color = HFColors.OnSurface.copy(alpha = 0.62f),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
@@ -200,7 +202,7 @@ private fun ManualsHubContent() {
             title = { Text("Purge ${target.fileName}?", color = HFColors.StatusRed, fontWeight = FontWeight.Bold) },
             text = {
                 Text(
-                    "This permanently deletes the manual file for everyone in the org. Indexed references are kept so it can be re-attached later.",
+                    stringResource(R.string.mh_delete_warning),
                     color = HFColors.OnSurface, fontSize = 13.sp
                 )
             },
@@ -209,10 +211,10 @@ private fun ManualsHubContent() {
                     val id = target.id
                     confirmPurge = null
                     scope.launch { SharedStore.purgeManual(id) }
-                }) { Text("Purge", color = HFColors.StatusRed, fontWeight = FontWeight.Bold) }
+                }) { Text(stringResource(R.string.mh_purge), color = HFColors.StatusRed, fontWeight = FontWeight.Bold) }
             },
             dismissButton = {
-                androidx.compose.material3.TextButton(onClick = { confirmPurge = null }) { Text("Cancel") }
+                androidx.compose.material3.TextButton(onClick = { confirmPurge = null }) { Text(stringResource(R.string.action_cancel)) }
             }
         )
     }
@@ -337,13 +339,13 @@ private fun ManualRow(
                 )
                 DownloadState.Cached -> Icon(
                     imageVector = Icons.Outlined.CheckCircle,
-                    contentDescription = "Saved offline",
+                    contentDescription = stringResource(R.string.mh_saved_offline),
                     tint = HFColors.StatusGreen,
                     modifier = Modifier.size(22.dp)
                 )
                 else -> Icon(
                     imageVector = Icons.Outlined.Download,
-                    contentDescription = "Download for offline",
+                    contentDescription = stringResource(R.string.mh_download_offline),
                     tint = HFColors.OnSurface.copy(alpha = 0.85f),
                     modifier = Modifier.size(22.dp)
                 )
@@ -360,7 +362,7 @@ private fun ManualRow(
                     .padding(horizontal = 10.dp, vertical = 8.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text("Purge", color = HFColors.StatusRed, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.mh_purge), color = HFColors.StatusRed, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
             }
         }
     }

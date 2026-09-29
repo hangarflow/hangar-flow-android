@@ -62,6 +62,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
+import com.hangarflow.app.R
+import androidx.compose.ui.res.stringResource
 
 /**
  * Full-screen sheet for creating a new squawk from Android. Plane
@@ -113,7 +115,7 @@ fun CreateSquawkSheet(onDismiss: () -> Unit) {
         !isSaving &&
         authState.orgId != null
 
-    // Single save path shared by "Save" and "Save & add another". When
+    // Single save path shared by "Save" and stringResource(R.string.cs_save_another). When
     // keepOpen is true we clear the entry fields but keep the plane
     // selected so a tech can stack squawks during a walk-around without
     // re-opening the sheet (the mobile bulk-entry pattern).
@@ -194,9 +196,9 @@ fun CreateSquawkSheet(onDismiss: () -> Unit) {
             verticalAlignment = Alignment.Top
         ) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("New Squawk", color = HFColors.OnSurface, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.sq_new), color = HFColors.OnSurface, fontSize = 24.sp, fontWeight = FontWeight.Bold)
                 Text(
-                    "Report a discrepancy. Admins see it within seconds.",
+                    stringResource(R.string.cs_report_sub),
                     color = HFColors.OnSurface.copy(alpha = 0.68f),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium
@@ -212,7 +214,7 @@ fun CreateSquawkSheet(onDismiss: () -> Unit) {
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Close,
-                    contentDescription = "Close",
+                    contentDescription = stringResource(R.string.action_close),
                     tint = HFColors.OnSurface,
                     modifier = Modifier.size(16.dp)
                 )
@@ -324,14 +326,14 @@ fun CreateSquawkSheet(onDismiss: () -> Unit) {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 AttachButton(
                     icon = Icons.Outlined.Camera,
-                    label = "Camera",
+                    label = stringResource(R.string.cs_camera),
                     color = HFColors.StatusGreen,
                     onClick = launchCameraWithPermission,
                     modifier = Modifier.weight(1f)
                 )
                 AttachButton(
                     icon = Icons.Outlined.PhotoLibrary,
-                    label = "Library",
+                    label = stringResource(R.string.cs_library),
                     color = HFColors.StatusBlue,
                     onClick = {
                         libraryLauncher.launch(
@@ -345,7 +347,7 @@ fun CreateSquawkSheet(onDismiss: () -> Unit) {
             }
             if (photos.isEmpty()) {
                 Text(
-                    "No photos attached yet.",
+                    stringResource(R.string.cs_no_photos),
                     color = HFColors.OnSurface.copy(alpha = 0.45f),
                     fontSize = 12.sp
                 )
@@ -374,7 +376,7 @@ fun CreateSquawkSheet(onDismiss: () -> Unit) {
                             ) {
                                 Icon(
                                     imageVector = Icons.Outlined.Close,
-                                    contentDescription = "Remove",
+                                    contentDescription = stringResource(R.string.ac_remove),
                                     tint = HFColors.OnSurface,
                                     modifier = Modifier.size(12.dp)
                                 )
@@ -432,7 +434,7 @@ fun CreateSquawkSheet(onDismiss: () -> Unit) {
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    "Save & add another",
+                    stringResource(R.string.cs_save_another),
                     color = if (canSave) HFColors.StatusOrange else HFColors.OnSurface.copy(alpha = 0.4f),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold
@@ -475,7 +477,7 @@ private fun NeedsPartsSection(
         ) {
             Column(Modifier.weight(1f)) {
                 Text(
-                    "Needs Parts",
+                    stringResource(R.string.cs_needs_parts),
                     color = if (needsParts) HFColors.StatusOrange else HFColors.OnSurface,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold
@@ -515,7 +517,7 @@ private fun NeedsPartsSection(
                 onValueChange = onRequestedPartChange,
                 placeholder = {
                     Text(
-                        "Part number or description",
+                        stringResource(R.string.cs_part_hint),
                         color = HFColors.OnSurface.copy(alpha = 0.40f),
                         fontSize = 13.sp
                     )
@@ -675,7 +677,7 @@ private fun SquawkTriageCard(triage: HFCloudSyncService.SquawkTriageResult, onAp
         verticalArrangement = Arrangement.spacedBy(5.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("✨ AI Suggestion", color = HFColors.StatusCyan, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.cs_ai_suggestion), color = HFColors.StatusCyan, fontSize = 11.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.weight(1f))
             Text(
                 triage.severity, color = sevColor, fontSize = 10.sp, fontWeight = FontWeight.Bold,
@@ -690,12 +692,12 @@ private fun SquawkTriageCard(triage: HFCloudSyncService.SquawkTriageResult, onAp
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (triage.draftTitle.isNotBlank()) {
                 Text(
-                    "Use suggested title", color = HFColors.StatusCyan, fontSize = 10.sp, fontWeight = FontWeight.SemiBold,
+                    stringResource(R.string.cs_use_title), color = HFColors.StatusCyan, fontSize = 10.sp, fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable(onClick = onApplyTitle).padding(horizontal = 4.dp, vertical = 2.dp)
                 )
             }
             Spacer(Modifier.weight(1f))
-            Text("Verify — AI can be wrong", color = HFColors.OnSurface.copy(alpha = 0.3f), fontSize = 9.sp)
+            Text(stringResource(R.string.cs_verify_ai), color = HFColors.OnSurface.copy(alpha = 0.3f), fontSize = 9.sp)
         }
     }
 }

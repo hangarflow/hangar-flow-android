@@ -28,10 +28,12 @@ import com.hangarflow.app.data.cloud.HFCloudSyncService
 import com.hangarflow.app.ui.home.HomeDestination
 import com.hangarflow.app.ui.theme.HFColors
 import kotlinx.coroutines.launch
+import com.hangarflow.app.R
+import androidx.compose.ui.res.stringResource
 
 /**
  * AI navigator dialogs — the one-time "AI can be wrong" disclaimer and the
- * "What are you looking for?" input. Routes a plain-language request to a
+ * stringResource(R.string.home_ai_prompt) input. Routes a plain-language request to a
  * hub via the `ai-navigate` edge function (offline to the app: the model
  * only ever sees the destination catalog, never the web).
  */
@@ -48,15 +50,15 @@ fun AINavigatorHost(
     if (showDisclaimer) {
         AlertDialog(
             onDismissRequest = onDismissDisclaimer,
-            title = { Text("Heads up — AI can be wrong", fontWeight = FontWeight.Bold, color = HFColors.OnSurface) },
+            title = { Text(stringResource(R.string.ai_heads_up), fontWeight = FontWeight.Bold, color = HFColors.OnSurface) },
             text = {
                 Text(
-                    "This assistant points you to the right screen from a plain-language request. It can make mistakes — always double-check important actions yourself.",
+                    stringResource(R.string.ai_disclaimer),
                     color = HFColors.OnSurface.copy(alpha = 0.75f), fontSize = 13.sp
                 )
             },
-            confirmButton = { TextButton(onClick = onAcceptDisclaimer) { Text("I understand", color = HFColors.StatusCyan, fontWeight = FontWeight.Bold) } },
-            dismissButton = { TextButton(onClick = onDismissDisclaimer) { Text("Cancel", color = HFColors.OnSurface.copy(alpha = 0.6f)) } },
+            confirmButton = { TextButton(onClick = onAcceptDisclaimer) { Text(stringResource(R.string.ai_understand), color = HFColors.StatusCyan, fontWeight = FontWeight.Bold) } },
+            dismissButton = { TextButton(onClick = onDismissDisclaimer) { Text(stringResource(R.string.action_cancel), color = HFColors.OnSurface.copy(alpha = 0.6f)) } },
             containerColor = HFColors.Background
         )
     }
@@ -85,12 +87,12 @@ fun AINavigatorHost(
 
         AlertDialog(
             onDismissRequest = onDismiss,
-            title = { Text("What are you looking for?", fontWeight = FontWeight.Bold, color = HFColors.OnSurface) },
+            title = { Text(stringResource(R.string.home_ai_prompt), fontWeight = FontWeight.Bold, color = HFColors.OnSurface) },
             text = {
                 Column {
                     OutlinedTextField(
                         value = query, onValueChange = { query = it }, singleLine = true,
-                        placeholder = { Text("e.g. “add a user” or “my hours”", color = HFColors.OnSurface.copy(alpha = 0.4f)) },
+                        placeholder = { Text(stringResource(R.string.ai_hint), color = HFColors.OnSurface.copy(alpha = 0.4f)) },
                         modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = HFColors.OnSurface, unfocusedTextColor = HFColors.OnSurface,
@@ -103,22 +105,22 @@ fun AINavigatorHost(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp, color = HFColors.StatusCyan)
                             Spacer(Modifier.width(8.dp))
-                            Text("Finding it…", color = HFColors.OnSurface.copy(alpha = 0.7f), fontSize = 13.sp)
+                            Text(stringResource(R.string.ai_finding), color = HFColors.OnSurface.copy(alpha = 0.7f), fontSize = 13.sp)
                         }
                     } else if (note != null) {
                         Spacer(Modifier.height(8.dp))
                         Text(note!!, color = if (noMatch) HFColors.StatusOrange else HFColors.OnSurface.copy(alpha = 0.8f), fontSize = 13.sp)
                     }
                     Spacer(Modifier.height(8.dp))
-                    Text("The AI can be wrong — double-check important actions.", color = HFColors.OnSurface.copy(alpha = 0.35f), fontSize = 10.sp)
+                    Text(stringResource(R.string.ai_double_check), color = HFColors.OnSurface.copy(alpha = 0.35f), fontSize = 10.sp)
                 }
             },
             confirmButton = {
                 TextButton(onClick = { run() }, enabled = query.trim().isNotEmpty() && !loading) {
-                    Text("Go", color = HFColors.StatusCyan, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.ai_go), color = HFColors.StatusCyan, fontWeight = FontWeight.Bold)
                 }
             },
-            dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel", color = HFColors.OnSurface.copy(alpha = 0.6f)) } },
+            dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel), color = HFColors.OnSurface.copy(alpha = 0.6f)) } },
             containerColor = HFColors.Background
         )
     }

@@ -274,7 +274,7 @@ private fun UserActionsSheet(
             title = { Text("Delete ${user.displayName}?", fontWeight = FontWeight.Bold) },
             text = {
                 Text(
-                    "This removes the user from the org. Their completed work logs and time entries are preserved for billing.",
+                    stringResource(R.string.us_remove_warning),
                     fontSize = 13.sp
                 )
             },

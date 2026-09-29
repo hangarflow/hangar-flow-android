@@ -188,7 +188,7 @@ fun ClockOutSheet(onDismiss: () -> Unit) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(stringResource(R.string.clock_out), color = HFColors.OnSurface, fontSize = 24.sp, fontWeight = FontWeight.Bold)
                 Text(
-                    "Log what you worked on and any reimbursements before closing the shift.",
+                    stringResource(R.string.co_sub),
                     color = HFColors.OnSurface.copy(alpha = 0.68f),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium
@@ -202,7 +202,7 @@ fun ClockOutSheet(onDismiss: () -> Unit) {
                     .clickable(enabled = !submitting) { onDismiss() },
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Outlined.Close, contentDescription = "Close", tint = HFColors.OnSurface, modifier = Modifier.size(16.dp))
+                Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.action_close), tint = HFColors.OnSurface, modifier = Modifier.size(16.dp))
             }
         }
 
@@ -216,7 +216,7 @@ fun ClockOutSheet(onDismiss: () -> Unit) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        "WHAT DID YOU WORK ON TODAY?",
+                        stringResource(R.string.co_what_caps),
                         color = HFColors.OnSurface.copy(alpha = 0.55f),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
@@ -253,7 +253,7 @@ fun ClockOutSheet(onDismiss: () -> Unit) {
                     onValueChange = { summary = it },
                     placeholder = {
                         Text(
-                            "e.g. NK123L: replaced #2 main tire IAW AMM 32-40-00, rigged speedbrake cable.",
+                            stringResource(R.string.co_hint),
                             color = HFColors.OnSurface.copy(alpha = 0.40f),
                             fontSize = 13.sp
                         )
@@ -276,7 +276,7 @@ fun ClockOutSheet(onDismiss: () -> Unit) {
                     val assigned = planeHours.values.sumOf { it.toDoubleOrNull() ?: 0.0 }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            "HOURS BY AIRCRAFT",
+                            stringResource(R.string.co_hours_caps),
                             color = HFColors.OnSurface.copy(alpha = 0.55f),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
@@ -284,7 +284,7 @@ fun ClockOutSheet(onDismiss: () -> Unit) {
                             modifier = Modifier.weight(1f)
                         )
                         Text(
-                            "%.1f of %.1f h".format(assigned, shiftMinutes / 60.0),
+                            stringResource(R.string.co_of_hours, assigned, shiftMinutes / 60.0),
                             color = HFColors.OnSurface.copy(alpha = 0.55f),
                             fontSize = 12.sp
                         )
@@ -357,7 +357,7 @@ fun ClockOutSheet(onDismiss: () -> Unit) {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        "REIMBURSEMENTS",
+                        stringResource(R.string.co_reimb_caps),
                         color = HFColors.OnSurface.copy(alpha = 0.55f),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
@@ -365,7 +365,7 @@ fun ClockOutSheet(onDismiss: () -> Unit) {
                         modifier = Modifier.weight(1f)
                     )
                     Text(
-                        "+ Add",
+                        stringResource(R.string.co_add_plus),
                         color = HFColors.StatusGreen,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
@@ -377,7 +377,7 @@ fun ClockOutSheet(onDismiss: () -> Unit) {
                 }
                 if (rows.isEmpty()) {
                     Text(
-                        "Tap +Add to log a receipt (parts, lunch run for the crew, parking, etc.). Receipt photos auto-delete after 30 days — admin should pull reports inside that window.",
+                        stringResource(R.string.co_receipt_hint),
                         color = HFColors.OnSurface.copy(alpha = 0.55f),
                         fontSize = 12.sp,
                         modifier = Modifier
@@ -574,7 +574,7 @@ private fun ReimbursementRow(
             Spacer(Modifier.width(8.dp))
             Icon(
                 Icons.Outlined.Delete,
-                contentDescription = "Remove",
+                contentDescription = stringResource(R.string.ac_remove),
                 tint = HFColors.StatusRed.copy(alpha = 0.85f),
                 modifier = Modifier.size(20.dp).clickable { onRemove() }
             )
@@ -582,7 +582,7 @@ private fun ReimbursementRow(
         OutlinedTextField(
             value = row.description,
             onValueChange = onChangeDescription,
-            placeholder = { Text("What was this for? (parts, lunch, parking…)", color = HFColors.OnSurface.copy(alpha = 0.4f)) },
+            placeholder = { Text(stringResource(R.string.co_what_for), color = HFColors.OnSurface.copy(alpha = 0.4f)) },
             modifier = Modifier.fillMaxWidth().heightIn(min = 60.dp),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
@@ -598,11 +598,11 @@ private fun ReimbursementRow(
             row.bitmap?.let { bmp ->
                 Image(
                     bitmap = bmp.asImageBitmap(),
-                    contentDescription = "Receipt thumbnail",
+                    contentDescription = stringResource(R.string.cd_receipt_thumb),
                     modifier = Modifier.size(56.dp).clip(RoundedCornerShape(8.dp))
                 )
                 Text(
-                    "Replace photo",
+                    stringResource(R.string.co_replace_photo),
                     color = HFColors.StatusBlue,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -619,7 +619,7 @@ private fun ReimbursementRow(
                 ) {
                     Icon(Icons.Outlined.AddPhotoAlternate, contentDescription = null, tint = HFColors.StatusBlue, modifier = Modifier.size(14.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("Add receipt photo", color = HFColors.StatusBlue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.co_add_receipt), color = HFColors.StatusBlue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
@@ -636,7 +636,7 @@ private fun decodeUriToBitmap(context: android.content.Context, uri: Uri): Bitma
 
 /**
  * Flat picker of the open work on one aircraft — squawks and work logs in one
- * list, matching the Desktop client. "Nothing specific" is always offered
+ * list, matching the Desktop client. stringResource(R.string.co_nothing_specific) is always offered
  * because towing and cleaning are real answers.
  */
 @Composable
@@ -660,7 +660,7 @@ private fun JobPicker(
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             DropdownMenuItem(
                 text = {
-                    Text("Nothing specific", color = HFColors.OnSurfaceMuted, fontSize = 12.sp)
+                    Text(stringResource(R.string.co_nothing_specific), color = HFColors.OnSurfaceMuted, fontSize = 12.sp)
                 },
                 onClick = { onSelect(null); open = false }
             )

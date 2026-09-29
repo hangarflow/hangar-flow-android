@@ -63,6 +63,8 @@ import com.hangarflow.app.ui.theme.HFColors
 import com.journeyapps.barcodescanner.ScanContract
 import com.journeyapps.barcodescanner.ScanOptions
 import kotlinx.coroutines.launch
+import com.hangarflow.app.R
+import androidx.compose.ui.res.stringResource
 
 /**
  * QuickPic — scan a printed Hangar Flow QR label with the phone camera.
@@ -125,7 +127,7 @@ fun QuickPicScreen() {
             ) {
                 Spacer(Modifier.size(8.dp))
                 Text(
-                    "Scan a QR label to pull a part or check equipment, or print labels to stick on your gear and shelves.",
+                    stringResource(R.string.qp_sub),
                     color = HFColors.OnSurface.copy(alpha = 0.65f), fontSize = 13.sp, fontWeight = FontWeight.Medium
                 )
                 QpLandingTile("Scan a Label", "Camera → part usage or equipment due", Icons.Outlined.QrCodeScanner, HFColors.StatusCyan) { launchScan() }
@@ -341,7 +343,7 @@ private fun QuickLogServiceSheet(equipmentId: String, currentHours: Double, onDi
             modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text("Log a Service", color = HFColors.OnSurface, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.eq_log_service), color = HFColors.OnSurface, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             LabelQP("Performed (YYYY-MM-DD)")
             OutlinedTextField(performedAt, { performedAt = it }, singleLine = true, modifier = Modifier.fillMaxWidth(), colors = qpFieldColors())
             LabelQP("Hours at service")
@@ -380,9 +382,9 @@ private fun UnknownCodeSheet(raw: String, onDismiss: () -> Unit) {
             modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Text("Not a Hangar Flow label", color = HFColors.OnSurface, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.qp_not_hf_label), color = HFColors.OnSurface, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             Text(
-                "This QR code doesn't match a part or piece of equipment in this shop. Print labels from the Windows app's QuickPic tool, or the item may have been deleted.",
+                stringResource(R.string.qp_no_match),
                 color = HFColors.OnSurface.copy(alpha = 0.65f), fontSize = 13.sp, fontWeight = FontWeight.Medium
             )
             Text(raw, color = HFColors.OnSurface.copy(alpha = 0.4f), fontSize = 11.sp, fontWeight = FontWeight.Medium)

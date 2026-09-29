@@ -67,6 +67,8 @@ import com.hangarflow.app.ui.common.HFPullToRefreshHost
 import com.hangarflow.app.ui.theme.HFColors
 import java.time.LocalDate
 import kotlinx.coroutines.launch
+import com.hangarflow.app.R
+import androidx.compose.ui.res.stringResource
 
 /**
  * What landed, and what still owes a vendor.
@@ -138,7 +140,7 @@ private fun PartsInOutContent() {
                         Icon(Icons.Outlined.Add, null, tint = HFColors.OnSurface,
                             modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text("Receive", color = HFColors.OnSurface, fontSize = 13.sp,
+                        Text(stringResource(R.string.pio_receive), color = HFColors.OnSurface, fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold)
                     }
                 }

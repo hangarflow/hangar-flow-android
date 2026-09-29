@@ -50,6 +50,8 @@ import com.google.zxing.qrcode.QRCodeWriter
 import com.hangarflow.app.data.SharedStore
 import com.hangarflow.app.ui.theme.HFColors
 import java.io.ByteArrayOutputStream
+import com.hangarflow.app.R
+import androidx.compose.ui.res.stringResource
 
 // ---------- model ----------
 
@@ -171,12 +173,12 @@ fun QuickPicLabelBuilder(preselected: Set<String> = emptySet(), onBack: () -> Un
         ) {
             item {
                 Text(
-                    "Pick parts and equipment, choose a size, then save a PDF sheet to print.",
+                    stringResource(R.string.ql_sub),
                     color = HFColors.OnSurface.copy(alpha = 0.6f), fontSize = 13.sp, fontWeight = FontWeight.Medium
                 )
             }
             item {
-                Text("LABEL SIZE", color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                Text(stringResource(R.string.ql_label_size_caps), color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
             }
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
@@ -216,7 +218,7 @@ fun QuickPicLabelBuilder(preselected: Set<String> = emptySet(), onBack: () -> Un
             }
             if (allItems.isEmpty()) {
                 item {
-                    Text("Nothing to label yet. Add equipment or parts first.", color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                    Text(stringResource(R.string.ql_nothing), color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 13.sp, fontWeight = FontWeight.Medium)
                 }
             }
         }

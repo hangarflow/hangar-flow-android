@@ -22,6 +22,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.hangarflow.app.auth.AuthManager
 import com.hangarflow.app.ui.theme.HFColors
+import com.hangarflow.app.R
+import androidx.compose.ui.res.stringResource
 
 /**
  * Floating "+" button visible only to admins. Wraps the hub content and
@@ -56,7 +58,7 @@ fun AdminFabOverlay(
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Add,
-                    contentDescription = "Create",
+                    contentDescription = stringResource(R.string.action_create),
                     tint = HFColors.BrandInk,
                     modifier = Modifier.size(24.dp)
                 )

@@ -34,6 +34,8 @@ import androidx.compose.ui.unit.sp
 import com.hangarflow.app.data.SharedStore
 import com.hangarflow.app.data.model.HFPlane
 import com.hangarflow.app.ui.theme.HFColors
+import com.hangarflow.app.R
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun PlanesTab() {
@@ -80,7 +82,7 @@ private fun EmptyPlanes(error: String?) {
             )
             Spacer(Modifier.height(14.dp))
             Text(
-                "No planes yet",
+                stringResource(R.string.ph_no_planes),
                 color = HFColors.OnSurface,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
@@ -109,7 +111,7 @@ private fun PlaneList(
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "Planes",
+                    stringResource(R.string.nav_planes),
                     color = HFColors.OnSurface,
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold

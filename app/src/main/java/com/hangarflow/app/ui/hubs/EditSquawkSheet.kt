@@ -46,6 +46,8 @@ import com.hangarflow.app.data.model.HFPlane
 import com.hangarflow.app.data.model.HFSquawk
 import com.hangarflow.app.ui.theme.HFColors
 import kotlinx.coroutines.launch
+import com.hangarflow.app.R
+import androidx.compose.ui.res.stringResource
 
 /**
  * Full-screen sheet for editing an existing squawk from Android — plane,
@@ -83,9 +85,9 @@ fun EditSquawkSheet(squawk: HFSquawk, onDismiss: () -> Unit) {
             verticalAlignment = Alignment.Top
         ) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("Edit Squawk", color = HFColors.OnSurface, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.es_edit_squawk), color = HFColors.OnSurface, fontSize = 24.sp, fontWeight = FontWeight.Bold)
                 Text(
-                    "Update the discrepancy or record what was done to fix it.",
+                    stringResource(R.string.es_edit_sub),
                     color = HFColors.OnSurface.copy(alpha = 0.68f),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium
@@ -99,7 +101,7 @@ fun EditSquawkSheet(squawk: HFSquawk, onDismiss: () -> Unit) {
                     .clickable(onClick = onDismiss),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Outlined.Close, contentDescription = "Close", tint = HFColors.OnSurface, modifier = Modifier.size(16.dp))
+                Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.action_close), tint = HFColors.OnSurface, modifier = Modifier.size(16.dp))
             }
         }
 
@@ -175,7 +177,7 @@ fun EditSquawkSheet(squawk: HFSquawk, onDismiss: () -> Unit) {
             HorizontalDivider(color = HFColors.OnSurface.copy(alpha = 0.10f))
 
             Text(
-                "CORRECTIVE ACTION",
+                stringResource(R.string.sq_corrective_caps),
                 color = HFColors.StatusGreen,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
@@ -187,7 +189,7 @@ fun EditSquawkSheet(squawk: HFSquawk, onDismiss: () -> Unit) {
                 modifier = Modifier.fillMaxWidth().height(120.dp),
                 placeholder = {
                     Text(
-                        "What was done to fix it — e.g. Bled brakes, replaced O-ring MS28775-012, ops check good",
+                        stringResource(R.string.es_corrective_hint),
                         color = HFColors.OnSurface.copy(alpha = 0.4f),
                         fontSize = 13.sp
                     )
@@ -235,7 +237,7 @@ fun EditSquawkSheet(squawk: HFSquawk, onDismiss: () -> Unit) {
                     CircularProgressIndicator(color = HFColors.BrandInk, strokeWidth = 2.dp, modifier = Modifier.size(18.dp))
                 } else {
                     Text(
-                        "Save Changes",
+                        stringResource(R.string.es_save_changes),
                         color = if (canSave) HFColors.BrandInk else HFColors.OnSurface.copy(alpha = 0.4f),
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold

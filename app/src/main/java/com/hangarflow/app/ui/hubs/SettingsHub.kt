@@ -174,13 +174,13 @@ private fun ReportIssueDialog(onDismiss: () -> Unit) {
         text = {
             if (sent) {
                 Text(
-                    "Your report was sent to the Hangar Flow team. If we need more info, we'll reply to your account email.",
+                    stringResource(R.string.sh_report_sent),
                     fontSize = 13.sp
                 )
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
-                        "Tell us what went wrong or what you'd like to see. Your name, email, and app version are included automatically.",
+                        stringResource(R.string.sh_report_hint),
                         color = HFColors.OnSurface.copy(alpha = 0.55f),
                         fontSize = 12.sp
                     )
@@ -506,7 +506,7 @@ private fun ChangeEmailRow(currentEmail: String) {
             }
             Spacer(Modifier.size(8.dp))
             Text(
-                "We'll send a confirmation link to the new address. The change takes effect once you click that link.",
+                stringResource(R.string.sh_email_hint),
                 color = HFColors.OnSurface.copy(alpha = 0.55f),
                 fontSize = 11.sp
             )

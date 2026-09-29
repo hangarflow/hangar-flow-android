@@ -32,6 +32,8 @@ import com.hangarflow.app.auth.AuthManager
 import com.hangarflow.app.data.SharedStore
 import com.hangarflow.app.ui.theme.HFColors
 import kotlinx.coroutines.launch
+import com.hangarflow.app.R
+import androidx.compose.ui.res.stringResource
 
 @Composable
 fun SettingsTab() {
@@ -44,23 +46,23 @@ fun SettingsTab() {
             .padding(24.dp)
     ) {
         Text(
-            text = "Settings",
+            text = stringResource(R.string.nav_settings),
             color = HFColors.OnSurface,
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold
         )
         Spacer(Modifier.height(16.dp))
 
-        SettingsCard(title = "Shop") {
-            SettingsRow(label = "Organization", value = state.orgName)
-            SettingsRow(label = "Your role", value = state.role.replaceFirstChar { it.titlecase() })
+        SettingsCard(title = stringResource(R.string.settings_shop)) {
+            SettingsRow(label = stringResource(R.string.set_organization), value = state.orgName)
+            SettingsRow(label = stringResource(R.string.set_your_role), value = state.role.replaceFirstChar { it.titlecase() })
         }
 
         Spacer(Modifier.height(16.dp))
 
-        SettingsCard(title = "Sync") {
-            SettingsRow(label = "Backend", value = "Connected")
-            SettingsRow(label = "Realtime", value = "Pending (Phase 5)")
+        SettingsCard(title = stringResource(R.string.settings_sync)) {
+            SettingsRow(label = stringResource(R.string.set_backend), value = "Connected")
+            SettingsRow(label = stringResource(R.string.st_realtime), value = "Pending (Phase 5)")
         }
 
         if (state.isAdmin) {
@@ -68,15 +70,15 @@ fun SettingsTab() {
             val aiEnabled by SharedStore.aiIndexingEnabled.collectAsState()
             val aiScope = rememberCoroutineScope()
             LaunchedEffect(state.orgId) { SharedStore.loadAIIndexingFlag() }
-            SettingsCard(title = "AI") {
+            SettingsCard(title = stringResource(R.string.st_ai)) {
                 androidx.compose.foundation.layout.Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("AI indexing", color = HFColors.OnSurface, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.st_ai_indexing), color = HFColors.OnSurface, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                         Text(
-                            "Let AI link work logs to manual references and suggest parts. Off keeps system (keyword) indexing only.",
+                            stringResource(R.string.st_ai_hint),
                             color = HFColors.OnSurfaceMuted, fontSize = 12.sp
                         )
                     }
@@ -100,7 +102,7 @@ fun SettingsTab() {
                 contentColor = HFColors.StatusRed
             )
         ) {
-            Text("Sign out", fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.action_sign_out), fontWeight = FontWeight.SemiBold)
         }
     }
 }

@@ -23,6 +23,8 @@ import com.hangarflow.app.ui.theme.HFColors
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
+import com.hangarflow.app.R
+import androidx.compose.ui.res.stringResource
 
 /**
  * Admin hours approval. NO MONEY — this used to show each person's dollars
@@ -46,7 +48,7 @@ fun PayrollHub() {
 
     if (!auth.isAdmin) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Payroll is admin-only.", color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 13.sp)
+            Text(stringResource(R.string.py_admin_only), color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 13.sp)
         }
         return
     }
@@ -55,8 +57,8 @@ fun PayrollHub() {
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Text("Payroll", color = HFColors.OnSurface, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-        Text("Rates and pay are on the desktop. Approving here only moves hours.",
+        Text(stringResource(R.string.card_payroll_t), color = HFColors.OnSurface, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+        Text(stringResource(R.string.py_rates_note),
             color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 11.sp)
 
         state.users.filter { it.isActive }.forEach { user ->

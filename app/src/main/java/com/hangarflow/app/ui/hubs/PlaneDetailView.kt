@@ -59,6 +59,8 @@ import com.hangarflow.app.data.model.HFWorkLog
 import com.hangarflow.app.data.model.HFWorkLogStatus
 import com.hangarflow.app.ui.theme.HFColors
 import kotlinx.coroutines.launch
+import com.hangarflow.app.R
+import androidx.compose.ui.res.stringResource
 
 /**
  * Plane detail screen. Two-level flow — first shows a grid of work
@@ -232,7 +234,7 @@ private fun CategoryGrid(
             }
         }
 
-        // "Back to Planes" capsule right under the title (iOS look).
+        // stringResource(R.string.pd_back_to_planes) capsule right under the title (iOS look).
         Box(
             modifier = Modifier
                 .padding(start = 16.dp, end = 16.dp, bottom = 10.dp)
@@ -250,7 +252,7 @@ private fun CategoryGrid(
                 )
                 Spacer(Modifier.width(6.dp))
                 Text(
-                    "Back to Planes",
+                    stringResource(R.string.pd_back_to_planes),
                     color = HFColors.OnSurface,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold
@@ -275,7 +277,7 @@ private fun CategoryGrid(
                             .background(HFColors.OnSurface.copy(alpha = 0.06f))
                             .clickable(onClick = onEdit)
                             .padding(horizontal = 12.dp, vertical = 6.dp)
-                    ) { Text("Edit", color = HFColors.OnSurface, fontSize = 12.sp, fontWeight = FontWeight.SemiBold) }
+                    ) { Text(stringResource(R.string.action_edit), color = HFColors.OnSurface, fontSize = 12.sp, fontWeight = FontWeight.SemiBold) }
                     // Attach existing manual — links an already-uploaded manual
                     // (no import/upload, which stays laptop-only). Open to lead techs.
                     Box(
@@ -283,7 +285,7 @@ private fun CategoryGrid(
                             .background(HFColors.StatusCyan.copy(alpha = 0.12f))
                             .clickable(onClick = onAttachManual)
                             .padding(horizontal = 12.dp, vertical = 6.dp)
-                    ) { Text("Attach Manual", color = HFColors.StatusCyan, fontSize = 12.sp, fontWeight = FontWeight.SemiBold) }
+                    ) { Text(stringResource(R.string.pd_attach_manual), color = HFColors.StatusCyan, fontSize = 12.sp, fontWeight = FontWeight.SemiBold) }
                     if (isAdmin) {
                         Box(
                             modifier = Modifier.clip(RoundedCornerShape(8.dp))
@@ -296,7 +298,7 @@ private fun CategoryGrid(
                                 .background(HFColors.StatusRed.copy(alpha = 0.10f))
                                 .clickable(onClick = onDelete)
                                 .padding(horizontal = 12.dp, vertical = 6.dp)
-                        ) { Text("Delete", color = HFColors.StatusRed, fontSize = 12.sp, fontWeight = FontWeight.SemiBold) }
+                        ) { Text(stringResource(R.string.action_delete), color = HFColors.StatusRed, fontSize = 12.sp, fontWeight = FontWeight.SemiBold) }
                     }
                 }
             }
@@ -308,13 +310,13 @@ private fun CategoryGrid(
                             .background(HFColors.StatusBlue.copy(alpha = 0.12f))
                             .clickable(onClick = onExportWorkLogs)
                             .padding(horizontal = 12.dp, vertical = 6.dp)
-                    ) { Text("Export Logs PDF", color = HFColors.StatusBlue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold) }
+                    ) { Text(stringResource(R.string.pd_export_logs), color = HFColors.StatusBlue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold) }
                     Box(
                         modifier = Modifier.clip(RoundedCornerShape(8.dp))
                             .background(HFColors.StatusBlue.copy(alpha = 0.12f))
                             .clickable(onClick = onExportSquawks)
                             .padding(horizontal = 12.dp, vertical = 6.dp)
-                    ) { Text("Export Squawks PDF", color = HFColors.StatusBlue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold) }
+                    ) { Text(stringResource(R.string.pd_export_squawks), color = HFColors.StatusBlue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold) }
                 }
             }
         }
@@ -385,7 +387,7 @@ private fun TimesAndCyclesBlock(plane: HFPlane) {
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Icon(Icons.Outlined.Speed, null, tint = HFColors.StatusCyan, modifier = Modifier.size(16.dp))
-            Text("TIMES & CYCLES", color = HFColors.StatusCyan, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.0.sp)
+            Text(stringResource(R.string.pd_times_cycles_caps), color = HFColors.StatusCyan, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.0.sp)
         }
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             tc.chunked(2).forEach { rowPair ->
@@ -527,7 +529,7 @@ private fun CategoryWorkLogList(
             }
         }
 
-        // "Back" capsule (pops one level to the category grid).
+        // stringResource(R.string.pd_back) capsule (pops one level to the category grid).
         Box(
             modifier = Modifier
                 .padding(start = 16.dp, end = 16.dp, bottom = 10.dp)
@@ -545,7 +547,7 @@ private fun CategoryWorkLogList(
                 )
                 Spacer(Modifier.width(6.dp))
                 Text(
-                    "Back",
+                    stringResource(R.string.pd_back),
                     color = HFColors.OnSurface,
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold
@@ -751,8 +753,8 @@ private fun EditPlaneSheet(plane: HFPlane, onDismiss: () -> Unit) {
         title = { Text("Edit ${plane.tailNumber}", color = HFColors.OnSurface) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                androidx.compose.material3.OutlinedTextField(value = tail, onValueChange = { tail = it.uppercase() }, label = { Text("Tail Number") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                androidx.compose.material3.OutlinedTextField(value = display, onValueChange = { display = it }, label = { Text("Display Name") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                androidx.compose.material3.OutlinedTextField(value = tail, onValueChange = { tail = it.uppercase() }, label = { Text(stringResource(R.string.ac_tail_number)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                androidx.compose.material3.OutlinedTextField(value = display, onValueChange = { display = it }, label = { Text(stringResource(R.string.ac_display_name)) }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 if (error != null) Text(error!!, color = HFColors.StatusRed, fontSize = 12.sp)
             }
         },
@@ -767,7 +769,7 @@ private fun EditPlaneSheet(plane: HFPlane, onDismiss: () -> Unit) {
                 }
             }, enabled = !busy) { Text(if (busy) "Saving…" else "Save", color = HFColors.StatusGreen) }
         },
-        dismissButton = { androidx.compose.material3.TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = { androidx.compose.material3.TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } }
     )
 }
 
@@ -782,7 +784,7 @@ private fun DeletePlaneSheet(plane: HFPlane, onDismiss: () -> Unit) {
         title = { Text("Delete ${plane.tailNumber}?", color = HFColors.StatusRed, fontWeight = FontWeight.Bold) },
         text = {
             Column {
-                Text("This will delete this aircraft, its open work logs, and manuals. Completed work logs are preserved for billing.", color = HFColors.OnSurface, fontSize = 13.sp)
+                Text(stringResource(R.string.pd_delete_warning), color = HFColors.OnSurface, fontSize = 13.sp)
                 if (error != null) { Spacer(Modifier.size(8.dp)); Text(error!!, color = HFColors.StatusRed, fontSize = 12.sp) }
             }
         },
@@ -795,9 +797,9 @@ private fun DeletePlaneSheet(plane: HFPlane, onDismiss: () -> Unit) {
                         is SharedStore.CreateResult.Error -> { error = r.message; busy = false }
                     }
                 }
-            }, enabled = !busy) { Text(if (busy) "Deleting…" else "Delete", color = HFColors.StatusRed, fontWeight = FontWeight.Bold) }
+            }, enabled = !busy) { Text(if (busy) "Deleting…" else stringResource(R.string.action_delete), color = HFColors.StatusRed, fontWeight = FontWeight.Bold) }
         },
-        dismissButton = { androidx.compose.material3.TextButton(onClick = { if (!busy) onDismiss() }) { Text("Cancel") } }
+        dismissButton = { androidx.compose.material3.TextButton(onClick = { if (!busy) onDismiss() }) { Text(stringResource(R.string.action_cancel)) } }
     )
 }
 
@@ -843,7 +845,7 @@ private fun AttachManualSheet(plane: HFPlane, onDismiss: () -> Unit) {
             Column {
                 if (candidates.isEmpty()) {
                     Text(
-                        "No unattached manuals available. Import manuals from the desktop app first.",
+                        stringResource(R.string.pd_no_unattached),
                         color = HFColors.OnSurface.copy(alpha = 0.7f), fontSize = 13.sp
                     )
                 } else {
@@ -900,7 +902,7 @@ private fun AttachManualSheet(plane: HFPlane, onDismiss: () -> Unit) {
                                 if (checked) {
                                     Icon(
                                         imageVector = Icons.Outlined.VerifiedUser,
-                                        contentDescription = "Selected",
+                                        contentDescription = stringResource(R.string.action_selected),
                                         tint = HFColors.StatusCyan,
                                         modifier = Modifier.size(18.dp)
                                     )
@@ -932,6 +934,6 @@ private fun AttachManualSheet(plane: HFPlane, onDismiss: () -> Unit) {
                 )
             }
         },
-        dismissButton = { androidx.compose.material3.TextButton(onClick = { if (!busy) onDismiss() }) { Text("Cancel") } }
+        dismissButton = { androidx.compose.material3.TextButton(onClick = { if (!busy) onDismiss() }) { Text(stringResource(R.string.action_cancel)) } }
     )
 }

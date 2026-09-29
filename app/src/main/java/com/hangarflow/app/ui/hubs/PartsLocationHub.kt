@@ -85,6 +85,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
+import com.hangarflow.app.R
+import androidx.compose.ui.res.stringResource
 
 // ---------- stock status ----------
 
@@ -184,7 +186,7 @@ private fun PartsLocationHubContent() {
                 },
                 placeholder = {
                     Text(
-                        "Search parts, P/N, S/N, serial, location…",
+                        stringResource(R.string.pl_search),
                         color = HFColors.OnSurface.copy(alpha = 0.45f),
                         fontSize = 13.sp
                     )
@@ -304,7 +306,7 @@ private fun AddPartButton(onClick: () -> Unit) {
         )
         Spacer(Modifier.size(8.dp))
         Text(
-            "Add Part",
+            stringResource(R.string.pl_add_part),
             color = HFColors.OnSurface,
             fontSize = 15.sp,
             fontWeight = FontWeight.Bold
@@ -533,7 +535,7 @@ private fun PartLocationRow(
                         .clickable { com.hangarflow.app.data.SharedStore.consumePartLocation(row.id) }
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
-                    Text("Took 1", color = HFColors.StatusOrange, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.pl_took_one), color = HFColors.StatusOrange, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -595,7 +597,7 @@ private fun PartLocationRow(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "Vendor info",
+                    stringResource(R.string.pl_vendor_info),
                     color = HFColors.OnSurface,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold
@@ -718,7 +720,7 @@ private fun PartLocationPhotoThumb(path: String, onClick: () -> Unit) {
                     .data(signedUrl)
                     .crossfade(true)
                     .build(),
-                contentDescription = "Part location photo",
+                contentDescription = stringResource(R.string.cd_part_location_photo),
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(10.dp))
             )
@@ -801,7 +803,7 @@ private fun PartLocationSheet(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    if (existing == null) "Add Part" else "Edit Part",
+                    if (existing == null) stringResource(R.string.pl_add_part) else "Edit Part",
                     color = HFColors.OnSurface,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
@@ -822,23 +824,23 @@ private fun PartLocationSheet(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Outlined.Delete, null, tint = HFColors.StatusRed, modifier = Modifier.size(14.dp))
                             Spacer(Modifier.size(6.dp))
-                            Text("Delete", color = HFColors.StatusRed, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.action_delete), color = HFColors.StatusRed, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
             }
 
-            InventoryField(label = "Part Name", value = partName, onChange = { partName = it }, placeholder = "Brake pad")
+            InventoryField(label = stringResource(R.string.pl_part_name), value = partName, onChange = { partName = it }, placeholder = "Brake pad")
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 InventoryField(
-                    label = "Part Number (P/N)",
+                    label = stringResource(R.string.pl_part_number),
                     value = partNumber,
                     onChange = { partNumber = it },
                     placeholder = "123-456",
                     modifier = Modifier.weight(1f)
                 )
                 InventoryField(
-                    label = "Serial Number (S/N)",
+                    label = stringResource(R.string.pl_serial),
                     value = serialNumber,
                     onChange = { serialNumber = it },
                     placeholder = "SN-0001",
@@ -847,14 +849,14 @@ private fun PartLocationSheet(
             }
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 InventoryField(
-                    label = "Location",
+                    label = stringResource(R.string.pl_location),
                     value = location,
                     onChange = { location = it },
                     placeholder = "Shelf B-3",
                     modifier = Modifier.weight(1.4f)
                 )
                 InventoryField(
-                    label = "Quantity",
+                    label = stringResource(R.string.pl_quantity),
                     value = quantity,
                     onChange = { s -> quantity = s.filter { it.isDigit() }.take(5) },
                     placeholder = "1",
@@ -887,7 +889,7 @@ private fun PartLocationSheet(
                         }
                     }
                     Text(
-                        "Leave empty for shop-wide parts.",
+                        stringResource(R.string.pl_shopwide_hint),
                         color = HFColors.OnSurface.copy(alpha = 0.45f),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium
@@ -896,10 +898,10 @@ private fun PartLocationSheet(
             }
 
             InventoryField(
-                label = "Notes",
+                label = stringResource(R.string.pl_notes),
                 value = notes,
                 onChange = { notes = it },
-                placeholder = "Condition, lot, or context",
+                placeholder = stringResource(R.string.pl_notes_hint),
                 singleLine = false
             )
 
@@ -935,7 +937,7 @@ private fun PartLocationSheet(
                                 bitmap = newPhoto!!.asImageBitmap(),
                                 // Real content: the photo of where the part actually lives, which is the
                                 // whole point of the field.
-                                contentDescription = "Photo of where this part is kept",
+                                contentDescription = stringResource(R.string.pl_photo_hint),
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier
                                     .size(120.dp)
@@ -955,7 +957,7 @@ private fun PartLocationSheet(
                     }
                     else -> {
                         Text(
-                            "No photo attached yet.",
+                            stringResource(R.string.pl_no_photo),
                             color = HFColors.OnSurface.copy(alpha = 0.45f),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium
@@ -1133,7 +1135,7 @@ private fun PartPhotoBadgeBox(onClick: () -> Unit) {
     ) {
         Icon(
             imageVector = Icons.Outlined.Close,
-            contentDescription = "Remove",
+            contentDescription = stringResource(R.string.ac_remove),
             tint = HFColors.OnSurface,
             modifier = Modifier.size(12.dp)
         )

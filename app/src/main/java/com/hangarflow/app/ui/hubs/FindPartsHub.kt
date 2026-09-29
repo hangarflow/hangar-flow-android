@@ -587,7 +587,7 @@ private fun InlinePdfPage(
                 bitmap = b.asImageBitmap(),
                 // Real content, not decoration: this is the manual page the search landed
                 // on. Null here left a screen reader silent on the one thing this view exists to show.
-                contentDescription = "Manual page",
+                contentDescription = stringResource(R.string.fp_manual_page),
                 contentScale = androidx.compose.ui.layout.ContentScale.FillWidth,
                 modifier = Modifier.fillMaxSize()
             )
@@ -1037,7 +1037,7 @@ private fun AIPartsPanel(
                 }
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "Advisory — verify against the manual + serial effectivity before ordering.",
+                    stringResource(R.string.fp_advisory),
                     color = HFColors.OnSurface.copy(alpha = 0.35f), fontSize = 9.sp
                 )
             }

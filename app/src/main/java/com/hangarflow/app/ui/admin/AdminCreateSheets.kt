@@ -378,7 +378,7 @@ private fun CreatePlaneForm(onDone: () -> Unit) {
         }
         if (showTimesAndCycles) {
             Text(
-                "Reference only — typed in as-is, nothing is tracked or calculated. Leave any field blank (a single-engine plane just fills Airframe + Engine 1).",
+                stringResource(R.string.ac_reference_only),
                 color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 11.sp
             )
             IntakePairRow("Airframe total time", airframeHours, { airframeHours = it }, "Airframe cycles", airframeCycles, { airframeCycles = it })

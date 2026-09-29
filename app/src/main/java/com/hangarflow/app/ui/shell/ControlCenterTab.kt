@@ -47,6 +47,8 @@ import com.hangarflow.app.ui.hubs.EquipmentHub
 import com.hangarflow.app.ui.hubs.PartsInOutHub
 import com.hangarflow.app.ui.hubs.QuickPicScreen
 import com.hangarflow.app.ui.theme.HFColors
+import com.hangarflow.app.R
+import androidx.compose.ui.res.stringResource
 
 /** Control Center tools available on mobile. */
 private enum class CCTool(
@@ -101,13 +103,13 @@ private fun CCToolGrid(onOpen: (CCTool) -> Unit) {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            "Control Center",
+            stringResource(R.string.tab_control_center),
             color = HFColors.OnSurface,
             fontSize = 22.sp,
             fontWeight = FontWeight.Bold
         )
         Text(
-            "Shop tools every tech can reach.",
+            stringResource(R.string.cc_sub),
             color = HFColors.OnSurface.copy(alpha = 0.55f),
             fontSize = 13.sp,
             fontWeight = FontWeight.Medium

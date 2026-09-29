@@ -35,6 +35,8 @@ import androidx.compose.ui.unit.sp
 import com.hangarflow.app.data.model.HFWorkLog
 import com.hangarflow.app.ui.home.HomeDestination
 import com.hangarflow.app.ui.theme.HFColors
+import com.hangarflow.app.R
+import androidx.compose.ui.res.stringResource
 
 /**
  * Full-screen overlay hub sheet. Each `HomeDestination` gets its own
@@ -199,7 +201,7 @@ fun IOSHubHeader(
         ) {
             Icon(
                 imageVector = Icons.Outlined.Close,
-                contentDescription = "Close",
+                contentDescription = stringResource(R.string.action_close),
                 tint = HFColors.OnSurface,
                 modifier = Modifier.size(16.dp)
             )

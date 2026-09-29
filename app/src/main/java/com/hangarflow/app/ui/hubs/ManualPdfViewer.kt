@@ -84,12 +84,14 @@ import com.hangarflow.app.ui.theme.HFColors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+import com.hangarflow.app.R
+import androidx.compose.ui.res.stringResource
 
 /**
  * Work log detail screen — mirrors the iOS `IOSWorkLogExecutionSheet`:
  * header (title + citation + status), description, and an embedded PDF
  * preview scrolled to the referenced page. Tap the PDF (or the
- * "Open Full Manual" button) to push into full-screen mode.
+ * stringResource(R.string.mv_open_full) button) to push into full-screen mode.
  */
 @Composable
 fun WorkLogManualViewer(
@@ -244,7 +246,7 @@ private fun WorkLogDetailScreen(
             ) {
                 Icon(
                     imageVector = Icons.Outlined.Close,
-                    contentDescription = "Close",
+                    contentDescription = stringResource(R.string.action_close),
                     tint = HFColors.OnSurface,
                     modifier = Modifier.size(16.dp)
                 )
@@ -277,7 +279,7 @@ private fun WorkLogDetailScreen(
 
         // Description — matches iOS `Work Order Update` / notes feel.
         if (description.isNotBlank()) {
-            SectionCard(title = "Description") {
+            SectionCard(title = stringResource(R.string.set_description)) {
                 Text(
                     text = description,
                     color = HFColors.OnSurface,
@@ -291,19 +293,19 @@ private fun WorkLogDetailScreen(
         // Manual Viewer — tech can hide the PDF to focus on just the
         // work entry, toggle it back when they need to reference it.
         SectionCardWithToggle(
-            title = "Manual Reference",
+            title = stringResource(R.string.mv_manual_reference),
             toggleOn = manualVisible,
             onToggle = { manualVisible = !manualVisible }
         ) {
             if (!manualVisible) {
                 Text(
-                    text = "Manual hidden. Toggle above to show the reference PDF.",
+                    text = stringResource(R.string.mv_manual_hidden),
                     color = HFColors.OnSurface.copy(alpha = 0.55f),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium
                 )
             } else {
-                // Compact "Manual Viewer" card — matches the iOS layout.
+                // Compact stringResource(R.string.mv_manual_viewer) card — matches the iOS layout.
                 // Tap opens the PDF full-screen. We deliberately don't
                 // render the PDF inline anymore: the embedded pager
                 // captured every scroll gesture in this region, which
@@ -320,7 +322,7 @@ private fun WorkLogDetailScreen(
                         .padding(16.dp)
                 ) {
                     Text(
-                        text = "Manual Viewer",
+                        text = stringResource(R.string.mv_manual_viewer),
                         color = HFColors.OnSurface,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold
@@ -429,7 +431,7 @@ internal fun FullScreenPdf(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                "Close",
+                stringResource(R.string.action_close),
                 color = HFColors.OnSurface,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -587,10 +589,10 @@ private fun WorkLogInputsCard(
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             InputField(
-                label = "Time Spent",
+                label = stringResource(R.string.mv_time_spent),
                 value = minutes,
                 onChange = onMinutesChange,
-                placeholder = "Minutes",
+                placeholder = stringResource(R.string.mv_minutes),
                 modifier = Modifier.weight(1f),
                 keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
             )
@@ -618,10 +620,10 @@ private fun WorkLogInputsCard(
         }
 
         InputField(
-            label = "Parts Used",
+            label = stringResource(R.string.mv_parts_used),
             value = parts,
             onChange = onPartsChange,
-            placeholder = "e.g. PN 123-456 x2, PN 789-001",
+            placeholder = stringResource(R.string.mv_parts_hint),
             modifier = Modifier.fillMaxWidth(),
             singleLine = false,
             keyboardType = androidx.compose.ui.text.input.KeyboardType.Text
@@ -652,7 +654,7 @@ private fun WorkLogInputsCard(
                         )
                         Spacer(Modifier.width(4.dp))
                         Text(
-                            "Add",
+                            stringResource(R.string.action_add),
                             color = HFColors.Background,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold
@@ -663,14 +665,14 @@ private fun WorkLogInputsCard(
                         onDismissRequest = { showPhotoMenu = false }
                     ) {
                         androidx.compose.material3.DropdownMenuItem(
-                            text = { Text("Take Photo") },
+                            text = { Text(stringResource(R.string.mv_take_photo)) },
                             onClick = { showPhotoMenu = false; onOpenCamera() },
                             leadingIcon = {
                                 Icon(androidx.compose.material.icons.Icons.Outlined.PhotoCamera, null)
                             }
                         )
                         androidx.compose.material3.DropdownMenuItem(
-                            text = { Text("Choose from Library") },
+                            text = { Text(stringResource(R.string.mv_choose_library)) },
                             onClick = { showPhotoMenu = false; onOpenLibrary() },
                             leadingIcon = {
                                 Icon(androidx.compose.material.icons.Icons.Outlined.PhotoLibrary, null)
@@ -711,7 +713,7 @@ private fun WorkLogInputsCard(
                             ) {
                                 Icon(
                                     imageVector = Icons.Outlined.Close,
-                                    contentDescription = "Remove",
+                                    contentDescription = stringResource(R.string.ac_remove),
                                     tint = HFColors.OnSurface,
                                     modifier = Modifier.size(12.dp)
                                 )
@@ -875,7 +877,7 @@ private fun OpenFullManualButton(onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            "Open Full Manual",
+            stringResource(R.string.mv_open_full),
             color = HFColors.OnSurface,
             fontSize = 13.sp,
             fontWeight = FontWeight.SemiBold,
@@ -1329,14 +1331,14 @@ private fun ManualBookmarksSheet(
         dragHandle = null
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            // Title row: "Navigator" + subtitle + Close
+            // Title row: stringResource(R.string.mv_navigator) + subtitle + Close
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(Modifier.weight(1f)) {
                     Text(
-                        "Navigator",
+                        stringResource(R.string.mv_navigator),
                         color = HFColors.OnSurface,
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Bold
@@ -1349,7 +1351,7 @@ private fun ManualBookmarksSheet(
                     )
                 }
                 Text(
-                    "Close",
+                    stringResource(R.string.action_close),
                     color = HFColors.OnSurface,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -1368,7 +1370,7 @@ private fun ManualBookmarksSheet(
                     },
                     placeholder = {
                         Text(
-                            "Search the manual…",
+                            stringResource(R.string.mv_search_manual),
                             color = HFColors.OnSurface.copy(alpha = 0.40f),
                             fontSize = 13.sp
                         )
@@ -1421,7 +1423,7 @@ private fun ManualBookmarksSheet(
                                     )
                                     Spacer(Modifier.size(10.dp))
                                     Text(
-                                        "Searching…",
+                                        stringResource(R.string.mv_searching),
                                         color = HFColors.OnSurface.copy(alpha = 0.60f),
                                         fontSize = 13.sp
                                     )
@@ -1454,7 +1456,7 @@ private fun ManualBookmarksSheet(
 
                     // Mode A: outline tree
                     !hasOutline -> Text(
-                        "This PDF has no embedded bookmarks. Use search above to jump to any word.",
+                        stringResource(R.string.mv_no_bookmarks),
                         color = HFColors.OnSurface.copy(alpha = 0.65f),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium,

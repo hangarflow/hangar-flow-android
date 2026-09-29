@@ -454,7 +454,7 @@ private fun EquipmentDetailSheet(
             // ---- maintenance / calibration items ----
             SectionHeader("Maintenance & Calibration")
             if (items.isEmpty()) {
-                Text("No due items yet. Add an oil change, inspection, or a calibration schedule.", color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                Text(stringResource(R.string.eq_no_due), color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 12.sp, fontWeight = FontWeight.Medium)
             } else {
                 items.sortedBy { severityRank(it.dueInfo(equipment.usageHours).severity) }.forEach { item ->
                     MaintenanceItemRow(
@@ -646,7 +646,7 @@ private fun MaintenanceItemSheet(equipmentId: String, onDismiss: () -> Unit) {
                         ChipPill(u.displayName.ifBlank { "Tech" }, active = remindUserId == u.id) { remindUserId = u.id }
                     }
                 }
-                Text("Time-based items with a reminder drop a due date on the calendar and notify the picked tech.", color = HFColors.OnSurface.copy(alpha = 0.45f), fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                Text(stringResource(R.string.eq_reminder_hint), color = HFColors.OnSurface.copy(alpha = 0.45f), fontSize = 11.sp, fontWeight = FontWeight.Medium)
             }
 
             if (error != null) Text(error!!, color = HFColors.StatusRed, fontSize = 12.sp, fontWeight = FontWeight.Medium)
