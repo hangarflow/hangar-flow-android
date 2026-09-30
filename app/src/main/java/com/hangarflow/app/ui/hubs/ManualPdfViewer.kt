@@ -240,7 +240,7 @@ private fun WorkLogDetailScreen(
                 modifier = Modifier
                     .size(34.dp)
                     .clip(CircleShape)
-                    .background(HFColors.OnSurface.copy(alpha = 0.14f))
+                    .background(HFColors.fill(0.14f))
                     .clickable(onClick = onClose),
                 contentAlignment = Alignment.Center
             ) {
@@ -266,7 +266,7 @@ private fun WorkLogDetailScreen(
                     Spacer(Modifier.size(6.dp))
                     Text(
                         citation,
-                        color = HFColors.OnSurface.copy(alpha = 0.62f),
+                        color = HFColors.ink(0.62f),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -300,7 +300,7 @@ private fun WorkLogDetailScreen(
             if (!manualVisible) {
                 Text(
                     text = stringResource(R.string.mv_manual_hidden),
-                    color = HFColors.OnSurface.copy(alpha = 0.55f),
+                    color = HFColors.ink(0.55f),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium
                 )
@@ -314,7 +314,7 @@ private fun WorkLogDetailScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(14.dp))
-                        .background(HFColors.OnSurface.copy(alpha = 0.06f))
+                        .background(HFColors.fill(0.06f))
                         .clickable(
                             enabled = loadError == null && localFile != null,
                             onClick = onOpenFullManual
@@ -335,7 +335,7 @@ private fun WorkLogDetailScreen(
                             localFile == null -> "Downloading ${manual?.fileName ?: "the manual"}…"
                             else -> "Tap to open the referenced manual page for this work log."
                         },
-                        color = HFColors.OnSurface.copy(alpha = 0.65f),
+                        color = HFColors.ink(0.65f),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -456,7 +456,7 @@ internal fun FullScreenPdf(
             Spacer(Modifier.size(6.dp))
             Text(
                 subtitle,
-                color = HFColors.OnSurface.copy(alpha = 0.68f),
+                color = HFColors.ink(0.68f),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
                 maxLines = 2
@@ -471,8 +471,8 @@ internal fun FullScreenPdf(
                 .fillMaxWidth()
                 .weight(1f)
                 .clip(RoundedCornerShape(18.dp))
-                .background(HFColors.OnSurface.copy(alpha = 0.05f))
-                .border(1.dp, HFColors.OnSurface.copy(alpha = 0.10f), RoundedCornerShape(18.dp))
+                .background(HFColors.fill(0.05f))
+                .border(1.dp, HFColors.stroke(0.10f), RoundedCornerShape(18.dp))
         ) {
             PdfPagerContent(
                 file = file,
@@ -496,13 +496,13 @@ private fun SectionCard(title: String, content: @Composable () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.04f))
-            .border(1.dp, HFColors.OnSurface.copy(alpha = 0.10f), RoundedCornerShape(18.dp))
+            .background(HFColors.fill(0.04f))
+            .border(1.dp, HFColors.stroke(0.10f), RoundedCornerShape(18.dp))
             .padding(14.dp)
     ) {
         Text(
             title.uppercase(),
-            color = HFColors.OnSurface.copy(alpha = 0.55f),
+            color = HFColors.ink(0.55f),
             fontSize = 10.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = 1.0.sp
@@ -523,14 +523,14 @@ private fun SectionCardWithToggle(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.04f))
-            .border(1.dp, HFColors.OnSurface.copy(alpha = 0.10f), RoundedCornerShape(18.dp))
+            .background(HFColors.fill(0.04f))
+            .border(1.dp, HFColors.stroke(0.10f), RoundedCornerShape(18.dp))
             .padding(14.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 title.uppercase(),
-                color = HFColors.OnSurface.copy(alpha = 0.55f),
+                color = HFColors.ink(0.55f),
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.0.sp,
@@ -542,7 +542,7 @@ private fun SectionCardWithToggle(
                 modifier = Modifier
                     .size(width = 40.dp, height = 22.dp)
                     .clip(RoundedCornerShape(100.dp))
-                    .background(if (toggleOn) HFColors.StatusCyan else HFColors.OnSurface.copy(alpha = 0.18f))
+                    .background(if (toggleOn) HFColors.StatusCyan else HFColors.fill(0.18f))
                     .clickable(onClick = onToggle)
                     .padding(3.dp)
             ) {
@@ -582,8 +582,8 @@ private fun WorkLogInputsCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.05f))
-            .border(1.dp, HFColors.OnSurface.copy(alpha = 0.10f), RoundedCornerShape(18.dp))
+            .background(HFColors.fill(0.05f))
+            .border(1.dp, HFColors.stroke(0.10f), RoundedCornerShape(18.dp))
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
@@ -605,8 +605,8 @@ private fun WorkLogInputsCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(8.dp))
-                        .background(HFColors.OnSurface.copy(alpha = 0.04f))
-                        .border(1.dp, HFColors.OnSurface.copy(alpha = 0.10f), RoundedCornerShape(8.dp))
+                        .background(HFColors.fill(0.04f))
+                        .border(1.dp, HFColors.stroke(0.10f), RoundedCornerShape(8.dp))
                         .padding(horizontal = 12.dp, vertical = 14.dp)
                 ) {
                     Text(
@@ -737,7 +737,7 @@ private fun WorkLogInputsCard(
             ActionButton(
                 label = if (savingLabel == "signoff") "Signing off…" else "Sign Off Work Order",
                 filled = true,
-                color = HFColors.OnSurface.copy(alpha = 0.10f),
+                color = HFColors.ink(0.10f),
                 contentColor = HFColors.OnSurface,
                 enabled = savingLabel == null,
                 onClick = onSignOff
@@ -750,7 +750,7 @@ private fun WorkLogInputsCard(
 private fun InputLabel(text: String) {
     Text(
         text = text.uppercase(),
-        color = HFColors.OnSurface.copy(alpha = 0.60f),
+        color = HFColors.ink(0.60f),
         fontSize = 10.sp,
         fontWeight = FontWeight.Bold,
         letterSpacing = 1.0.sp
@@ -778,16 +778,16 @@ private fun InputField(
             placeholder = {
                 Text(
                     placeholder,
-                    color = HFColors.OnSurface.copy(alpha = 0.35f),
+                    color = HFColors.ink(0.35f),
                     fontSize = 13.sp
                 )
             },
             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = keyboardType),
             colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
-                unfocusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
-                focusedBorderColor = HFColors.OnSurface.copy(alpha = 0.25f),
-                unfocusedBorderColor = HFColors.OnSurface.copy(alpha = 0.10f),
+                focusedContainerColor = HFColors.fill(0.04f),
+                unfocusedContainerColor = HFColors.fill(0.04f),
+                focusedBorderColor = HFColors.stroke(0.25f),
+                unfocusedBorderColor = HFColors.stroke(0.10f),
                 focusedTextColor = HFColors.OnSurface,
                 unfocusedTextColor = HFColors.OnSurface,
                 cursorColor = HFColors.OnSurface
@@ -833,7 +833,7 @@ private fun ActionButton(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
-            .background(if (filled) color else HFColors.OnSurface.copy(alpha = 0.08f))
+            .background(if (filled) color else HFColors.fill(0.08f))
             .clickable(enabled = enabled, onClick = onClick)
             .padding(vertical = 14.dp),
         horizontalArrangement = Arrangement.Center
@@ -870,8 +870,8 @@ private fun OpenFullManualButton(onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.10f))
-            .border(1.dp, HFColors.OnSurface.copy(alpha = 0.18f), RoundedCornerShape(12.dp))
+            .background(HFColors.fill(0.10f))
+            .border(1.dp, HFColors.stroke(0.18f), RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -1060,7 +1060,7 @@ private fun PdfPagerContent(
                 .padding(end = 14.dp, bottom = 14.dp)
                 .clip(RoundedCornerShape(100.dp))
                 .background(HFColors.StatusGreen.copy(alpha = 0.92f))
-                .border(1.dp, HFColors.OnSurface.copy(alpha = 0.20f), RoundedCornerShape(100.dp))
+                .border(1.dp, HFColors.stroke(0.20f), RoundedCornerShape(100.dp))
             if (manualId != null) {
                 badgeModifier = badgeModifier.clickable { bookmarksOpenState.value = true }
             }
@@ -1345,7 +1345,7 @@ private fun ManualBookmarksSheet(
                     )
                     Text(
                         "Page $currentPage of $totalPages",
-                        color = HFColors.OnSurface.copy(alpha = 0.55f),
+                        color = HFColors.ink(0.55f),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -1366,22 +1366,22 @@ private fun ManualBookmarksSheet(
                     onValueChange = { query = it },
                     singleLine = true,
                     leadingIcon = {
-                        Icon(Icons.Outlined.Search, null, tint = HFColors.OnSurface.copy(alpha = 0.55f))
+                        Icon(Icons.Outlined.Search, null, tint = HFColors.ink(0.55f))
                     },
                     placeholder = {
                         Text(
                             stringResource(R.string.mv_search_manual),
-                            color = HFColors.OnSurface.copy(alpha = 0.40f),
+                            color = HFColors.ink(0.40f),
                             fontSize = 13.sp
                         )
                     },
                     keyboardOptions = KeyboardOptions.Default,
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
-                        unfocusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
-                        focusedBorderColor = HFColors.OnSurface.copy(alpha = 0.25f),
-                        unfocusedBorderColor = HFColors.OnSurface.copy(alpha = 0.10f),
+                        focusedContainerColor = HFColors.fill(0.04f),
+                        unfocusedContainerColor = HFColors.fill(0.04f),
+                        focusedBorderColor = HFColors.stroke(0.25f),
+                        unfocusedBorderColor = HFColors.stroke(0.10f),
                         focusedTextColor = HFColors.OnSurface,
                         unfocusedTextColor = HFColors.OnSurface,
                         cursorColor = HFColors.OnSurface
@@ -1392,7 +1392,7 @@ private fun ManualBookmarksSheet(
             Spacer(Modifier.size(6.dp))
             Text(
                 "BOOKMARKS / SECTIONS  ·  ${outline?.size ?: 0}",
-                color = HFColors.OnSurface.copy(alpha = 0.45f),
+                color = HFColors.ink(0.45f),
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.2.sp,
@@ -1424,7 +1424,7 @@ private fun ManualBookmarksSheet(
                                     Spacer(Modifier.size(10.dp))
                                     Text(
                                         stringResource(R.string.mv_searching),
-                                        color = HFColors.OnSurface.copy(alpha = 0.60f),
+                                        color = HFColors.ink(0.60f),
                                         fontSize = 13.sp
                                     )
                                 }
@@ -1432,7 +1432,7 @@ private fun ManualBookmarksSheet(
                         } else if (searchResults.isEmpty()) {
                             Text(
                                 "No matches for \"${query.trim()}\".",
-                                color = HFColors.OnSurface.copy(alpha = 0.65f),
+                                color = HFColors.ink(0.65f),
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Medium,
                                 modifier = Modifier.padding(20.dp)
@@ -1457,14 +1457,14 @@ private fun ManualBookmarksSheet(
                     // Mode A: outline tree
                     !hasOutline -> Text(
                         stringResource(R.string.mv_no_bookmarks),
-                        color = HFColors.OnSurface.copy(alpha = 0.65f),
+                        color = HFColors.ink(0.65f),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium,
                         modifier = Modifier.padding(20.dp)
                     )
                     visible.isEmpty() -> Text(
                         "No matches for \"$query\".",
-                        color = HFColors.OnSurface.copy(alpha = 0.65f),
+                        color = HFColors.ink(0.65f),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium,
                         modifier = Modifier.padding(20.dp)
@@ -1496,7 +1496,7 @@ private fun ManualBookmarksSheet(
                         .padding(end = 16.dp, bottom = 12.dp)
                         .clip(RoundedCornerShape(100.dp))
                         .background(HFColors.StatusGreen.copy(alpha = 0.92f))
-                        .border(1.dp, HFColors.OnSurface.copy(alpha = 0.20f), RoundedCornerShape(100.dp))
+                        .border(1.dp, HFColors.stroke(0.20f), RoundedCornerShape(100.dp))
                         .padding(horizontal = 12.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -1719,7 +1719,7 @@ private fun NavRow(
             if (hasChildren) {
                 Text(
                     if (row.expanded) "▾" else "▸",
-                    color = HFColors.OnSurface.copy(alpha = 0.70f),
+                    color = HFColors.ink(0.70f),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -1728,7 +1728,7 @@ private fun NavRow(
                     modifier = Modifier
                         .size(6.dp)
                         .clip(CircleShape)
-                        .background(HFColors.OnSurface.copy(alpha = 0.35f))
+                        .background(HFColors.fill(0.35f))
                 )
             }
         }
@@ -1737,13 +1737,13 @@ private fun NavRow(
         if (node.key.isNotBlank() && !node.key.equals(node.title, ignoreCase = true)) {
             Text(
                 "${node.key} ",
-                color = HFColors.OnSurface.copy(alpha = 0.70f),
+                color = HFColors.ink(0.70f),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold
             )
             Text(
                 "- ",
-                color = HFColors.OnSurface.copy(alpha = 0.35f),
+                color = HFColors.ink(0.35f),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -1762,12 +1762,12 @@ private fun NavRow(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(6.dp))
-                    .background(HFColors.OnSurface.copy(alpha = 0.08f))
+                    .background(HFColors.fill(0.08f))
                     .padding(horizontal = 6.dp, vertical = 2.dp)
             ) {
                 Text(
                     "P$page",
-                    color = HFColors.OnSurface.copy(alpha = 0.75f),
+                    color = HFColors.ink(0.75f),
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -1779,7 +1779,7 @@ private fun NavRow(
         modifier = Modifier
             .fillMaxWidth()
             .height(1.dp)
-            .background(HFColors.OnSurface.copy(alpha = 0.06f))
+            .background(HFColors.fill(0.06f))
     )
 }
 
@@ -1814,7 +1814,7 @@ private fun SearchHitRow(
         Spacer(Modifier.size(12.dp))
         Text(
             hit.snippet,
-            color = HFColors.OnSurface.copy(alpha = 0.80f),
+            color = HFColors.ink(0.80f),
             fontSize = 12.sp,
             fontWeight = FontWeight.Medium,
             maxLines = 3,
@@ -1825,7 +1825,7 @@ private fun SearchHitRow(
         modifier = Modifier
             .fillMaxWidth()
             .height(1.dp)
-            .background(HFColors.OnSurface.copy(alpha = 0.06f))
+            .background(HFColors.fill(0.06f))
     )
 }
 

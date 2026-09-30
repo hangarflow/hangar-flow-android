@@ -226,7 +226,7 @@ private fun CategoryGrid(
                     Spacer(Modifier.size(2.dp))
                     Text(
                         subTail,
-                        color = HFColors.OnSurface.copy(alpha = 0.60f),
+                        color = HFColors.ink(0.60f),
                         fontSize = 17.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -239,7 +239,7 @@ private fun CategoryGrid(
             modifier = Modifier
                 .padding(start = 16.dp, end = 16.dp, bottom = 10.dp)
                 .clip(CircleShape)
-                .background(HFColors.OnSurface.copy(alpha = 0.10f))
+                .background(HFColors.fill(0.10f))
                 .clickable(onClick = onBack)
                 .padding(horizontal = 14.dp, vertical = 8.dp)
         ) {
@@ -274,7 +274,7 @@ private fun CategoryGrid(
                     // Edit is open to lead techs; Archive/Delete stay admin-only.
                     Box(
                         modifier = Modifier.clip(RoundedCornerShape(8.dp))
-                            .background(HFColors.OnSurface.copy(alpha = 0.06f))
+                            .background(HFColors.fill(0.06f))
                             .clickable(onClick = onEdit)
                             .padding(horizontal = 12.dp, vertical = 6.dp)
                     ) { Text(stringResource(R.string.action_edit), color = HFColors.OnSurface, fontSize = 12.sp, fontWeight = FontWeight.SemiBold) }
@@ -380,8 +380,8 @@ private fun TimesAndCyclesBlock(plane: HFPlane) {
     if (tc.isEmpty()) return
     Column(
         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.04f))
-            .border(1.dp, HFColors.OnSurface.copy(alpha = 0.08f), RoundedCornerShape(14.dp))
+            .background(HFColors.fill(0.04f))
+            .border(1.dp, HFColors.stroke(0.08f), RoundedCornerShape(14.dp))
             .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
@@ -395,10 +395,10 @@ private fun TimesAndCyclesBlock(plane: HFPlane) {
                     rowPair.forEach { (label, value) ->
                         Column(
                             modifier = Modifier.weight(1f).clip(RoundedCornerShape(10.dp))
-                                .background(HFColors.OnSurface.copy(alpha = 0.05f))
+                                .background(HFColors.fill(0.05f))
                                 .padding(horizontal = 10.dp, vertical = 8.dp)
                         ) {
-                            Text(label, color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 9.sp, fontWeight = FontWeight.SemiBold)
+                            Text(label, color = HFColors.ink(0.5f), fontSize = 9.sp, fontWeight = FontWeight.SemiBold)
                             Text(value, color = HFColors.OnSurface, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                         }
                     }
@@ -424,8 +424,8 @@ private fun CategoryCard(
             .fillMaxWidth()
             .heightIn(min = 150.dp)
             .clip(RoundedCornerShape(20.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.06f))
-            .border(1.dp, HFColors.OnSurface.copy(alpha = 0.10f), RoundedCornerShape(20.dp))
+            .background(HFColors.fill(0.06f))
+            .border(1.dp, HFColors.stroke(0.10f), RoundedCornerShape(20.dp))
             .clickable(onClick = onClick)
             .padding(18.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -449,7 +449,7 @@ private fun CategoryCard(
             Icon(
                 imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
                 contentDescription = null,
-                tint = HFColors.OnSurface.copy(alpha = 0.45f),
+                tint = HFColors.ink(0.45f),
                 modifier = Modifier.size(16.dp)
             )
         }
@@ -464,7 +464,7 @@ private fun CategoryCard(
         if (openCount > 0) {
             Text(
                 text = if (openCount == 1) "1 open item" else "$openCount open items",
-                color = HFColors.OnSurface.copy(alpha = 0.55f),
+                color = HFColors.ink(0.55f),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Medium
             )
@@ -521,7 +521,7 @@ private fun CategoryWorkLogList(
                     Spacer(Modifier.size(2.dp))
                     Text(
                         subTail,
-                        color = HFColors.OnSurface.copy(alpha = 0.60f),
+                        color = HFColors.ink(0.60f),
                         fontSize = 17.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -534,7 +534,7 @@ private fun CategoryWorkLogList(
             modifier = Modifier
                 .padding(start = 16.dp, end = 16.dp, bottom = 10.dp)
                 .clip(CircleShape)
-                .background(HFColors.OnSurface.copy(alpha = 0.10f))
+                .background(HFColors.fill(0.10f))
                 .clickable(onClick = onBack)
                 .padding(horizontal = 14.dp, vertical = 8.dp)
         ) {
@@ -566,7 +566,7 @@ private fun CategoryWorkLogList(
             Spacer(Modifier.size(2.dp))
             Text(
                 "${filtered.size} work log${if (filtered.size == 1) "" else "s"}",
-                color = HFColors.OnSurface.copy(alpha = 0.62f),
+                color = HFColors.ink(0.62f),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium
             )
@@ -598,7 +598,7 @@ private fun CategoryWorkLogList(
                 Spacer(Modifier.size(6.dp))
                 Text(
                     "Nothing in this category for ${plane.tailNumber} yet.",
-                    color = HFColors.OnSurface.copy(alpha = 0.68f),
+                    color = HFColors.ink(0.68f),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium
                 )
@@ -632,8 +632,8 @@ private fun PlaneWorkLogRow(log: HFWorkLog, onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.04f))
-            .border(1.dp, HFColors.OnSurface.copy(alpha = 0.10f), RoundedCornerShape(16.dp))
+            .background(HFColors.fill(0.04f))
+            .border(1.dp, HFColors.stroke(0.10f), RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
             .padding(14.dp)
     ) {
@@ -706,12 +706,12 @@ private fun MutedPill(text: String) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(6.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.06f))
+            .background(HFColors.fill(0.06f))
             .padding(horizontal = 6.dp, vertical = 2.dp)
     ) {
         Text(
             text,
-            color = HFColors.OnSurface.copy(alpha = 0.55f),
+            color = HFColors.ink(0.55f),
             fontSize = 10.sp,
             fontWeight = FontWeight.SemiBold
         )
@@ -846,12 +846,12 @@ private fun AttachManualSheet(plane: HFPlane, onDismiss: () -> Unit) {
                 if (candidates.isEmpty()) {
                     Text(
                         stringResource(R.string.pd_no_unattached),
-                        color = HFColors.OnSurface.copy(alpha = 0.7f), fontSize = 13.sp
+                        color = HFColors.ink(0.7f), fontSize = 13.sp
                     )
                 } else {
                     Text(
                         "Select manuals to link. Matching ${plane.aircraftType ?: "type"} manuals are listed first.",
-                        color = HFColors.OnSurface.copy(alpha = 0.65f), fontSize = 12.sp
+                        color = HFColors.ink(0.65f), fontSize = 12.sp
                     )
                     Spacer(Modifier.size(10.dp))
                     LazyColumn(
@@ -867,12 +867,12 @@ private fun AttachManualSheet(plane: HFPlane, onDismiss: () -> Unit) {
                                     .clip(RoundedCornerShape(10.dp))
                                     .background(
                                         if (checked) HFColors.StatusCyan.copy(alpha = 0.12f)
-                                        else HFColors.OnSurface.copy(alpha = 0.04f)
+                                        else HFColors.fill(0.04f)
                                     )
                                     .border(
                                         1.dp,
                                         if (checked) HFColors.StatusCyan.copy(alpha = 0.55f)
-                                        else HFColors.OnSurface.copy(alpha = 0.10f),
+                                        else HFColors.stroke(0.10f),
                                         RoundedCornerShape(10.dp)
                                     )
                                     .clickable {
@@ -894,7 +894,7 @@ private fun AttachManualSheet(plane: HFPlane, onDismiss: () -> Unit) {
                                     if (sub.isNotBlank()) {
                                         Text(
                                             sub + if (typeMatch) "  · matches" else "",
-                                            color = if (typeMatch) HFColors.StatusGreen else HFColors.OnSurface.copy(alpha = 0.55f),
+                                            color = if (typeMatch) HFColors.StatusGreen else HFColors.ink(0.55f),
                                             fontSize = 11.sp, fontWeight = FontWeight.Medium
                                         )
                                     }

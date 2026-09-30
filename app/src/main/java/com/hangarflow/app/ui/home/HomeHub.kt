@@ -199,8 +199,8 @@ private fun HomeHubContent(onOpenHub: (HomeDestination) -> Unit, onOpenNavigator
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
-                    .background(HFColors.OnSurface.copy(alpha = 0.06f))
-                    .border(1.dp, HFColors.OnSurface.copy(alpha = 0.10f), RoundedCornerShape(14.dp))
+                    .background(HFColors.fill(0.06f))
+                    .border(1.dp, HFColors.stroke(0.10f), RoundedCornerShape(14.dp))
                     .clickable(onClick = onOpenNavigator)
                     .padding(horizontal = 14.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -217,7 +217,7 @@ private fun HomeHubContent(onOpenHub: (HomeDestination) -> Unit, onOpenNavigator
                 )
                 Text(
                     stringResource(R.string.home_ai_prompt),
-                    color = HFColors.OnSurface.copy(alpha = 0.70f),
+                    color = HFColors.ink(0.70f),
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier.weight(1f)
@@ -225,7 +225,7 @@ private fun HomeHubContent(onOpenHub: (HomeDestination) -> Unit, onOpenNavigator
                 // The name, said once and quietly.
                 Text(
                     "HANGAR AI",
-                    color = HFColors.OnSurface.copy(alpha = 0.32f),
+                    color = HFColors.ink(0.32f),
                     fontSize = 9.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 0.8.sp
@@ -384,10 +384,10 @@ private fun CustomizeHomeButton(onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(androidx.compose.foundation.shape.RoundedCornerShape(14.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.06f))
+            .background(HFColors.fill(0.06f))
             .border(
                 1.dp,
-                HFColors.OnSurface.copy(alpha = 0.12f),
+                HFColors.stroke(0.12f),
                 androidx.compose.foundation.shape.RoundedCornerShape(14.dp)
             )
             .clickable(onClick = onClick)
@@ -397,7 +397,7 @@ private fun CustomizeHomeButton(onClick: () -> Unit) {
     ) {
         androidx.compose.material3.Text(
             stringResource(R.string.hh_customize),
-            color = HFColors.OnSurface.copy(alpha = 0.80f),
+            color = HFColors.ink(0.80f),
             fontSize = 13.sp,
             fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
         )
@@ -428,14 +428,14 @@ private fun CustomizeHomeSheet(
         ) {
             androidx.compose.material3.Text(
                 stringResource(R.string.hh_customize).uppercase(),
-                color = HFColors.OnSurface.copy(alpha = 0.55f),
+                color = HFColors.ink(0.55f),
                 fontSize = 11.sp,
                 fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
                 letterSpacing = 1.2.sp
             )
             androidx.compose.material3.Text(
                 stringResource(R.string.hh_customize_sub),
-                color = HFColors.OnSurface.copy(alpha = 0.60f),
+                color = HFColors.ink(0.60f),
                 fontSize = 12.sp,
                 fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
             )
@@ -447,10 +447,10 @@ private fun CustomizeHomeSheet(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(androidx.compose.foundation.shape.RoundedCornerShape(12.dp))
-                        .background(HFColors.OnSurface.copy(alpha = 0.04f))
+                        .background(HFColors.fill(0.04f))
                         .border(
                             1.dp,
-                            HFColors.OnSurface.copy(alpha = 0.08f),
+                            HFColors.stroke(0.08f),
                             androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
                         )
                         .clickable {
@@ -469,7 +469,7 @@ private fun CustomizeHomeSheet(
                         )
                         androidx.compose.material3.Text(
                             stringResource(card.subtitle),
-                            color = HFColors.OnSurface.copy(alpha = 0.60f),
+                            color = HFColors.ink(0.60f),
                             fontSize = 11.sp,
                             fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
                         )
@@ -481,7 +481,7 @@ private fun CustomizeHomeSheet(
                             .clip(androidx.compose.foundation.shape.RoundedCornerShape(100.dp))
                             .background(
                                 if (isVisible) HFColors.StatusGreen
-                                else HFColors.OnSurface.copy(alpha = 0.15f)
+                                else HFColors.fill(0.15f)
                             )
                             .padding(3.dp)
                     ) {
@@ -639,7 +639,7 @@ private fun cardsForRole(isAdmin: Boolean): List<HomeCard> {
             title = R.string.card_activitylog_t,
             subtitle = R.string.card_activitylog_s,
             icon = Icons.AutoMirrored.Outlined.ListAlt,
-            accent = HFColors.OnSurface.copy(alpha = 0.30f),
+            accent = HFColors.fill(0.30f),
             destination = HomeDestination.ActivityLog
         )
     )

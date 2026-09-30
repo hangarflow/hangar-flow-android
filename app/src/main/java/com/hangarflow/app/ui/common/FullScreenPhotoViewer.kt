@@ -96,7 +96,7 @@ fun FullScreenPhotoViewer(
                 modifier = Modifier
                     .size(36.dp)
                     .clip(CircleShape)
-                    .background(HFColors.OnSurface.copy(alpha = 0.14f))
+                    .background(HFColors.fill(0.14f))
                     .clickable(onClick = onClose),
                 contentAlignment = Alignment.Center
             ) {
@@ -112,7 +112,7 @@ fun FullScreenPhotoViewer(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(100.dp))
-                        .background(HFColors.OnSurface.copy(alpha = 0.14f))
+                        .background(HFColors.fill(0.14f))
                         .padding(horizontal = 10.dp, vertical = 5.dp)
                 ) {
                     Text(

@@ -222,7 +222,7 @@ private fun TimeCardHubContent(onRequestTimeOff: () -> Unit = {}) {
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(12.dp))
-                .background(HFColors.OnSurface.copy(alpha = 0.04f))
+                .background(HFColors.fill(0.04f))
                 .border(1.dp, HFColors.StatusBlue.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
                 .clickable { onRequestTimeOff() }
                 .padding(vertical = 12.dp),
@@ -244,8 +244,8 @@ private fun TimeCardHubContent(onRequestTimeOff: () -> Unit = {}) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
-                    .background(HFColors.OnSurface.copy(alpha = 0.06f))
-                    .border(1.dp, HFColors.OnSurface.copy(alpha = 0.20f), RoundedCornerShape(12.dp))
+                    .background(HFColors.fill(0.06f))
+                    .border(1.dp, HFColors.stroke(0.20f), RoundedCornerShape(12.dp))
                     .clickable {
                         val label = selectedUser?.displayName?.replace(" ", "_")?.lowercase()
                             ?: "all_shop"
@@ -305,7 +305,7 @@ private fun TimeCardHubContent(onRequestTimeOff: () -> Unit = {}) {
         Spacer(Modifier.size(2.dp))
         Text(
             stringResource(R.string.tc_history_sub),
-            color = HFColors.OnSurface.copy(alpha = 0.62f),
+            color = HFColors.ink(0.62f),
             fontSize = 12.sp,
             fontWeight = FontWeight.Medium
         )
@@ -351,12 +351,12 @@ private fun TimeCardHubContent(onRequestTimeOff: () -> Unit = {}) {
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(100.dp))
-                    .background(HFColors.OnSurface.copy(alpha = 0.10f))
+                    .background(HFColors.fill(0.10f))
                     .padding(horizontal = 8.dp, vertical = 3.dp)
             ) {
                 Text(
                     historyEntries.size.toString(),
-                    color = HFColors.OnSurface.copy(alpha = 0.75f),
+                    color = HFColors.ink(0.75f),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -392,10 +392,10 @@ private fun TimeCardHubContent(onRequestTimeOff: () -> Unit = {}) {
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(16.dp))
-                                    .background(HFColors.OnSurface.copy(alpha = 0.05f))
+                                    .background(HFColors.fill(0.05f))
                                     .border(
                                         1.dp,
-                                        HFColors.OnSurface.copy(alpha = 0.08f),
+                                        HFColors.stroke(0.08f),
                                         RoundedCornerShape(16.dp)
                                     )
                             ) {
@@ -476,9 +476,9 @@ private fun PersonChip(
     selected: Boolean,
     onClick: () -> Unit
 ) {
-    val bg = if (selected) HFColors.BrandWhite else HFColors.OnSurface.copy(alpha = 0.06f)
+    val bg = if (selected) HFColors.BrandWhite else HFColors.fill(0.06f)
     val fg = if (selected) HFColors.BrandInk else HFColors.OnSurface
-    val border = if (selected) HFColors.BrandWhite else HFColors.OnSurface.copy(alpha = 0.12f)
+    val border = if (selected) HFColors.BrandWhite else HFColors.stroke(0.12f)
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(100.dp))
@@ -494,7 +494,7 @@ private fun PersonChip(
                 .clip(CircleShape)
                 .background(
                     if (selected) HFColors.BrandInk.copy(alpha = 0.10f)
-                    else HFColors.OnSurface.copy(alpha = 0.12f)
+                    else HFColors.fill(0.12f)
                 ),
             contentAlignment = androidx.compose.ui.Alignment.Center
         ) {
@@ -513,19 +513,19 @@ private fun TimeToggle(
     enabled: Boolean = true
 ) {
     val bg = when {
-        !enabled -> HFColors.OnSurface.copy(alpha = 0.03f)
+        !enabled -> HFColors.fill(0.03f)
         isSelected -> HFColors.BrandWhite
-        else -> HFColors.OnSurface.copy(alpha = 0.06f)
+        else -> HFColors.fill(0.06f)
     }
     val fg = when {
-        !enabled -> HFColors.OnSurface.copy(alpha = 0.25f)
+        !enabled -> HFColors.ink(0.25f)
         isSelected -> HFColors.BrandInk
         else -> HFColors.OnSurface
     }
     val border = when {
-        !enabled -> HFColors.OnSurface.copy(alpha = 0.05f)
+        !enabled -> HFColors.stroke(0.05f)
         isSelected -> HFColors.BrandWhite
-        else -> HFColors.OnSurface.copy(alpha = 0.10f)
+        else -> HFColors.stroke(0.10f)
     }
     Box(
         modifier = Modifier
@@ -623,13 +623,13 @@ private fun PeriodTile(
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.04f))
-            .border(1.dp, HFColors.OnSurface.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
+            .background(HFColors.fill(0.04f))
+            .border(1.dp, HFColors.stroke(0.12f), RoundedCornerShape(16.dp))
             .padding(14.dp)
     ) {
         Text(
             label,
-            color = HFColors.OnSurface.copy(alpha = 0.55f),
+            color = HFColors.ink(0.55f),
             fontSize = 10.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = 1.2.sp
@@ -655,12 +655,12 @@ private fun DayHeader(day: String, minutes: Int) {
             modifier = Modifier
                 .size(5.dp)
                 .clip(CircleShape)
-                .background(HFColors.OnSurface.copy(alpha = 0.35f))
+                .background(HFColors.fill(0.35f))
         )
         Spacer(Modifier.size(8.dp))
         Text(
             text = prettyDay(day).uppercase(),
-            color = HFColors.OnSurface.copy(alpha = 0.55f),
+            color = HFColors.ink(0.55f),
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = 0.5.sp,
@@ -668,7 +668,7 @@ private fun DayHeader(day: String, minutes: Int) {
         )
         Text(
             text = formatHours(minutes),
-            color = HFColors.OnSurface.copy(alpha = 0.65f),
+            color = HFColors.ink(0.65f),
             fontSize = 11.sp,
             fontWeight = FontWeight.SemiBold
         )
@@ -716,12 +716,12 @@ private fun EntryRow(entry: HFTimeEntry, isAdmin: Boolean, isLast: Boolean = tru
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(100.dp))
-                            .background(HFColors.OnSurface.copy(alpha = 0.08f))
+                            .background(HFColors.fill(0.08f))
                             .padding(horizontal = 7.dp, vertical = 2.dp)
                     ) {
                         Text(
                             entry.planeTailNumber!!,
-                            color = HFColors.OnSurface.copy(alpha = 0.72f),
+                            color = HFColors.ink(0.72f),
                             fontSize = 10.sp,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -731,7 +731,7 @@ private fun EntryRow(entry: HFTimeEntry, isAdmin: Boolean, isLast: Boolean = tru
                     Spacer(Modifier.size(3.dp))
                     Text(
                         text = entry.notes,
-                        color = HFColors.OnSurface.copy(alpha = 0.66f),
+                        color = HFColors.ink(0.66f),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium,
                         maxLines = 2
@@ -753,14 +753,14 @@ private fun EntryRow(entry: HFTimeEntry, isAdmin: Boolean, isLast: Boolean = tru
                 modifier = Modifier
                     .clip(RoundedCornerShape(100.dp))
                     .background(
-                        if (isRejected) HFColors.OnSurface.copy(alpha = 0.06f)
-                        else HFColors.OnSurface.copy(alpha = 0.12f)
+                        if (isRejected) HFColors.fill(0.06f)
+                        else HFColors.fill(0.12f)
                     )
                     .padding(horizontal = 10.dp, vertical = 6.dp)
             ) {
                 Text(
                     text = formatHours(entry.minutesWorked),
-                    color = if (isRejected) HFColors.OnSurface.copy(alpha = 0.45f) else HFColors.OnSurface,
+                    color = if (isRejected) HFColors.ink(0.45f) else HFColors.OnSurface,
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -804,7 +804,7 @@ private fun EntryRow(entry: HFTimeEntry, isAdmin: Boolean, isLast: Boolean = tru
                 .fillMaxWidth()
                 .padding(horizontal = 14.dp)
                 .height(1.dp)
-                .background(HFColors.OnSurface.copy(alpha = 0.07f))
+                .background(HFColors.fill(0.07f))
         )
     }
 }
@@ -823,7 +823,7 @@ private fun ReimbursementSection(
     Spacer(Modifier.size(18.dp))
     Text(
         if (isAdmin) "REIMBURSEMENTS" else "MY REIMBURSEMENTS",
-        color = HFColors.OnSurface.copy(alpha = 0.55f),
+        color = HFColors.ink(0.55f),
         fontSize = 10.sp,
         fontWeight = FontWeight.Bold,
         letterSpacing = 1.2.sp
@@ -847,7 +847,7 @@ private fun ReimbursementRow(r: com.hangarflow.app.data.model.HFReimbursement, s
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.04f))
+            .background(HFColors.fill(0.04f))
             .border(1.dp, statusColor.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
             .padding(12.dp)
     ) {
@@ -855,7 +855,7 @@ private fun ReimbursementRow(r: com.hangarflow.app.data.model.HFReimbursement, s
             Column(Modifier.weight(1f)) {
                 Text(r.userName.ifBlank { "Tech" }, color = HFColors.OnSurface, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                 if (r.description.isNotBlank()) {
-                    Text(r.description, color = HFColors.OnSurface.copy(alpha = 0.60f), fontSize = 11.sp, fontWeight = FontWeight.Medium, maxLines = 2)
+                    Text(r.description, color = HFColors.ink(0.60f), fontSize = 11.sp, fontWeight = FontWeight.Medium, maxLines = 2)
                 }
             }
             Column(horizontalAlignment = Alignment.End) {
@@ -915,7 +915,7 @@ private fun CorrectionApprovalsSection(
     Spacer(Modifier.size(18.dp))
     Text(
         stringResource(R.string.tc_corrections_caps),
-        color = HFColors.OnSurface.copy(alpha = 0.55f),
+        color = HFColors.ink(0.55f),
         fontSize = 10.sp,
         fontWeight = FontWeight.Bold,
         letterSpacing = 1.2.sp
@@ -928,7 +928,7 @@ private fun CorrectionApprovalsSection(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
-                    .background(HFColors.OnSurface.copy(alpha = 0.04f))
+                    .background(HFColors.fill(0.04f))
                     .border(1.dp, HFColors.StatusBlue.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
                     .padding(12.dp)
             ) {
@@ -940,7 +940,7 @@ private fun CorrectionApprovalsSection(
                     Spacer(Modifier.size(3.dp))
                     Text(
                         c.requestedChange,
-                        color = HFColors.OnSurface.copy(alpha = 0.66f),
+                        color = HFColors.ink(0.66f),
                         fontSize = 11.sp, fontWeight = FontWeight.Medium, maxLines = 4
                     )
                 }
@@ -976,13 +976,13 @@ private fun RequestCorrectionDialog(entry: HFTimeEntry, onDismiss: () -> Unit) {
             Column {
                 Text(
                     stringResource(R.string.tc_correction_help),
-                    color = HFColors.OnSurface.copy(alpha = 0.66f), fontSize = 12.sp
+                    color = HFColors.ink(0.66f), fontSize = 12.sp
                 )
                 if (entry.entryDate.isNotBlank() || entry.minutesWorked > 0) {
                     Spacer(Modifier.size(4.dp))
                     Text(
                         "${entry.entryDate.take(10)} · ${formatHours(entry.minutesWorked)}",
-                        color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 11.sp,
+                        color = HFColors.ink(0.5f), fontSize = 11.sp,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
@@ -991,13 +991,13 @@ private fun RequestCorrectionDialog(entry: HFTimeEntry, onDismiss: () -> Unit) {
                     value = note,
                     onValueChange = { note = it; error = null },
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text(stringResource(R.string.tc_correction_hint), color = HFColors.OnSurface.copy(alpha = 0.4f)) },
+                    placeholder = { Text(stringResource(R.string.tc_correction_hint), color = HFColors.ink(0.4f)) },
                     minLines = 2,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
-                        unfocusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
+                        focusedContainerColor = HFColors.fill(0.04f),
+                        unfocusedContainerColor = HFColors.fill(0.04f),
                         focusedBorderColor = HFColors.StatusBlue.copy(alpha = 0.55f),
-                        unfocusedBorderColor = HFColors.OnSurface.copy(alpha = 0.10f),
+                        unfocusedBorderColor = HFColors.stroke(0.10f),
                         focusedTextColor = HFColors.OnSurface,
                         unfocusedTextColor = HFColors.OnSurface,
                         cursorColor = HFColors.OnSurface
@@ -1033,7 +1033,7 @@ private fun RequestCorrectionDialog(entry: HFTimeEntry, onDismiss: () -> Unit) {
         },
         dismissButton = {
             TextButton(enabled = !submitting, onClick = onDismiss) {
-                Text(stringResource(R.string.action_cancel), color = HFColors.OnSurface.copy(alpha = 0.7f))
+                Text(stringResource(R.string.action_cancel), color = HFColors.ink(0.7f))
             }
         }
     )
@@ -1106,22 +1106,22 @@ private fun HistorySegmentedControl(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.06f))
-            .border(1.dp, HFColors.OnSurface.copy(alpha = 0.10f), RoundedCornerShape(10.dp))
+            .background(HFColors.fill(0.06f))
+            .border(1.dp, HFColors.stroke(0.10f), RoundedCornerShape(10.dp))
             .padding(3.dp),
         horizontalArrangement = Arrangement.spacedBy(3.dp)
     ) {
         HistoryPeriod.values().forEach { p ->
             val isSel = p == selected
             val bg = when {
-                !enabled -> if (isSel) HFColors.OnSurface.copy(alpha = 0.10f) else androidx.compose.ui.graphics.Color.Transparent
+                !enabled -> if (isSel) HFColors.fill(0.10f) else androidx.compose.ui.graphics.Color.Transparent
                 isSel -> HFColors.BrandWhite
                 else -> androidx.compose.ui.graphics.Color.Transparent
             }
             val fg = when {
-                !enabled -> HFColors.OnSurface.copy(alpha = 0.30f)
+                !enabled -> HFColors.ink(0.30f)
                 isSel -> HFColors.BrandInk
-                else -> HFColors.OnSurface.copy(alpha = 0.70f)
+                else -> HFColors.ink(0.70f)
             }
             Box(
                 modifier = Modifier
@@ -1155,7 +1155,7 @@ private fun CustomRangeRow(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.05f))
+            .background(HFColors.fill(0.05f))
             .padding(12.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1169,7 +1169,7 @@ private fun CustomRangeRow(
             // Lightweight pill toggle (no Material Switch, to match the
             // iOS-flavored visuals and stay self-contained).
             val trackOn = HFColors.StatusCyan
-            val track = if (useRange) trackOn else HFColors.OnSurface.copy(alpha = 0.18f)
+            val track = if (useRange) trackOn else HFColors.ink(0.18f)
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(100.dp))
@@ -1192,7 +1192,7 @@ private fun CustomRangeRow(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     "Last $weeksBack ${if (weeksBack == 1) "week" else "weeks"}",
-                    color = HFColors.OnSurface.copy(alpha = 0.75f),
+                    color = HFColors.ink(0.75f),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier.weight(1f)
@@ -1211,8 +1211,8 @@ private fun StepperChip(label: String, onClick: () -> Unit) {
         modifier = Modifier
             .size(30.dp)
             .clip(RoundedCornerShape(8.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.10f))
-            .border(1.dp, HFColors.OnSurface.copy(alpha = 0.12f), RoundedCornerShape(8.dp))
+            .background(HFColors.fill(0.10f))
+            .border(1.dp, HFColors.stroke(0.12f), RoundedCornerShape(8.dp))
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
@@ -1226,13 +1226,13 @@ private fun HistoryTotalRow(minutes: Int) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.05f))
+            .background(HFColors.fill(0.05f))
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             stringResource(R.string.tc_total_caps),
-            color = HFColors.OnSurface.copy(alpha = 0.50f),
+            color = HFColors.ink(0.50f),
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = 0.6.sp,
@@ -1323,7 +1323,7 @@ private fun ActivityWorkLogRow(wl: com.hangarflow.app.data.model.HFWorkLog) {
             if (meta.isNotBlank()) {
                 Text(
                     meta,
-                    color = HFColors.OnSurface.copy(alpha = 0.55f),
+                    color = HFColors.ink(0.55f),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium
                 )
@@ -1371,7 +1371,7 @@ private fun ActivitySquawkRow(sq: com.hangarflow.app.data.model.HFSquawk) {
             if (meta.isNotBlank()) {
                 Text(
                     meta,
-                    color = HFColors.OnSurface.copy(alpha = 0.55f),
+                    color = HFColors.ink(0.55f),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium
                 )
@@ -1441,9 +1441,9 @@ private fun HoursAnomalyBanner(flags: List<HFCloudSyncService.HoursFlag>, entrie
             val e = byId[f.id]
             val who = e?.userName?.takeIf { it.isNotBlank() } ?: "Entry"
             val date = e?.entryDate?.take(10) ?: ""
-            val c = if (f.severity == "warn") HFColors.StatusRed else HFColors.OnSurface.copy(alpha = 0.75f)
+            val c = if (f.severity == "warn") HFColors.StatusRed else HFColors.ink(0.75f)
             Text("• $who${if (date.isNotBlank()) " ($date)" else ""}: ${f.reason}", color = c, fontSize = 11.sp)
         }
-        Text(stringResource(R.string.tc_ai_flags), color = HFColors.OnSurface.copy(alpha = 0.4f), fontSize = 9.sp)
+        Text(stringResource(R.string.tc_ai_flags), color = HFColors.ink(0.4f), fontSize = 9.sp)
     }
 }

@@ -42,6 +42,7 @@ import com.hangarflow.app.i18n.HFLanguageSettingsRow
 import com.hangarflow.app.R
 import com.hangarflow.app.ui.theme.HFColors
 import kotlinx.coroutines.launch
+import com.hangarflow.app.ui.theme.HFAppearanceSettingsRow
 
 @Composable
 fun SettingsHub() {
@@ -66,6 +67,11 @@ fun SettingsHub() {
                 Row(label = stringResource(R.string.login_email), value = me.email.ifBlank { "—" })
                 Row(label = stringResource(R.string.set_initials), value = me.initials.ifBlank { "—" })
             }
+        }
+        Spacer(Modifier.size(14.dp))
+
+        SettingsCard(title = stringResource(R.string.settings_appearance)) {
+            HFAppearanceSettingsRow()
         }
         Spacer(Modifier.size(14.dp))
 
@@ -129,7 +135,7 @@ fun SettingsHub() {
             onDismissRequest = { confirmSignOut = false },
             containerColor = HFColors.Background,
             titleContentColor = HFColors.OnSurface,
-            textContentColor = HFColors.OnSurface.copy(alpha = 0.78f),
+            textContentColor = HFColors.ink(0.78f),
             title = { Text(stringResource(R.string.sign_out_title)) },
             text = { Text(stringResource(R.string.sign_out_body)) },
             confirmButton = {
@@ -164,7 +170,7 @@ private fun ReportIssueDialog(onDismiss: () -> Unit) {
         onDismissRequest = { if (!sending) onDismiss() },
         containerColor = HFColors.Background,
         titleContentColor = HFColors.OnSurface,
-        textContentColor = HFColors.OnSurface.copy(alpha = 0.78f),
+        textContentColor = HFColors.ink(0.78f),
         title = {
             Text(
                 if (sent) "Thanks — we'll take a look" else stringResource(R.string.set_report_issue),
@@ -181,7 +187,7 @@ private fun ReportIssueDialog(onDismiss: () -> Unit) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
                         stringResource(R.string.sh_report_hint),
-                        color = HFColors.OnSurface.copy(alpha = 0.55f),
+                        color = HFColors.ink(0.55f),
                         fontSize = 12.sp
                     )
                     OutlinedTextField(
@@ -265,13 +271,13 @@ private fun SettingsCard(title: String, content: @Composable () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.04f))
-            .border(1.dp, HFColors.OnSurface.copy(alpha = 0.10f), RoundedCornerShape(18.dp))
+            .background(HFColors.fill(0.04f))
+            .border(1.dp, HFColors.stroke(0.10f), RoundedCornerShape(18.dp))
             .padding(18.dp)
     ) {
         Text(
             title.uppercase(),
-            color = HFColors.OnSurface.copy(alpha = 0.55f),
+            color = HFColors.ink(0.55f),
             fontSize = 10.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = 1.5.sp
@@ -293,7 +299,7 @@ private fun Row(label: String, value: String) {
         Text(label, color = HFColors.OnSurface, fontSize = 13.sp)
         Text(
             value,
-            color = HFColors.OnSurface.copy(alpha = 0.70f),
+            color = HFColors.ink(0.70f),
             fontSize = 13.sp,
             fontWeight = FontWeight.SemiBold
         )
@@ -478,7 +484,7 @@ private fun ChangeEmailRow(currentEmail: String) {
                 Text(
                     if (pendingEmail != null) "Pending: confirm via $pendingEmail"
                     else currentEmail.ifBlank { "—" },
-                    color = HFColors.OnSurface.copy(alpha = 0.55f),
+                    color = HFColors.ink(0.55f),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium
                 )
@@ -507,7 +513,7 @@ private fun ChangeEmailRow(currentEmail: String) {
             Spacer(Modifier.size(8.dp))
             Text(
                 stringResource(R.string.sh_email_hint),
-                color = HFColors.OnSurface.copy(alpha = 0.55f),
+                color = HFColors.ink(0.55f),
                 fontSize = 11.sp
             )
             Spacer(Modifier.size(10.dp))

@@ -404,4 +404,9 @@
     <string name="sc_dropoff_for">Entrega · %1$s</string>
     <string name="ac_reference_only">Apenas para referência: é escrito tal como está, nada é acompanhado nem calculado. Pode deixar campos em branco (um avião monomotor só preenche Célula + Motor 1).</string>
     <string name="cd_receipt_thumb">Miniatura do recibo</string>
+    <string name="settings_appearance">Aparência</string>
+    <string name="settings_appearance_desc">Escuro é o modo predefinido. Claro lê-se melhor numa placa com muita luz; Sistema segue o dispositivo.</string>
+    <string name="appearance_system">Sistema</string>
+    <string name="appearance_light">Claro</string>
+    <string name="appearance_dark">Escuro</string>
 </resources>

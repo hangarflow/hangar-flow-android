@@ -467,4 +467,11 @@
     <string name="sc_dropoff_for">Drop-off · %1$s</string>
     <string name="ac_reference_only">Reference only — typed in as-is, nothing is tracked or calculated. Leave any field blank (a single-engine plane just fills Airframe + Engine 1).</string>
     <string name="cd_receipt_thumb">Receipt thumbnail</string>
+
+    <!-- Light/dark appearance setting -->
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_appearance_desc">Dark is the default. Light is easier to read on a bright ramp; System follows the device.</string>
+    <string name="appearance_system">System</string>
+    <string name="appearance_light">Light</string>
+    <string name="appearance_dark">Dark</string>
 </resources>

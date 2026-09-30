@@ -404,4 +404,9 @@
     <string name="sc_dropoff_for">交机 · %1$s</string>
     <string name="ac_reference_only">仅供参考——按原样录入，不做跟踪也不参与计算。任意字段均可留空（单发飞机只需填写机身 + 发动机 1）。</string>
     <string name="cd_receipt_thumb">收据缩略图</string>
+    <string name="settings_appearance">外观</string>
+    <string name="settings_appearance_desc">默认为深色。在光线强烈的停机坪上浅色更易阅读；“系统”跟随设备设置。</string>
+    <string name="appearance_system">系统</string>
+    <string name="appearance_light">浅色</string>
+    <string name="appearance_dark">深色</string>
 </resources>

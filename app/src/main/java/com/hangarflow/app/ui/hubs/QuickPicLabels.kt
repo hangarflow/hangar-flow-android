@@ -174,11 +174,11 @@ fun QuickPicLabelBuilder(preselected: Set<String> = emptySet(), onBack: () -> Un
             item {
                 Text(
                     stringResource(R.string.ql_sub),
-                    color = HFColors.OnSurface.copy(alpha = 0.6f), fontSize = 13.sp, fontWeight = FontWeight.Medium
+                    color = HFColors.ink(0.6f), fontSize = 13.sp, fontWeight = FontWeight.Medium
                 )
             }
             item {
-                Text(stringResource(R.string.ql_label_size_caps), color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                Text(stringResource(R.string.ql_label_size_caps), color = HFColors.ink(0.55f), fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
             }
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
@@ -187,14 +187,14 @@ fun QuickPicLabelBuilder(preselected: Set<String> = emptySet(), onBack: () -> Un
                         Column(
                             modifier = Modifier.weight(1f)
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(if (active) HFColors.OnSurface.copy(alpha = 0.18f) else HFColors.OnSurface.copy(alpha = 0.06f))
-                                .border(1.dp, if (active) HFColors.OnSurface.copy(alpha = 0.5f) else HFColors.OnSurface.copy(alpha = 0.15f), RoundedCornerShape(12.dp))
+                                .background(if (active) HFColors.fill(0.18f) else HFColors.fill(0.06f))
+                                .border(1.dp, if (active) HFColors.stroke(0.5f) else HFColors.stroke(0.15f), RoundedCornerShape(12.dp))
                                 .clickable { size = s }
                                 .padding(vertical = 10.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Text(s.title, color = if (active) HFColors.OnSurface else HFColors.OnSurface.copy(alpha = 0.6f), fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                            Text(s.blurb, color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 9.sp, fontWeight = FontWeight.Medium)
+                            Text(s.title, color = if (active) HFColors.OnSurface else HFColors.ink(0.6f), fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text(s.blurb, color = HFColors.ink(0.5f), fontSize = 9.sp, fontWeight = FontWeight.Medium)
                         }
                     }
                 }
@@ -218,7 +218,7 @@ fun QuickPicLabelBuilder(preselected: Set<String> = emptySet(), onBack: () -> Un
             }
             if (allItems.isEmpty()) {
                 item {
-                    Text(stringResource(R.string.ql_nothing), color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                    Text(stringResource(R.string.ql_nothing), color = HFColors.ink(0.5f), fontSize = 13.sp, fontWeight = FontWeight.Medium)
                 }
             }
         }
@@ -228,7 +228,7 @@ fun QuickPicLabelBuilder(preselected: Set<String> = emptySet(), onBack: () -> Un
             val count = selectedItems.size
             Box(
                 modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
-                    .background(if (count == 0) HFColors.OnSurface.copy(alpha = 0.10f) else HFColors.OnSurface)
+                    .background(if (count == 0) HFColors.fill(0.10f) else HFColors.OnSurface)
                     .clickable(enabled = count > 0) {
                         pendingPdf = buildQrLabelsPdf(selectedItems, size)
                         saveLauncher.launch("HangarFlow-Labels.pdf")
@@ -247,7 +247,7 @@ fun QuickPicLabelBuilder(preselected: Set<String> = emptySet(), onBack: () -> Un
 
 @Composable
 private fun QpSectionLabel(text: String) {
-    Text(text.uppercase(), color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+    Text(text.uppercase(), color = HFColors.ink(0.5f), fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
 }
 
 @Composable
@@ -255,7 +255,7 @@ private fun QpItemRow(item: QpLabelItem, checked: Boolean, onToggle: () -> Unit)
     Row(
         modifier = Modifier.fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.04f))
+            .background(HFColors.fill(0.04f))
             .clickable(onClick = onToggle)
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -263,7 +263,7 @@ private fun QpItemRow(item: QpLabelItem, checked: Boolean, onToggle: () -> Unit)
         Icon(
             if (checked) Icons.Outlined.CheckCircle else Icons.Outlined.RadioButtonUnchecked,
             contentDescription = null,
-            tint = if (checked) HFColors.StatusGreen else HFColors.OnSurface.copy(alpha = 0.35f),
+            tint = if (checked) HFColors.StatusGreen else HFColors.ink(0.35f),
             modifier = Modifier.size(20.dp)
         )
         Spacer(Modifier.size(10.dp))

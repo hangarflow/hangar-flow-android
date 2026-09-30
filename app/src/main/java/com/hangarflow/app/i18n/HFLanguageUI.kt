@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.hangarflow.app.R
+import com.hangarflow.app.ui.theme.HFColors
 
 /**
  * Language selection, in one place so every entry point looks identical.
@@ -86,8 +87,8 @@ fun HFLanguageDialog(onDismiss: () -> Unit) {
                 .widthIn(max = 420.dp)
                 .fillMaxWidth(0.9f)
                 .clip(RoundedCornerShape(22.dp))
-                .background(Color(0xFF0B0B0D))
-                .border(1.dp, Color.White.copy(alpha = 0.10f), RoundedCornerShape(22.dp))
+                .background(HFColors.Surface)
+                .border(1.dp, HFColors.stroke(0.10f), RoundedCornerShape(22.dp))
                 .padding(vertical = 18.dp)
         ) {
             Row(
@@ -97,13 +98,13 @@ fun HFLanguageDialog(onDismiss: () -> Unit) {
                 Icon(
                     Icons.Outlined.Language,
                     contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.75f),
+                    tint = HFColors.ink(0.75f),
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(Modifier.width(9.dp))
                 Text(
                     stringResource(R.string.settings_language),
-                    color = Color.White,
+                    color = HFColors.OnSurface,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f)
@@ -112,14 +113,14 @@ fun HFLanguageDialog(onDismiss: () -> Unit) {
                     modifier = Modifier
                         .size(30.dp)
                         .clip(RoundedCornerShape(100.dp))
-                        .background(Color.White.copy(alpha = 0.07f))
+                        .background(HFColors.fill(0.07f))
                         .clickable(onClick = onDismiss),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         Icons.Outlined.Close,
                         contentDescription = stringResource(R.string.action_close),
-                        tint = Color.White.copy(alpha = 0.70f),
+                        tint = HFColors.ink(0.70f),
                         modifier = Modifier.size(15.dp)
                     )
                 }
@@ -127,7 +128,7 @@ fun HFLanguageDialog(onDismiss: () -> Unit) {
 
             Text(
                 stringResource(R.string.settings_language_desc),
-                color = Color.White.copy(alpha = 0.50f),
+                color = HFColors.ink(0.50f),
                 fontSize = 12.sp,
                 modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp)
             )
@@ -145,7 +146,7 @@ fun HFLanguageDialog(onDismiss: () -> Unit) {
                             .padding(vertical = 3.dp)
                             .clip(RoundedCornerShape(12.dp))
                             .background(
-                                if (selected) Color.White.copy(alpha = 0.08f) else Color.Transparent
+                                if (selected) HFColors.fill(0.08f) else Color.Transparent
                             )
                             .clickable {
                                 if (selected) onDismiss() else apply(context, lang)
@@ -157,7 +158,7 @@ fun HFLanguageDialog(onDismiss: () -> Unit) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 label(lang),
-                                color = Color.White,
+                                color = HFColors.OnSurface,
                                 fontSize = 16.sp,
                                 fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
                             )
@@ -166,7 +167,7 @@ fun HFLanguageDialog(onDismiss: () -> Unit) {
                             ) {
                                 Text(
                                     lang.englishName,
-                                    color = Color.White.copy(alpha = 0.42f),
+                                    color = HFColors.ink(0.42f),
                                     fontSize = 12.sp
                                 )
                             }
@@ -174,7 +175,7 @@ fun HFLanguageDialog(onDismiss: () -> Unit) {
                         if (selected) {
                             Text(
                                 "✓",
-                                color = Color(0xFF30D158),
+                                color = HFColors.StatusGreen,
                                 fontSize = 17.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -204,8 +205,8 @@ fun HFLanguageButton(modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(100.dp))
-            .background(Color.White.copy(alpha = 0.06f))
-            .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(100.dp))
+            .background(HFColors.fill(0.06f))
+            .border(1.dp, HFColors.stroke(0.12f), RoundedCornerShape(100.dp))
             .clickable { open = true }
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -213,13 +214,13 @@ fun HFLanguageButton(modifier: Modifier = Modifier) {
         Icon(
             Icons.Outlined.Language,
             contentDescription = stringResource(R.string.settings_language),
-            tint = Color.White.copy(alpha = 0.70f),
+            tint = HFColors.ink(0.70f),
             modifier = Modifier.size(15.dp)
         )
         Spacer(Modifier.width(6.dp))
         Text(
             label(current),
-            color = Color.White.copy(alpha = 0.80f),
+            color = HFColors.ink(0.80f),
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold
         )
@@ -247,20 +248,20 @@ fun HFLanguageSettingsRow() {
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 stringResource(R.string.settings_language),
-                color = Color.White,
+                color = HFColors.OnSurface,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium
             )
             Text(
                 stringResource(R.string.settings_language_desc),
-                color = Color.White.copy(alpha = 0.45f),
+                color = HFColors.ink(0.45f),
                 fontSize = 11.sp
             )
         }
         Spacer(Modifier.width(10.dp))
         Text(
             label(current),
-            color = Color.White.copy(alpha = 0.70f),
+            color = HFColors.ink(0.70f),
             fontSize = 13.sp,
             fontWeight = FontWeight.SemiBold
         )

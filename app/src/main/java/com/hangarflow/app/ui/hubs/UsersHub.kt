@@ -89,7 +89,7 @@ private fun UsersHubContent() {
 
         Text(
             text = "${users.size} total · ${admins.size} admin · ${techs.size} tech",
-            color = HFColors.OnSurface.copy(alpha = 0.55f),
+            color = HFColors.ink(0.55f),
             fontSize = 11.sp,
             fontWeight = FontWeight.SemiBold
         )
@@ -136,7 +136,7 @@ private fun UsersHubContent() {
 private fun SectionLabel(text: String) {
     Text(
         text,
-        color = HFColors.OnSurface.copy(alpha = 0.55f),
+        color = HFColors.ink(0.55f),
         fontSize = 10.sp,
         fontWeight = FontWeight.Bold,
         letterSpacing = 1.2.sp
@@ -146,13 +146,13 @@ private fun SectionLabel(text: String) {
 @Composable
 private fun UserRow(user: HFUserProfile, onTap: () -> Unit) {
     val isAdmin = user.role.equals("admin", ignoreCase = true)
-    val accent = if (isAdmin) HFColors.StatusBlue else HFColors.OnSurface.copy(alpha = 0.65f)
+    val accent = if (isAdmin) HFColors.StatusBlue else HFColors.fill(0.65f)
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.04f))
-            .border(1.dp, HFColors.OnSurface.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
+            .background(HFColors.fill(0.04f))
+            .border(1.dp, HFColors.stroke(0.08f), RoundedCornerShape(16.dp))
             .clickable(onClick = onTap)
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -181,7 +181,7 @@ private fun UserRow(user: HFUserProfile, onTap: () -> Unit) {
             )
             Text(
                 user.email.ifBlank { "No email" },
-                color = HFColors.OnSurface.copy(alpha = 0.55f),
+                color = HFColors.ink(0.55f),
                 fontSize = 11.sp
             )
         }
@@ -225,7 +225,7 @@ private fun UserActionsSheet(
         if (user.email.isNotBlank()) {
             Text(
                 user.email,
-                color = HFColors.OnSurface.copy(alpha = 0.55f),
+                color = HFColors.ink(0.55f),
                 fontSize = 12.sp
             )
         }
@@ -258,7 +258,7 @@ private fun UserActionsSheet(
             Spacer(Modifier.size(8.dp))
             Text(
                 stringResource(R.string.us_cant_self),
-                color = HFColors.OnSurface.copy(alpha = 0.50f),
+                color = HFColors.ink(0.50f),
                 fontSize = 11.sp
             )
         }
@@ -270,7 +270,7 @@ private fun UserActionsSheet(
             onDismissRequest = { confirmDelete = false },
             containerColor = HFColors.Background,
             titleContentColor = HFColors.OnSurface,
-            textContentColor = HFColors.OnSurface.copy(alpha = 0.78f),
+            textContentColor = HFColors.ink(0.78f),
             title = { Text("Delete ${user.displayName}?", fontWeight = FontWeight.Bold) },
             text = {
                 Text(
@@ -304,7 +304,7 @@ private fun ActionRow(
     onClick: () -> Unit
 ) {
     val color = when {
-        !enabled -> HFColors.OnSurface.copy(alpha = 0.30f)
+        !enabled -> HFColors.ink(0.30f)
         destructive -> HFColors.StatusRed
         else -> HFColors.OnSurface
     }
@@ -312,8 +312,8 @@ private fun ActionRow(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.04f))
-            .border(1.dp, HFColors.OnSurface.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
+            .background(HFColors.fill(0.04f))
+            .border(1.dp, HFColors.stroke(0.08f), RoundedCornerShape(12.dp))
             .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically

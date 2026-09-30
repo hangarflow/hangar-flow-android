@@ -94,7 +94,7 @@ private fun PlanesHubContent(onSelectPlane: (HFPlane) -> Unit) {
             Spacer(Modifier.size(8.dp))
             Text(
                 stringResource(R.string.ph_no_planes_sub),
-                color = HFColors.OnSurface.copy(alpha = 0.68f),
+                color = HFColors.ink(0.68f),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium
             )
@@ -124,7 +124,7 @@ private fun PlanesHubContent(onSelectPlane: (HFPlane) -> Unit) {
                         .clip(RoundedCornerShape(10.dp))
                         .background(
                             if (showArchived) HFColors.StatusYellow.copy(alpha = 0.16f)
-                            else HFColors.OnSurface.copy(alpha = 0.06f)
+                            else HFColors.fill(0.06f)
                         )
                         .clickable { showArchived = !showArchived }
                         .padding(horizontal = 12.dp, vertical = 8.dp),
@@ -132,7 +132,7 @@ private fun PlanesHubContent(onSelectPlane: (HFPlane) -> Unit) {
                 ) {
                     Text(
                         if (showArchived) "Showing archived ($archivedCount)" else "Show archived ($archivedCount)",
-                        color = if (showArchived) HFColors.StatusYellow else HFColors.OnSurface.copy(alpha = 0.7f),
+                        color = if (showArchived) HFColors.StatusYellow else HFColors.ink(0.7f),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -186,7 +186,7 @@ private fun IOSPlaneCard(
             .fillMaxWidth()
             .heightIn(min = 120.dp)
             .clip(RoundedCornerShape(18.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.06f))
+            .background(HFColors.fill(0.06f))
             .border(2.dp, outline.copy(alpha = 0.95f), RoundedCornerShape(18.dp))
             .clickable(onClick = onClick)
             .padding(16.dp),
@@ -206,7 +206,7 @@ private fun IOSPlaneCard(
             Icon(
                 imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
                 contentDescription = null,
-                tint = HFColors.OnSurface.copy(alpha = 0.45f),
+                tint = HFColors.ink(0.45f),
                 modifier = Modifier.size(14.dp)
             )
         }
@@ -219,7 +219,7 @@ private fun IOSPlaneCard(
         if (plane.displayName.isNotBlank()) {
             Text(
                 plane.displayName,
-                color = HFColors.OnSurface.copy(alpha = 0.70f),
+                color = HFColors.ink(0.70f),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
                 maxLines = 2
@@ -231,7 +231,7 @@ private fun IOSPlaneCard(
         ) {
             Text(
                 "$workLogCount work log${if (workLogCount == 1) "" else "s"}",
-                color = HFColors.OnSurface.copy(alpha = 0.45f),
+                color = HFColors.ink(0.45f),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold
             )

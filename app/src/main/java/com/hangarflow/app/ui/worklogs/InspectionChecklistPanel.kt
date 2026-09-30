@@ -131,7 +131,7 @@ fun InspectionChecklistPanel(workLog: HFWorkLog) {
                 progress = { doneCount.toFloat() / items.size.toFloat() },
                 modifier = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)),
                 color = HFColors.StatusGreen,
-                trackColor = HFColors.OnSurface.copy(alpha = 0.10f)
+                trackColor = HFColors.fill(0.10f)
             )
         }
 
@@ -171,12 +171,12 @@ fun InspectionChecklistPanel(workLog: HFWorkLog) {
                                 .clip(RoundedCornerShape(10.dp))
                                 .background(
                                     if (isDone) HFColors.StatusGreen.copy(alpha = 0.08f)
-                                    else Color.White.copy(alpha = 0.04f)
+                                    else HFColors.fill(0.04f)
                                 )
                                 .border(
                                     1.dp,
                                     if (isDone) HFColors.StatusGreen.copy(alpha = 0.30f)
-                                    else Color.White.copy(alpha = 0.08f),
+                                    else HFColors.stroke(0.08f),
                                     RoundedCornerShape(10.dp)
                                 )
                                 .clickable {
@@ -189,10 +189,10 @@ fun InspectionChecklistPanel(workLog: HFWorkLog) {
                             Box(
                                 modifier = Modifier.size(22.dp)
                                     .clip(RoundedCornerShape(6.dp))
-                                    .background(if (isDone) HFColors.StatusGreen else Color.White.copy(alpha = 0.08f))
+                                    .background(if (isDone) HFColors.StatusGreen else HFColors.fill(0.08f))
                                     .border(
                                         1.dp,
-                                        if (isDone) HFColors.StatusGreen else Color.White.copy(alpha = 0.20f),
+                                        if (isDone) HFColors.StatusGreen else HFColors.stroke(0.20f),
                                         RoundedCornerShape(6.dp)
                                     ),
                                 contentAlignment = Alignment.Center

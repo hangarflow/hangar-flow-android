@@ -404,4 +404,9 @@
     <string name="sc_dropoff_for">Dépôt · %1$s</string>
     <string name="ac_reference_only">À titre de référence — saisi tel quel, rien n\'est suivi ni calculé. Vous pouvez laisser des champs vides (un monomoteur ne remplit que Cellule + Moteur 1).</string>
     <string name="cd_receipt_thumb">Miniature du reçu</string>
+    <string name="settings_appearance">Apparence</string>
+    <string name="settings_appearance_desc">Sombre est le mode par défaut. Clair se lit mieux sur un tarmac en plein soleil ; Système suit l\'appareil.</string>
+    <string name="appearance_system">Système</string>
+    <string name="appearance_light">Clair</string>
+    <string name="appearance_dark">Sombre</string>
 </resources>

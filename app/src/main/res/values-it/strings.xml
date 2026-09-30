@@ -404,4 +404,9 @@
     <string name="sc_dropoff_for">Consegna · %1$s</string>
     <string name="ac_reference_only">Solo di riferimento: inserito così com\'è, nulla viene tracciato o calcolato. Puoi lasciare campi vuoti (un monomotore compila solo Cellula + Motore 1).</string>
     <string name="cd_receipt_thumb">Miniatura della ricevuta</string>
+    <string name="settings_appearance">Aspetto</string>
+    <string name="settings_appearance_desc">Scuro è la modalità predefinita. Chiaro si legge meglio su un piazzale luminoso; Sistema segue il dispositivo.</string>
+    <string name="appearance_system">Sistema</string>
+    <string name="appearance_light">Chiaro</string>
+    <string name="appearance_dark">Scuro</string>
 </resources>

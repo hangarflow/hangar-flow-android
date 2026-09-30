@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.sp
 import com.hangarflow.app.BuildConfig
 import com.hangarflow.app.R
 import com.hangarflow.app.ui.theme.HFColors
+import com.hangarflow.app.ui.theme.HFDarkPalette
 import androidx.compose.ui.res.stringResource
 
 /**
@@ -67,10 +68,24 @@ import androidx.compose.ui.res.stringResource
  */
 private val LOGO_SIZE = 122.dp
 
+/*
+ * The splash is deliberately NOT theme-aware, and reads HFDarkPalette directly.
+ *
+ * The launch window underneath it is drawn by the system from the app's theme
+ * before a single line of our code runs, so it cannot know that this user chose
+ * Light. It can only be made to follow the *device* (values-night), which is a
+ * different question and still disagrees whenever the in-app override does.
+ * Any theme-aware splash therefore means a black system window flashing to a
+ * white Compose one, every cold start.
+ *
+ * Treating the half-second brand moment as a fixed asset — the way an iOS launch
+ * storyboard is fixed — removes the flash outright. The app's real first screen
+ * is the one after this, and that one honours the setting.
+ */
 @Composable
 fun HFLaunchSplash() {
     BoxWithConstraints(
-        modifier = Modifier.fillMaxSize().background(HFColors.Background)
+        modifier = Modifier.fillMaxSize().background(HFDarkPalette.background)
     ) {
         // The logo is centred on its own, NOT as the first item of a centred
         // column. The launch-window drawable centres this same image at this
@@ -94,14 +109,14 @@ fun HFLaunchSplash() {
         ) {
             Text(
                 "Hangar Flow",
-                color = HFColors.OnSurface,
+                color = HFDarkPalette.onSurface,
                 fontSize = 26.sp,
                 fontWeight = FontWeight.Bold
             )
 
             Text(
                 stringResource(R.string.splash_tagline),
-                color = Color.White.copy(alpha = 0.42f),
+                color = HFDarkPalette.onSurface.copy(alpha = 0.42f),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier.padding(top = 4.dp)
@@ -112,7 +127,7 @@ fun HFLaunchSplash() {
 
         Text(
             "v${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
-            color = Color.White.copy(alpha = 0.30f),
+            color = HFDarkPalette.onSurface.copy(alpha = 0.30f),
             fontSize = 10.sp,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 26.dp)
@@ -138,7 +153,7 @@ private fun SweepBar(modifier: Modifier = Modifier, width: Dp = 168.dp) {
             .width(width)
             .height(3.dp)
             .clip(CircleShape)
-            .background(Color.White.copy(alpha = 0.10f))
+            .background(HFDarkPalette.onSurface.copy(alpha = 0.10f))
     ) {
         val thumb = maxWidth * 0.34f
         Box(
@@ -147,7 +162,7 @@ private fun SweepBar(modifier: Modifier = Modifier, width: Dp = 168.dp) {
                 .width(thumb)
                 .fillMaxSize()
                 .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.85f))
+                .background(HFDarkPalette.onSurface.copy(alpha = 0.85f))
         )
     }
 }

@@ -110,7 +110,7 @@ private fun CCToolGrid(onOpen: (CCTool) -> Unit) {
         )
         Text(
             stringResource(R.string.cc_sub),
-            color = HFColors.OnSurface.copy(alpha = 0.55f),
+            color = HFColors.ink(0.55f),
             fontSize = 13.sp,
             fontWeight = FontWeight.Medium
         )
@@ -129,7 +129,7 @@ private fun ToolCard(tool: CCTool, onClick: () -> Unit) {
             .fillMaxWidth()
             .hfPressClickable(onClick)
             .clip(RoundedCornerShape(16.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.04f))
+            .background(HFColors.fill(0.04f))
             .border(1.dp, tool.accent.copy(alpha = 0.35f), RoundedCornerShape(16.dp))
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -146,7 +146,7 @@ private fun ToolCard(tool: CCTool, onClick: () -> Unit) {
         Spacer(Modifier.size(14.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(tool.title, color = HFColors.OnSurface, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-            Text(tool.subtitle, color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 12.sp, fontWeight = FontWeight.Medium)
+            Text(tool.subtitle, color = HFColors.ink(0.55f), fontSize = 12.sp, fontWeight = FontWeight.Medium)
         }
     }
 }

@@ -88,7 +88,7 @@ fun EditSquawkSheet(squawk: HFSquawk, onDismiss: () -> Unit) {
                 Text(stringResource(R.string.es_edit_squawk), color = HFColors.OnSurface, fontSize = 24.sp, fontWeight = FontWeight.Bold)
                 Text(
                     stringResource(R.string.es_edit_sub),
-                    color = HFColors.OnSurface.copy(alpha = 0.68f),
+                    color = HFColors.ink(0.68f),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium
                 )
@@ -97,7 +97,7 @@ fun EditSquawkSheet(squawk: HFSquawk, onDismiss: () -> Unit) {
                 modifier = Modifier
                     .size(32.dp)
                     .clip(CircleShape)
-                    .background(HFColors.OnSurface.copy(alpha = 0.10f))
+                    .background(HFColors.fill(0.10f))
                     .clickable(onClick = onDismiss),
                 contentAlignment = Alignment.Center
             ) {
@@ -118,8 +118,8 @@ fun EditSquawkSheet(squawk: HFSquawk, onDismiss: () -> Unit) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
-                        .background(HFColors.OnSurface.copy(alpha = 0.06f))
-                        .border(1.dp, HFColors.OnSurface.copy(alpha = 0.10f), RoundedCornerShape(12.dp))
+                        .background(HFColors.fill(0.06f))
+                        .border(1.dp, HFColors.stroke(0.10f), RoundedCornerShape(12.dp))
                         .clickable { planeMenuExpanded = true }
                         .padding(horizontal = 14.dp, vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -174,7 +174,7 @@ fun EditSquawkSheet(squawk: HFSquawk, onDismiss: () -> Unit) {
                 colors = editFieldColors()
             )
 
-            HorizontalDivider(color = HFColors.OnSurface.copy(alpha = 0.10f))
+            HorizontalDivider(color = HFColors.ink(0.10f))
 
             Text(
                 stringResource(R.string.sq_corrective_caps),
@@ -190,7 +190,7 @@ fun EditSquawkSheet(squawk: HFSquawk, onDismiss: () -> Unit) {
                 placeholder = {
                     Text(
                         stringResource(R.string.es_corrective_hint),
-                        color = HFColors.OnSurface.copy(alpha = 0.4f),
+                        color = HFColors.ink(0.4f),
                         fontSize = 13.sp
                     )
                 },
@@ -207,7 +207,7 @@ fun EditSquawkSheet(squawk: HFSquawk, onDismiss: () -> Unit) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
-                    .background(if (canSave) HFColors.BrandWhite else HFColors.OnSurface.copy(alpha = 0.15f))
+                    .background(if (canSave) HFColors.BrandWhite else HFColors.fill(0.15f))
                     .clickable(enabled = canSave) {
                         isSaving = true
                         saveError = null
@@ -238,7 +238,7 @@ fun EditSquawkSheet(squawk: HFSquawk, onDismiss: () -> Unit) {
                 } else {
                     Text(
                         stringResource(R.string.es_save_changes),
-                        color = if (canSave) HFColors.BrandInk else HFColors.OnSurface.copy(alpha = 0.4f),
+                        color = if (canSave) HFColors.BrandInk else HFColors.ink(0.4f),
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -254,7 +254,7 @@ fun EditSquawkSheet(squawk: HFSquawk, onDismiss: () -> Unit) {
 private fun EditSectionLabel(text: String) {
     Text(
         text = text.uppercase(),
-        color = HFColors.OnSurface.copy(alpha = 0.55f),
+        color = HFColors.ink(0.55f),
         fontSize = 11.sp,
         fontWeight = FontWeight.Bold
     )
@@ -262,10 +262,10 @@ private fun EditSectionLabel(text: String) {
 
 @Composable
 private fun editFieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
-    unfocusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
-    focusedBorderColor = HFColors.OnSurface.copy(alpha = 0.25f),
-    unfocusedBorderColor = HFColors.OnSurface.copy(alpha = 0.10f),
+    focusedContainerColor = HFColors.fill(0.04f),
+    unfocusedContainerColor = HFColors.fill(0.04f),
+    focusedBorderColor = HFColors.stroke(0.25f),
+    unfocusedBorderColor = HFColors.stroke(0.10f),
     focusedTextColor = HFColors.OnSurface,
     unfocusedTextColor = HFColors.OnSurface,
     cursorColor = HFColors.OnSurface

@@ -47,6 +47,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -63,6 +64,7 @@ import androidx.compose.ui.unit.sp
 import com.hangarflow.app.R
 import com.hangarflow.app.auth.AuthManager
 import com.hangarflow.app.ui.theme.HFColors
+import com.hangarflow.app.ui.theme.HFAppearanceButton
 
 /**
  * Port of the macOS `LoginView` look: gradient + radial glow background,
@@ -117,15 +119,21 @@ fun LoginScreen() {
             }
         }
 
-        // Language switch BEFORE sign-in. The person who most needs to change
-        // the language is the one who cannot read the screen well enough to
-        // sign in and find Settings, so it has to be reachable from here.
-        HFLanguageButton(
+        // Language and appearance BEFORE sign-in. The person who most needs
+        // these is the one who cannot read the screen well enough to sign in
+        // and find Settings — whether that is the language or the glare on a
+        // sunlit ramp — so both have to be reachable from here.
+        Row(
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .windowInsetsPadding(WindowInsets.safeDrawing)
-                .padding(16.dp)
-        )
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            HFLanguageButton()
+            HFAppearanceButton()
+        }
     }
 }
 
@@ -139,9 +147,9 @@ private fun LoginBackground() {
             .background(
                 Brush.linearGradient(
                     colors = listOf(
-                        Color.Black,
-                        Color(red = 0.05f, green = 0.06f, blue = 0.08f),
-                        Color.Black
+                        HFColors.Background,
+                        HFColors.BackgroundAlt,
+                        HFColors.Background
                     )
                 )
             )
@@ -153,8 +161,8 @@ private fun LoginBackground() {
                 .background(
                     Brush.radialGradient(
                         colors = listOf(
-                            Color.White.copy(alpha = 0.09f),
-                            Color.White.copy(alpha = 0.03f),
+                            HFColors.fill(0.09f),
+                            HFColors.fill(0.03f),
                             Color.Transparent
                         )
                     )
@@ -169,7 +177,7 @@ private fun LoginBackground() {
                 .background(
                     Brush.radialGradient(
                         colors = listOf(
-                            Color(red = 0.86f, green = 0.90f, blue = 0.95f).copy(alpha = 0.12f),
+                            HFColors.Glow.copy(alpha = 0.12f),
                             Color.Transparent
                         )
                     )
@@ -187,12 +195,16 @@ private fun BrandHeader() {
         Image(
             painter = painterResource(id = R.drawable.hf_brand_logo),
             contentDescription = "Hangar Flow",
+            // The asset is white pixels on transparency, so on a white page it
+            // is simply not there. Tinting costs nothing in dark mode, where
+            // OnSurface already is white.
+            colorFilter = ColorFilter.tint(HFColors.OnSurface),
             modifier = Modifier.size(68.dp)
         )
         Spacer(Modifier.height(14.dp))
         Text(
             "Hangar Flow",
-            color = Color.White,
+            color = HFColors.OnSurface,
             fontSize = 32.sp,
             fontWeight = FontWeight.SemiBold
         )
@@ -219,22 +231,22 @@ private fun AuthPanel(
             .widthIn(max = 420.dp)
             .fillMaxWidth()
             .clip(RoundedCornerShape(28.dp))
-            .background(Color.Black.copy(alpha = 0.46f))
+            .background(HFColors.Background.copy(alpha = 0.46f))
             .background(
                 Brush.linearGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.10f),
-                        Color.White.copy(alpha = 0.05f)
+                        HFColors.fill(0.10f),
+                        HFColors.fill(0.05f)
                     )
                 )
             )
-            .border(1.dp, Color.White.copy(alpha = 0.11f), RoundedCornerShape(28.dp))
+            .border(1.dp, HFColors.stroke(0.11f), RoundedCornerShape(28.dp))
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
         Text(
             stringResource(R.string.login_title),
-            color = Color.White,
+            color = HFColors.OnSurface,
             fontSize = 25.sp,
             fontWeight = FontWeight.SemiBold
         )
@@ -286,13 +298,13 @@ private fun SignUpHint() {
     ) {
         Text(
             stringResource(R.string.login_no_account),
-            color = Color.White.copy(alpha = 0.60f),
+            color = HFColors.ink(0.60f),
             fontSize = 13.sp,
             fontWeight = FontWeight.Medium
         )
         Text(
             stringResource(R.string.login_create_at),
-            color = Color.White,
+            color = HFColors.OnSurface,
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.clickable {
@@ -326,7 +338,7 @@ private fun UnderlineField(
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             label.uppercase(),
-            color = Color.White.copy(alpha = 0.48f),
+            color = HFColors.ink(0.48f),
             fontSize = 11.sp,
             fontWeight = FontWeight.SemiBold,
             letterSpacing = 1.0.sp
@@ -335,7 +347,7 @@ private fun UnderlineField(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = Color.White.copy(alpha = 0.50f),
+                tint = HFColors.ink(0.50f),
                 modifier = Modifier.size(16.dp)
             )
             Spacer(Modifier.size(10.dp))
@@ -343,7 +355,7 @@ private fun UnderlineField(
                 if (value.isEmpty()) {
                     Text(
                         placeholder,
-                        color = Color.White.copy(alpha = 0.30f),
+                        color = HFColors.ink(0.30f),
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -358,11 +370,11 @@ private fun UnderlineField(
                         imeAction = imeAction
                     ),
                     textStyle = TextStyle(
-                        color = Color.White,
+                        color = HFColors.OnSurface,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Medium
                     ),
-                    cursorBrush = SolidColor(Color.White),
+                    cursorBrush = SolidColor(HFColors.OnSurface),
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -377,7 +389,7 @@ private fun UnderlineField(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(1.dp)
-                .background(Color.White.copy(alpha = 0.14f))
+                .background(HFColors.fill(0.14f))
         )
     }
 }
@@ -387,13 +399,13 @@ private fun ShowHidePill(showing: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(100.dp))
-            .background(Color.White.copy(alpha = 0.06f))
+            .background(HFColors.fill(0.06f))
             .clickable(onClick = onClick)
             .padding(horizontal = 10.dp, vertical = 6.dp)
     ) {
         Text(
             if (showing) stringResource(R.string.login_hide) else stringResource(R.string.login_show),
-            color = Color.White.copy(alpha = 0.72f),
+            color = HFColors.ink(0.72f),
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold
         )
@@ -408,21 +420,21 @@ private fun ErrorCard(message: String) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .background(Color.Red.copy(alpha = 0.10f))
-            .border(1.dp, Color.Red.copy(alpha = 0.24f), RoundedCornerShape(18.dp))
+            .background(HFColors.StatusRed.copy(alpha = 0.10f))
+            .border(1.dp, HFColors.StatusRed.copy(alpha = 0.24f), RoundedCornerShape(18.dp))
             .padding(14.dp),
         verticalAlignment = Alignment.Top
     ) {
         Icon(
             imageVector = Icons.Outlined.WarningAmber,
             contentDescription = null,
-            tint = Color.Red.copy(alpha = 0.92f),
+            tint = HFColors.StatusRed.copy(alpha = 0.92f),
             modifier = Modifier.size(18.dp)
         )
         Spacer(Modifier.size(10.dp))
         Text(
             message,
-            color = Color.White.copy(alpha = 0.82f),
+            color = HFColors.ink(0.82f),
             fontSize = 13.sp,
             fontWeight = FontWeight.Medium
         )
@@ -435,14 +447,14 @@ private fun SubmitButton(enabled: Boolean, isBusy: Boolean, onClick: () -> Unit)
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .background(if (enabled) Color.White else Color.White.copy(alpha = 0.46f))
+            .background(if (enabled) HFColors.BrandWhite else HFColors.BrandWhite.copy(alpha = 0.46f))
             .clickable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 18.dp, vertical = 15.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (isBusy) {
             CircularProgressIndicator(
-                color = Color.Black,
+                color = HFColors.BrandInk,
                 strokeWidth = 2.dp,
                 modifier = Modifier.size(16.dp)
             )
@@ -450,7 +462,7 @@ private fun SubmitButton(enabled: Boolean, isBusy: Boolean, onClick: () -> Unit)
         }
         Text(
             stringResource(R.string.login_title),
-            color = Color.Black,
+            color = HFColors.BrandInk,
             fontSize = 16.sp,
             fontWeight = FontWeight.SemiBold
         )
@@ -458,7 +470,7 @@ private fun SubmitButton(enabled: Boolean, isBusy: Boolean, onClick: () -> Unit)
         Icon(
             imageVector = Icons.AutoMirrored.Outlined.ArrowForward,
             contentDescription = null,
-            tint = Color.Black,
+            tint = HFColors.BrandInk,
             modifier = Modifier.size(16.dp)
         )
     }

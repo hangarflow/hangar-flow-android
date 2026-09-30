@@ -132,7 +132,7 @@ private fun PartsInOutContent() {
                 if (canManage) {
                     Row(
                         modifier = Modifier.clip(RoundedCornerShape(100.dp))
-                            .background(HFColors.OnSurface.copy(alpha = 0.10f))
+                            .background(HFColors.fill(0.10f))
                             .clickable { receiving = true }
                             .padding(horizontal = 14.dp, vertical = 9.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -185,7 +185,7 @@ private fun PartsInOutContent() {
                             soonest != null -> "The nearest is due back in $soonest days."
                             else -> "No deadlines recorded."
                         },
-                        color = HFColors.OnSurface.copy(alpha = 0.75f), fontSize = 12.sp
+                        color = HFColors.ink(0.75f), fontSize = 12.sp
                     )
                 }
             }
@@ -214,7 +214,7 @@ private fun PartsInOutContent() {
                 // you can see there's something on the other side without going.
                 Row(
                     modifier = Modifier.clip(RoundedCornerShape(12.dp))
-                        .background(Color.White.copy(alpha = 0.04f)).padding(4.dp),
+                        .background(HFColors.fill(0.04f)).padding(4.dp),
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     SegmentChip("Came in", inbound.size, phoneBoard == 0,
@@ -502,10 +502,10 @@ private fun Plate(a: SwipeAction, width: Dp, modifier: Modifier = Modifier, onCl
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Icon(a.icon, contentDescription = a.title, tint = Color.White,
+        Icon(a.icon, contentDescription = a.title, tint = HFColors.OnAccent,
             modifier = Modifier.size(18.dp))
         Spacer(Modifier.height(4.dp))
-        Text(a.title, color = Color.White, fontSize = 10.sp,
+        Text(a.title, color = HFColors.OnAccent, fontSize = 10.sp,
             fontWeight = FontWeight.Bold, lineHeight = 12.sp)
     }
 }
@@ -523,10 +523,10 @@ private fun MovementCard(m: HFPartMovement, today: LocalDate, onTap: () -> Unit)
 
     Row(
         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp))
-            .background(Color.White.copy(alpha = 0.03f))
+            .background(HFColors.fill(0.03f))
             .border(
                 1.dp,
-                if (overdue) HFColors.StatusRed.copy(alpha = 0.40f) else Color.White.copy(alpha = 0.06f),
+                if (overdue) HFColors.StatusRed.copy(alpha = 0.40f) else HFColors.stroke(0.06f),
                 RoundedCornerShape(18.dp)
             )
             .clickable(onClick = onTap)
@@ -590,7 +590,7 @@ private fun SegmentChip(
 ) {
     Row(
         modifier = Modifier.clip(RoundedCornerShape(9.dp))
-            .background(if (selected) Color.White.copy(alpha = 0.10f) else Color.Transparent)
+            .background(if (selected) HFColors.fill(0.10f) else Color.Transparent)
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 9.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -616,8 +616,8 @@ private fun SegmentChip(
 private fun MiniStat(label: String, value: String, accent: Color, modifier: Modifier) {
     Column(
         modifier.clip(RoundedCornerShape(18.dp))
-            .background(Color.White.copy(alpha = 0.04f))
-            .border(1.dp, Color.White.copy(alpha = 0.06f), RoundedCornerShape(18.dp))
+            .background(HFColors.fill(0.04f))
+            .border(1.dp, HFColors.stroke(0.06f), RoundedCornerShape(18.dp))
             .padding(12.dp)
     ) {
         Text(value, color = accent, fontSize = 18.sp, fontWeight = FontWeight.Bold)

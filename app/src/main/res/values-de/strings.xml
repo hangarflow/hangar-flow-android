@@ -404,4 +404,9 @@
     <string name="sc_dropoff_for">Anlieferung · %1$s</string>
     <string name="ac_reference_only">Nur als Referenz — wird so übernommen, nichts wird verfolgt oder berechnet. Felder können leer bleiben (ein einmotoriges Flugzeug füllt nur Zelle + Motor 1).</string>
     <string name="cd_receipt_thumb">Miniaturbild des Belegs</string>
+    <string name="settings_appearance">Erscheinungsbild</string>
+    <string name="settings_appearance_desc">Dunkel ist die Voreinstellung. Hell lässt sich auf dem sonnigen Vorfeld besser lesen; System folgt dem Gerät.</string>
+    <string name="appearance_system">System</string>
+    <string name="appearance_light">Hell</string>
+    <string name="appearance_dark">Dunkel</string>
 </resources>

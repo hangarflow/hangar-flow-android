@@ -204,7 +204,7 @@ private fun CreatePlaneForm(onDone: () -> Unit) {
     }
     lookupNote?.let {
         Spacer(Modifier.size(6.dp))
-        Text(it, color = HFColors.OnSurface.copy(alpha = 0.60f), fontSize = 11.sp, fontWeight = FontWeight.Medium)
+        Text(it, color = HFColors.ink(0.60f), fontSize = 11.sp, fontWeight = FontWeight.Medium)
     }
     Spacer(Modifier.size(10.dp))
     FormField(label = stringResource(R.string.ac_display_name), value = display, onChange = { display = it }, placeholder = "Pilatus PC12")
@@ -235,7 +235,7 @@ private fun CreatePlaneForm(onDone: () -> Unit) {
                     .background(parseHex(hex))
                     .border(
                         width = if (selected) 2.5.dp else 1.dp,
-                        color = if (selected) HFColors.OnSurface else HFColors.OnSurface.copy(alpha = 0.20f),
+                        color = if (selected) HFColors.OnSurface else HFColors.ink(0.20f),
                         shape = RoundedCornerShape(14.dp)
                     )
                     .clickable { color = hex }
@@ -259,11 +259,11 @@ private fun CreatePlaneForm(onDone: () -> Unit) {
                     .clip(RoundedCornerShape(100.dp))
                     .background(
                         if (selected) HFColors.StatusBlue.copy(alpha = 0.20f)
-                        else HFColors.OnSurface.copy(alpha = 0.06f)
+                        else HFColors.fill(0.06f)
                     )
                     .border(
                         1.dp,
-                        if (selected) HFColors.StatusBlue.copy(alpha = 0.45f) else HFColors.OnSurface.copy(alpha = 0.12f),
+                        if (selected) HFColors.StatusBlue.copy(alpha = 0.45f) else HFColors.stroke(0.12f),
                         RoundedCornerShape(100.dp)
                     )
                     .clickable { incomingInspection = opt }
@@ -271,7 +271,7 @@ private fun CreatePlaneForm(onDone: () -> Unit) {
             ) {
                 Text(
                     if (opt.isBlank()) "None" else opt,
-                    color = if (selected) HFColors.StatusBlue else HFColors.OnSurface.copy(alpha = 0.75f),
+                    color = if (selected) HFColors.StatusBlue else HFColors.ink(0.75f),
                     fontSize = 12.sp, fontWeight = FontWeight.SemiBold
                 )
             }
@@ -310,12 +310,12 @@ private fun CreatePlaneForm(onDone: () -> Unit) {
                 val sel = aircraftType.trim().equals(t, ignoreCase = true)
                 Box(
                     modifier = Modifier.clip(RoundedCornerShape(100.dp))
-                        .background(if (sel) HFColors.StatusBlue.copy(alpha = 0.20f) else HFColors.OnSurface.copy(alpha = 0.06f))
-                        .border(1.dp, if (sel) HFColors.StatusBlue.copy(alpha = 0.45f) else HFColors.OnSurface.copy(alpha = 0.12f), RoundedCornerShape(100.dp))
+                        .background(if (sel) HFColors.StatusBlue.copy(alpha = 0.20f) else HFColors.fill(0.06f))
+                        .border(1.dp, if (sel) HFColors.StatusBlue.copy(alpha = 0.45f) else HFColors.stroke(0.12f), RoundedCornerShape(100.dp))
                         .clickable { aircraftType = t }
                         .padding(horizontal = 10.dp, vertical = 5.dp)
                 ) {
-                    Text(t, color = if (sel) HFColors.StatusBlue else HFColors.OnSurface.copy(alpha = 0.75f), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Text(t, color = if (sel) HFColors.StatusBlue else HFColors.ink(0.75f), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
@@ -337,14 +337,14 @@ private fun CreatePlaneForm(onDone: () -> Unit) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(10.dp))
-                    .background(if (checked) HFColors.StatusBlue.copy(alpha = 0.14f) else HFColors.OnSurface.copy(alpha = 0.05f))
+                    .background(if (checked) HFColors.StatusBlue.copy(alpha = 0.14f) else HFColors.fill(0.05f))
                     .clickable {
                         selectedTypeManualIds = if (checked) selectedTypeManualIds - m.id else selectedTypeManualIds + m.id
                     }
                     .padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(if (checked) "☑" else "☐", color = if (checked) HFColors.StatusBlue else HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 14.sp)
+                Text(if (checked) "☑" else "☐", color = if (checked) HFColors.StatusBlue else HFColors.ink(0.5f), fontSize = 14.sp)
                 Spacer(Modifier.size(8.dp))
                 Text(m.title.takeIf { it.isNotBlank() } ?: m.fileName, color = HFColors.OnSurface, fontSize = 13.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
             }
@@ -357,8 +357,8 @@ private fun CreatePlaneForm(onDone: () -> Unit) {
     Spacer(Modifier.size(14.dp))
     Column(
         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.04f))
-            .border(1.dp, HFColors.OnSurface.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
+            .background(HFColors.fill(0.04f))
+            .border(1.dp, HFColors.stroke(0.08f), RoundedCornerShape(12.dp))
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
@@ -369,17 +369,17 @@ private fun CreatePlaneForm(onDone: () -> Unit) {
         ) {
             Icon(Icons.Outlined.Speed, null, tint = HFColors.StatusCyan, modifier = Modifier.size(16.dp))
             Text(stringResource(R.string.ac_times_cycles), color = HFColors.OnSurface, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-            Text(stringResource(R.string.ac_optional), color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 10.sp)
+            Text(stringResource(R.string.ac_optional), color = HFColors.ink(0.5f), fontSize = 10.sp)
             Spacer(Modifier.weight(1f))
             Icon(
                 if (showTimesAndCycles) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
-                null, tint = HFColors.OnSurface.copy(alpha = 0.5f), modifier = Modifier.size(18.dp)
+                null, tint = HFColors.ink(0.5f), modifier = Modifier.size(18.dp)
             )
         }
         if (showTimesAndCycles) {
             Text(
                 stringResource(R.string.ac_reference_only),
-                color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 11.sp
+                color = HFColors.ink(0.5f), fontSize = 11.sp
             )
             IntakePairRow("Airframe total time", airframeHours, { airframeHours = it }, "Airframe cycles", airframeCycles, { airframeCycles = it })
             IntakePairRow("Hobbs", hobbs, { hobbs = it }, "Tach", tach, { tach = it })
@@ -403,7 +403,7 @@ private fun CreatePlaneForm(onDone: () -> Unit) {
                     .clip(RoundedCornerShape(10.dp))
                     .background(
                         if (checked) HFColors.StatusBlue.copy(alpha = 0.14f)
-                        else HFColors.OnSurface.copy(alpha = 0.05f)
+                        else HFColors.fill(0.05f)
                     )
                     .clickable {
                         selectedManualIds = if (checked) selectedManualIds - m.id else selectedManualIds + m.id
@@ -413,7 +413,7 @@ private fun CreatePlaneForm(onDone: () -> Unit) {
             ) {
                 Text(
                     if (checked) "☑" else "☐",
-                    color = if (checked) HFColors.StatusBlue else HFColors.OnSurface.copy(alpha = 0.5f),
+                    color = if (checked) HFColors.StatusBlue else HFColors.ink(0.5f),
                     fontSize = 14.sp
                 )
                 Spacer(Modifier.size(8.dp))
@@ -426,7 +426,7 @@ private fun CreatePlaneForm(onDone: () -> Unit) {
                     if (srcTail != null) {
                         Text(
                             "currently on $srcTail",
-                            color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 11.sp
+                            color = HFColors.ink(0.5f), fontSize = 11.sp
                         )
                     }
                 }
@@ -533,7 +533,7 @@ private fun CreateWorkLogForm(onDone: () -> Unit) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(10.dp))
-                    .background(HFColors.OnSurface.copy(alpha = 0.05f))
+                    .background(HFColors.fill(0.05f))
                     .padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -587,7 +587,7 @@ private fun CreateWorkLogForm(onDone: () -> Unit) {
             .clip(RoundedCornerShape(12.dp))
             .background(
                 if (pendingCurrent) HFColors.StatusGreen.copy(alpha = 0.12f)
-                else HFColors.OnSurface.copy(alpha = 0.05f)
+                else HFColors.fill(0.05f)
             )
             .clickable(enabled = pendingCurrent) {
                 drafts = drafts + SharedStore.NewWorkLogDraft(planeId, planeTail, title.trim(), category.raw, details.trim())
@@ -599,7 +599,7 @@ private fun CreateWorkLogForm(onDone: () -> Unit) {
     ) {
         Text(
             stringResource(R.string.ac_add_another),
-            color = if (pendingCurrent) HFColors.StatusGreen else HFColors.OnSurface.copy(alpha = 0.4f),
+            color = if (pendingCurrent) HFColors.StatusGreen else HFColors.ink(0.4f),
             fontSize = 13.sp,
             fontWeight = FontWeight.SemiBold
         )
@@ -696,16 +696,16 @@ private fun FormField(
             placeholder = {
                 Text(
                     placeholder,
-                    color = HFColors.OnSurface.copy(alpha = 0.35f),
+                    color = HFColors.ink(0.35f),
                     fontSize = 13.sp
                 )
             },
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
-                unfocusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
-                focusedBorderColor = HFColors.OnSurface.copy(alpha = 0.25f),
-                unfocusedBorderColor = HFColors.OnSurface.copy(alpha = 0.10f),
+                focusedContainerColor = HFColors.fill(0.04f),
+                unfocusedContainerColor = HFColors.fill(0.04f),
+                focusedBorderColor = HFColors.stroke(0.25f),
+                unfocusedBorderColor = HFColors.stroke(0.10f),
                 focusedTextColor = HFColors.OnSurface,
                 unfocusedTextColor = HFColors.OnSurface,
                 cursorColor = HFColors.OnSurface
@@ -725,10 +725,10 @@ private fun IntakePairRow(
             value = v1, onValueChange = on1, singleLine = true, modifier = Modifier.weight(1f),
             label = { Text(l1, fontSize = 11.sp) },
             colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
-                unfocusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
-                focusedBorderColor = HFColors.OnSurface.copy(alpha = 0.25f),
-                unfocusedBorderColor = HFColors.OnSurface.copy(alpha = 0.10f),
+                focusedContainerColor = HFColors.fill(0.04f),
+                unfocusedContainerColor = HFColors.fill(0.04f),
+                focusedBorderColor = HFColors.stroke(0.25f),
+                unfocusedBorderColor = HFColors.stroke(0.10f),
                 focusedTextColor = HFColors.OnSurface,
                 unfocusedTextColor = HFColors.OnSurface,
                 cursorColor = HFColors.OnSurface
@@ -738,10 +738,10 @@ private fun IntakePairRow(
             value = v2, onValueChange = on2, singleLine = true, modifier = Modifier.weight(1f),
             label = { Text(l2, fontSize = 11.sp) },
             colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
-                unfocusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
-                focusedBorderColor = HFColors.OnSurface.copy(alpha = 0.25f),
-                unfocusedBorderColor = HFColors.OnSurface.copy(alpha = 0.10f),
+                focusedContainerColor = HFColors.fill(0.04f),
+                unfocusedContainerColor = HFColors.fill(0.04f),
+                focusedBorderColor = HFColors.stroke(0.25f),
+                unfocusedBorderColor = HFColors.stroke(0.10f),
                 focusedTextColor = HFColors.OnSurface,
                 unfocusedTextColor = HFColors.OnSurface,
                 cursorColor = HFColors.OnSurface
@@ -754,7 +754,7 @@ private fun IntakePairRow(
 private fun Label(text: String) {
     Text(
         text.uppercase(),
-        color = HFColors.OnSurface.copy(alpha = 0.60f),
+        color = HFColors.ink(0.60f),
         fontSize = 10.sp,
         fontWeight = FontWeight.Bold,
         letterSpacing = 1.0.sp
@@ -763,8 +763,8 @@ private fun Label(text: String) {
 
 @Composable
 private fun Chip(label: String, selected: Boolean, onClick: () -> Unit) {
-    val bg = if (selected) HFColors.OnSurface.copy(alpha = 0.18f) else HFColors.OnSurface.copy(alpha = 0.06f)
-    val border = if (selected) HFColors.OnSurface.copy(alpha = 0.45f) else HFColors.OnSurface.copy(alpha = 0.15f)
+    val bg = if (selected) HFColors.fill(0.18f) else HFColors.fill(0.06f)
+    val border = if (selected) HFColors.stroke(0.45f) else HFColors.stroke(0.15f)
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(100.dp))

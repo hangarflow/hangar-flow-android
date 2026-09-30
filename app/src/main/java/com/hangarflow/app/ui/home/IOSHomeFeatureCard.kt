@@ -52,7 +52,7 @@ fun IOSHomeFeatureCard(
             .fillMaxWidth()
             .heightIn(min = if (showSubtitle && !subtitle.isNullOrBlank()) 168.dp else 132.dp)
             .clip(RoundedCornerShape(22.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.04f))
+            .background(HFColors.fill(0.04f))
             .border(1.5.dp, accent, RoundedCornerShape(22.dp))
             .clickable(onClick = onClick)
             .padding(20.dp),
@@ -80,7 +80,7 @@ fun IOSHomeFeatureCard(
             Icon(
                 imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
                 contentDescription = null,
-                tint = HFColors.OnSurface.copy(alpha = 0.35f),
+                tint = HFColors.ink(0.35f),
                 modifier = Modifier.size(16.dp)
             )
         }
@@ -93,7 +93,7 @@ fun IOSHomeFeatureCard(
         if (showSubtitle && !subtitle.isNullOrBlank()) {
             Text(
                 subtitle,
-                color = HFColors.OnSurface.copy(alpha = 0.68f),
+                color = HFColors.ink(0.68f),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
                 maxLines = 2

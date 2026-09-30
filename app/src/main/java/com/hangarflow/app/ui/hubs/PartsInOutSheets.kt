@@ -388,7 +388,7 @@ internal fun EditMovementSheet(movement: HFPartMovement, onDismiss: () -> Unit) 
                     Text(r.sourceLabel, color = accent, fontSize = 11.sp,
                         fontWeight = FontWeight.Bold)
                     r.reference?.let {
-                        Text(it, color = HFColors.OnSurface.copy(alpha = 0.75f), fontSize = 11.sp)
+                        Text(it, color = HFColors.ink(0.75f), fontSize = 11.sp)
                     }
                     r.note?.let { Text(it, color = HFColors.OnSurfaceMuted, fontSize = 11.sp) }
                 }
@@ -516,7 +516,7 @@ private fun PickRow(label: String, selected: Boolean, onClick: () -> Unit) {
         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
             .background(
                 if (selected) HFColors.StatusBlue.copy(alpha = 0.14f)
-                else Color.White.copy(alpha = 0.03f)
+                else HFColors.fill(0.03f)
             )
             .border(
                 1.dp,

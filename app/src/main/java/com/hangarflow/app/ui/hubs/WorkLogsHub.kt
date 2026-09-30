@@ -148,7 +148,7 @@ private fun WorkLogsMenuCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(22.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.05f))
+            .background(HFColors.fill(0.05f))
             .border(1.5.dp, accent.copy(alpha = 0.55f), RoundedCornerShape(22.dp))
             .clickable(onClick = onClick)
             .padding(20.dp),
@@ -162,7 +162,7 @@ private fun WorkLogsMenuCard(
         )
         Text(
             subtitle,
-            color = HFColors.OnSurface.copy(alpha = 0.70f),
+            color = HFColors.ink(0.70f),
             fontSize = 13.sp,
             fontWeight = FontWeight.Medium
         )
@@ -353,7 +353,7 @@ private fun PlaneFlowHeader(title: String, onBack: () -> Unit) {
             modifier = Modifier
                 .size(34.dp)
                 .clip(CircleShape)
-                .background(HFColors.OnSurface.copy(alpha = 0.10f))
+                .background(HFColors.fill(0.10f))
                 .clickable(onClick = onBack),
             contentAlignment = Alignment.Center
         ) {
@@ -383,7 +383,7 @@ private fun WorkLogPlaneCard(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.05f))
+            .background(HFColors.fill(0.05f))
             .border(1.5.dp, accent.copy(alpha = 0.55f), RoundedCornerShape(18.dp))
             .clickable(onClick = onClick)
             .padding(16.dp),
@@ -393,7 +393,7 @@ private fun WorkLogPlaneCard(
         if (name.isNotBlank() && name != tail) {
             Text(
                 name,
-                color = HFColors.OnSurface.copy(alpha = 0.65f),
+                color = HFColors.ink(0.65f),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Medium
             )
@@ -440,7 +440,7 @@ private fun AssignedPlaneLogList(
                 if (plane != null && plane.displayName.isNotBlank() && plane.displayName != plane.tailNumber) {
                     Text(
                         plane.displayName,
-                        color = HFColors.OnSurface.copy(alpha = 0.60f),
+                        color = HFColors.ink(0.60f),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -493,7 +493,7 @@ private fun AssignedWorkLogRow(log: HFWorkLog, onClick: () -> Unit) {
             IOSSolidStatusPill(color = status.color, label = status.label)
             Spacer(Modifier.weight(1f))
             formatUpdatedDate(log.updatedAt)?.let { d ->
-                Text(d, color = HFColors.OnSurface.copy(alpha = 0.45f), fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                Text(d, color = HFColors.ink(0.45f), fontSize = 11.sp, fontWeight = FontWeight.Medium)
             }
         }
 
@@ -512,7 +512,7 @@ private fun AssignedWorkLogRow(log: HFWorkLog, onClick: () -> Unit) {
                 "Imported by ${log.importSourceName?.takeIf { it.isNotBlank() } ?: "Imported"}"
             else
                 "Added by ${log.createdByUserName?.takeIf { it.isNotBlank() } ?: "—"}",
-            color = HFColors.OnSurface.copy(alpha = 0.50f),
+            color = HFColors.ink(0.50f),
             fontSize = 11.sp
         )
 
@@ -524,7 +524,7 @@ private fun AssignedWorkLogRow(log: HFWorkLog, onClick: () -> Unit) {
             }
             IOSNeutralBadge(text = category.label)
             Spacer(Modifier.weight(1f))
-            Text("›", color = HFColors.OnSurface.copy(alpha = 0.36f), fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text("›", color = HFColors.ink(0.36f), fontSize = 18.sp, fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -656,7 +656,7 @@ private fun WorkLogsHubContent(onOpenWorkLog: (HFWorkLog) -> Unit) {
             Spacer(Modifier.weight(1f))
             Text(
                 text = "${filtered.size}",
-                color = HFColors.OnSurface.copy(alpha = 0.55f),
+                color = HFColors.ink(0.55f),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold
             )
@@ -730,7 +730,7 @@ private fun WorkLogsHubContent(onOpenWorkLog: (HFWorkLog) -> Unit) {
 private fun FilterSectionLabel(text: String) {
     Text(
         text = text.uppercase(),
-        color = HFColors.OnSurface.copy(alpha = 0.55f),
+        color = HFColors.ink(0.55f),
         fontSize = 10.sp,
         fontWeight = FontWeight.Bold,
         letterSpacing = 1.0.sp
@@ -802,8 +802,8 @@ private fun PlaneChip(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    val bg = if (isSelected) accent.copy(alpha = 0.18f) else HFColors.OnSurface.copy(alpha = 0.06f)
-    val border = if (isSelected) accent else HFColors.OnSurface.copy(alpha = 0.10f)
+    val bg = if (isSelected) accent.copy(alpha = 0.18f) else HFColors.fill(0.06f)
+    val border = if (isSelected) accent else HFColors.stroke(0.10f)
     val fg = if (isSelected) accent else HFColors.OnSurface
 
     Row(
@@ -854,10 +854,10 @@ private fun IOSAssignedToMePanel(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(if (isActive) accent.copy(alpha = 0.14f) else HFColors.OnSurface.copy(alpha = 0.04f))
+            .background(if (isActive) accent.copy(alpha = 0.14f) else HFColors.fill(0.04f))
             .border(
                 1.dp,
-                if (isActive) accent.copy(alpha = 0.55f) else HFColors.OnSurface.copy(alpha = 0.10f),
+                if (isActive) accent.copy(alpha = 0.55f) else HFColors.stroke(0.10f),
                 RoundedCornerShape(16.dp)
             )
             .clickable(onClick = onToggle)
@@ -873,7 +873,7 @@ private fun IOSAssignedToMePanel(
             )
             Text(
                 text = if (isActive) "Filtered to $userName — tap to see all" else "$count assigned to $userName",
-                color = HFColors.OnSurface.copy(alpha = 0.65f),
+                color = HFColors.ink(0.65f),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Medium
             )
@@ -881,7 +881,7 @@ private fun IOSAssignedToMePanel(
         Box(
             modifier = Modifier
                 .clip(CircleShape)
-                .background(HFColors.OnSurface.copy(alpha = 0.12f))
+                .background(HFColors.fill(0.12f))
                 .padding(horizontal = 12.dp, vertical = 6.dp)
         ) {
             Text(
@@ -995,9 +995,9 @@ private fun IOSFilterChip(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    val bg = if (isSelected) HFColors.BrandWhite else HFColors.OnSurface.copy(alpha = 0.06f)
+    val bg = if (isSelected) HFColors.BrandWhite else HFColors.fill(0.06f)
     val fg = if (isSelected) HFColors.BrandInk else HFColors.OnSurface
-    val border = if (isSelected) HFColors.BrandWhite else HFColors.OnSurface.copy(alpha = 0.10f)
+    val border = if (isSelected) HFColors.BrandWhite else HFColors.stroke(0.10f)
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(10.dp))
@@ -1021,7 +1021,7 @@ private fun IOSWorkLogCard(
 ) {
     val status = HFWorkLogStatus.fromRaw(log.status)
     val category = HFWorkCategory.fromRaw(log.category)
-    val accent = if (isAssignedToMe) HFColors.StatusCyan else HFColors.OnSurface.copy(alpha = 0.10f)
+    val accent = if (isAssignedToMe) HFColors.StatusCyan else HFColors.fill(0.10f)
 
     Column(
         modifier = Modifier
@@ -1029,7 +1029,7 @@ private fun IOSWorkLogCard(
             .clip(RoundedCornerShape(18.dp))
             .background(
                 if (isAssignedToMe) HFColors.StatusCyan.copy(alpha = 0.08f)
-                else HFColors.OnSurface.copy(alpha = 0.06f)
+                else HFColors.fill(0.06f)
             )
             .border(1.dp, accent, RoundedCornerShape(18.dp))
             .clickable(onClick = onTapCard)
@@ -1053,7 +1053,7 @@ private fun IOSWorkLogCard(
             }
             Spacer(Modifier.weight(1f))
             formatUpdatedDate(log.updatedAt)?.let { d ->
-                Text(d, color = HFColors.OnSurface.copy(alpha = 0.45f), fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                Text(d, color = HFColors.ink(0.45f), fontSize = 11.sp, fontWeight = FontWeight.Medium)
             }
         }
 
@@ -1069,7 +1069,7 @@ private fun IOSWorkLogCard(
         if (log.details.isNotBlank()) {
             Text(
                 text = log.details,
-                color = HFColors.OnSurface.copy(alpha = 0.68f),
+                color = HFColors.ink(0.68f),
                 fontSize = 12.sp,
                 maxLines = 3
             )
@@ -1093,7 +1093,7 @@ private fun IOSWorkLogCard(
                 IOSNeutralBadge(text = formatLoggedMinutes(log.loggedMinutes))
             }
             Spacer(Modifier.weight(1f))
-            Text("›", color = HFColors.OnSurface.copy(alpha = 0.36f), fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text("›", color = HFColors.ink(0.36f), fontSize = 18.sp, fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -1104,7 +1104,7 @@ private fun IOSNeutralPill(text: String) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(100.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.08f))
+            .background(HFColors.fill(0.08f))
             .padding(horizontal = 8.dp, vertical = 4.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -1146,11 +1146,11 @@ private fun IOSNeutralBadge(text: String) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(100.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.08f))
+            .background(HFColors.fill(0.08f))
             .padding(horizontal = 8.dp, vertical = 4.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(text, color = HFColors.OnSurface.copy(alpha = 0.72f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+        Text(text, color = HFColors.ink(0.72f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -1192,7 +1192,7 @@ private fun AssigneePickerSection(
         Spacer(Modifier.height(14.dp))
         Text(
             stringResource(R.string.wl_assign_to).uppercase(),
-            color = HFColors.OnSurface.copy(alpha = 0.55f),
+            color = HFColors.ink(0.55f),
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = 1.2.sp
@@ -1229,10 +1229,10 @@ private fun AssigneeRow(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(if (selected) HFColors.StatusCyan.copy(alpha = 0.14f) else HFColors.OnSurface.copy(alpha = 0.04f))
+            .background(if (selected) HFColors.StatusCyan.copy(alpha = 0.14f) else HFColors.fill(0.04f))
             .border(
                 1.dp,
-                if (selected) HFColors.StatusCyan.copy(alpha = 0.45f) else HFColors.OnSurface.copy(alpha = 0.10f),
+                if (selected) HFColors.StatusCyan.copy(alpha = 0.45f) else HFColors.stroke(0.10f),
                 RoundedCornerShape(12.dp)
             )
             .clickable(onClick = onClick)
@@ -1248,7 +1248,7 @@ private fun AssigneeRow(
             )
             Text(
                 subtitle,
-                color = HFColors.OnSurface.copy(alpha = 0.55f),
+                color = HFColors.ink(0.55f),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Medium
             )
@@ -1269,7 +1269,7 @@ private fun IOSStatusPickerSheet(
     Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
         Text(
             stringResource(R.string.sq_change_status).uppercase(),
-            color = HFColors.OnSurface.copy(alpha = 0.55f),
+            color = HFColors.ink(0.55f),
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = 1.2.sp
@@ -1281,10 +1281,10 @@ private fun IOSStatusPickerSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
-                    .background(if (isCurrent) status.color.copy(alpha = 0.14f) else HFColors.OnSurface.copy(alpha = 0.04f))
+                    .background(if (isCurrent) status.color.copy(alpha = 0.14f) else HFColors.fill(0.04f))
                     .border(
                         1.dp,
-                        if (isCurrent) status.color.copy(alpha = 0.45f) else HFColors.OnSurface.copy(alpha = 0.10f),
+                        if (isCurrent) status.color.copy(alpha = 0.45f) else HFColors.stroke(0.10f),
                         RoundedCornerShape(12.dp)
                     )
                     .clickable { onPick(status) }

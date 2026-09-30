@@ -112,9 +112,9 @@ private fun EquipmentHubContent() {
                 value = query,
                 onValueChange = { query = it },
                 singleLine = true,
-                leadingIcon = { Icon(Icons.Outlined.Search, null, tint = HFColors.OnSurface.copy(alpha = 0.55f)) },
+                leadingIcon = { Icon(Icons.Outlined.Search, null, tint = HFColors.ink(0.55f)) },
                 placeholder = {
-                    Text(stringResource(R.string.eq_search), color = HFColors.OnSurface.copy(alpha = 0.45f), fontSize = 13.sp)
+                    Text(stringResource(R.string.eq_search), color = HFColors.ink(0.45f), fontSize = 13.sp)
                 },
                 modifier = Modifier.fillMaxWidth(),
                 colors = equipFieldColors()
@@ -128,7 +128,7 @@ private fun EquipmentHubContent() {
         item {
             Text(
                 if (query.isBlank()) "${filtered.size} pieces of gear" else "${filtered.size} of ${state.equipment.size}",
-                color = HFColors.OnSurface.copy(alpha = 0.55f),
+                color = HFColors.ink(0.55f),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold
             )
@@ -200,8 +200,8 @@ private fun EquipStat(label: String, value: String, accent: Color, modifier: Mod
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(18.dp))
-            .background(Color.White.copy(alpha = 0.04f))
-            .border(1.dp, Color.White.copy(alpha = 0.06f), RoundedCornerShape(18.dp))
+            .background(HFColors.fill(0.04f))
+            .border(1.dp, HFColors.stroke(0.06f), RoundedCornerShape(18.dp))
             .padding(12.dp)
     ) {
         Text(value, color = accent, fontSize = 18.sp, fontWeight = FontWeight.Bold)
@@ -215,8 +215,8 @@ private fun AddEquipmentButton(onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.06f))
-            .border(1.dp, HFColors.OnSurface.copy(alpha = 0.30f), RoundedCornerShape(14.dp))
+            .background(HFColors.fill(0.06f))
+            .border(1.dp, HFColors.stroke(0.30f), RoundedCornerShape(14.dp))
             .clickable(onClick = onClick)
             .padding(vertical = 14.dp),
         horizontalArrangement = Arrangement.Center,
@@ -243,7 +243,7 @@ private fun EquipmentCard(
             .fillMaxWidth()
             .hfPressClickable(onClick)
             .clip(RoundedCornerShape(16.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.04f))
+            .background(HFColors.fill(0.04f))
             .border(1.dp, accent.copy(alpha = 0.35f), RoundedCornerShape(16.dp))
             .padding(14.dp)
     ) {
@@ -268,7 +268,7 @@ private fun EquipmentCard(
                 InlineTagE("${fmtHours(eq.usageHours)} hrs", HFColors.StatusBlue); Spacer(Modifier.size(6.dp))
             }
             if (eq.location.isNotBlank()) {
-                Text(eq.location, color = HFColors.OnSurface.copy(alpha = 0.70f), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                Text(eq.location, color = HFColors.ink(0.70f), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             }
         }
         // Nearest due item preview.
@@ -443,7 +443,7 @@ private fun EquipmentDetailSheet(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(equipment.name.ifBlank { "Equipment" }, color = HFColors.OnSurface, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                     val sub = listOf(equipment.equipmentType, equipment.location).filter { it.isNotBlank() }.joinToString(" • ")
-                    if (sub.isNotBlank()) Text(sub, color = HFColors.OnSurface.copy(alpha = 0.6f), fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                    if (sub.isNotBlank()) Text(sub, color = HFColors.ink(0.6f), fontSize = 12.sp, fontWeight = FontWeight.Medium)
                 }
                 SecondaryChip("Edit", onEdit)
             }
@@ -454,7 +454,7 @@ private fun EquipmentDetailSheet(
             // ---- maintenance / calibration items ----
             SectionHeader("Maintenance & Calibration")
             if (items.isEmpty()) {
-                Text(stringResource(R.string.eq_no_due), color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                Text(stringResource(R.string.eq_no_due), color = HFColors.ink(0.5f), fontSize = 12.sp, fontWeight = FontWeight.Medium)
             } else {
                 items.sortedBy { severityRank(it.dueInfo(equipment.usageHours).severity) }.forEach { item ->
                     MaintenanceItemRow(
@@ -470,7 +470,7 @@ private fun EquipmentDetailSheet(
             // ---- service history ----
             SectionHeader("Service History")
             if (serviceLog.isEmpty()) {
-                Text(stringResource(R.string.eq_nothing_logged), color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                Text(stringResource(R.string.eq_nothing_logged), color = HFColors.ink(0.5f), fontSize = 12.sp, fontWeight = FontWeight.Medium)
             } else {
                 serviceLog.sortedByDescending { it.performedAt }.forEach { entry ->
                     ServiceLogRow(entry, onDelete = { SharedStore.deleteServiceEntry(entry.id) })
@@ -500,7 +500,7 @@ private fun UsageHoursRow(equipment: HFEquipment) {
     var editing by remember(equipment.id) { mutableStateOf(false) }
     var value by remember(equipment.id) { mutableStateOf(fmtHours(equipment.usageHours)) }
     Column(
-        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(HFColors.OnSurface.copy(alpha = 0.04f))
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(HFColors.fill(0.04f))
             .border(1.dp, HFColors.StatusBlue.copy(alpha = 0.30f), RoundedCornerShape(14.dp)).padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
@@ -539,7 +539,7 @@ private fun MaintenanceItemRow(
     val info = item.dueInfo(usageHours)
     val accent = info.severity.color()
     Column(
-        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(HFColors.OnSurface.copy(alpha = 0.04f))
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(HFColors.fill(0.04f))
             .border(1.dp, accent.copy(alpha = 0.35f), RoundedCornerShape(14.dp)).padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
@@ -555,7 +555,7 @@ private fun MaintenanceItemRow(
             else -> null
         }
         if (interval != null) {
-            Text(interval, color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 11.sp, fontWeight = FontWeight.Medium)
+            Text(interval, color = HFColors.ink(0.55f), fontSize = 11.sp, fontWeight = FontWeight.Medium)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             SecondaryChip("Log service", onLogService)
@@ -567,8 +567,8 @@ private fun MaintenanceItemRow(
 @Composable
 private fun ServiceLogRow(entry: HFEquipmentServiceEntry, onDelete: () -> Unit) {
     Column(
-        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(HFColors.OnSurface.copy(alpha = 0.03f))
-            .border(1.dp, HFColors.OnSurface.copy(alpha = 0.10f), RoundedCornerShape(12.dp)).padding(12.dp),
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(HFColors.fill(0.03f))
+            .border(1.dp, HFColors.stroke(0.10f), RoundedCornerShape(12.dp)).padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -578,11 +578,11 @@ private fun ServiceLogRow(entry: HFEquipmentServiceEntry, onDelete: () -> Unit) 
             }
         }
         if (entry.notes.isNotBlank()) {
-            Text(entry.notes, color = HFColors.OnSurface.copy(alpha = 0.7f), fontSize = 12.sp, fontWeight = FontWeight.Medium)
+            Text(entry.notes, color = HFColors.ink(0.7f), fontSize = 12.sp, fontWeight = FontWeight.Medium)
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (entry.performedByUserName.isNotBlank()) {
-                Text("by ${entry.performedByUserName}", color = HFColors.OnSurface.copy(alpha = 0.45f), fontSize = 10.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+                Text("by ${entry.performedByUserName}", color = HFColors.ink(0.45f), fontSize = 10.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
             } else Spacer(Modifier.weight(1f))
             DeleteChip(onDelete)
         }
@@ -646,7 +646,7 @@ private fun MaintenanceItemSheet(equipmentId: String, onDismiss: () -> Unit) {
                         ChipPill(u.displayName.ifBlank { "Tech" }, active = remindUserId == u.id) { remindUserId = u.id }
                     }
                 }
-                Text(stringResource(R.string.eq_reminder_hint), color = HFColors.OnSurface.copy(alpha = 0.45f), fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                Text(stringResource(R.string.eq_reminder_hint), color = HFColors.ink(0.45f), fontSize = 11.sp, fontWeight = FontWeight.Medium)
             }
 
             if (error != null) Text(error!!, color = HFColors.StatusRed, fontSize = 12.sp, fontWeight = FontWeight.Medium)
@@ -703,7 +703,7 @@ private fun LogServiceSheet(
         ) {
             Text(stringResource(R.string.eq_log_service), color = HFColors.OnSurface, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             if (maintenanceItemId != null) {
-                Text(stringResource(R.string.eq_reset_warning), color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                Text(stringResource(R.string.eq_reset_warning), color = HFColors.ink(0.55f), fontSize = 12.sp, fontWeight = FontWeight.Medium)
             }
             EquipField("Performed (YYYY-MM-DD)", performedAt, { performedAt = it }, "2026-07-14")
             EquipField("Hours at service", hours, { s -> hours = s.filter { it.isDigit() || it == '.' }.take(8) }, "0", KeyboardType.Number)
@@ -735,12 +735,12 @@ private fun LogServiceSheet(
 
 @Composable
 private fun SectionHeader(text: String) {
-    Text(text.uppercase(), color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.0.sp)
+    Text(text.uppercase(), color = HFColors.ink(0.55f), fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.0.sp)
 }
 
 @Composable
 private fun LabelE(text: String) {
-    Text(text.uppercase(), color = HFColors.OnSurface.copy(alpha = 0.60f), fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.0.sp)
+    Text(text.uppercase(), color = HFColors.ink(0.60f), fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.0.sp)
 }
 
 @Composable
@@ -760,7 +760,7 @@ private fun EquipField(
             value = value,
             onValueChange = onChange,
             singleLine = singleLine,
-            placeholder = { Text(placeholder, color = HFColors.OnSurface.copy(alpha = 0.35f), fontSize = 13.sp) },
+            placeholder = { Text(placeholder, color = HFColors.ink(0.35f), fontSize = 13.sp) },
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
             modifier = Modifier.fillMaxWidth(),
             colors = equipFieldColors()
@@ -776,9 +776,9 @@ private fun ChipScrollRow(content: @Composable () -> Unit) {
 
 @Composable
 private fun ChipPill(label: String, active: Boolean, accent: Color = HFColors.OnSurface, onClick: () -> Unit) {
-    val bg = if (active) accent.copy(alpha = 0.18f) else HFColors.OnSurface.copy(alpha = 0.06f)
+    val bg = if (active) accent.copy(alpha = 0.18f) else HFColors.fill(0.06f)
     val fg = if (active) accent else HFColors.OnSurface
-    val border = if (active) accent.copy(alpha = 0.55f) else HFColors.OnSurface.copy(alpha = 0.15f)
+    val border = if (active) accent.copy(alpha = 0.55f) else HFColors.stroke(0.15f)
     Box(
         modifier = Modifier.clip(RoundedCornerShape(100.dp)).background(bg).border(1.dp, border, RoundedCornerShape(100.dp))
             .clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 6.dp)
@@ -790,8 +790,8 @@ private fun ChipPill(label: String, active: Boolean, accent: Color = HFColors.On
 @Composable
 private fun SecondaryChip(label: String, onClick: () -> Unit) {
     Box(
-        modifier = Modifier.clip(RoundedCornerShape(10.dp)).background(HFColors.OnSurface.copy(alpha = 0.08f))
-            .border(1.dp, HFColors.OnSurface.copy(alpha = 0.20f), RoundedCornerShape(10.dp))
+        modifier = Modifier.clip(RoundedCornerShape(10.dp)).background(HFColors.fill(0.08f))
+            .border(1.dp, HFColors.stroke(0.20f), RoundedCornerShape(10.dp))
             .clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 7.dp)
     ) {
         Text(label, color = HFColors.OnSurface, fontSize = 12.sp, fontWeight = FontWeight.Bold)
@@ -817,7 +817,7 @@ private fun DeleteChip(onClick: () -> Unit) {
 private fun PrimaryButton(label: String, enabled: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
-            .background(if (!enabled) HFColors.OnSurface.copy(alpha = 0.10f) else HFColors.OnSurface)
+            .background(if (!enabled) HFColors.fill(0.10f) else HFColors.OnSurface)
             .clickable(enabled = enabled, onClick = onClick).padding(vertical = 14.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -830,10 +830,10 @@ private fun fmtHours(v: Double): String =
 
 @Composable
 private fun equipFieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
-    unfocusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
-    focusedBorderColor = HFColors.OnSurface.copy(alpha = 0.25f),
-    unfocusedBorderColor = HFColors.OnSurface.copy(alpha = 0.10f),
+    focusedContainerColor = HFColors.fill(0.04f),
+    unfocusedContainerColor = HFColors.fill(0.04f),
+    focusedBorderColor = HFColors.stroke(0.25f),
+    unfocusedBorderColor = HFColors.stroke(0.10f),
     focusedTextColor = HFColors.OnSurface,
     unfocusedTextColor = HFColors.OnSurface,
     cursorColor = HFColors.OnSurface

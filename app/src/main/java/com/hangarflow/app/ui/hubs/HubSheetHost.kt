@@ -186,7 +186,7 @@ fun IOSHubHeader(
             )
             Text(
                 text = subtitle,
-                color = HFColors.OnSurface.copy(alpha = 0.68f),
+                color = HFColors.ink(0.68f),
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium
             )
@@ -195,7 +195,7 @@ fun IOSHubHeader(
             modifier = Modifier
                 .size(32.dp)
                 .clip(CircleShape)
-                .background(HFColors.OnSurface.copy(alpha = 0.10f))
+                .background(HFColors.fill(0.10f))
                 .clickable(onClick = onClose),
             contentAlignment = Alignment.Center
         ) {
@@ -219,13 +219,13 @@ fun IOSPlaceholderPanel(message: String) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.04f))
-            .border(1.dp, HFColors.OnSurface.copy(alpha = 0.10f), RoundedCornerShape(20.dp))
+            .background(HFColors.fill(0.04f))
+            .border(1.dp, HFColors.stroke(0.10f), RoundedCornerShape(20.dp))
             .padding(20.dp)
     ) {
         Text(
             text = "Placeholder",
-            color = HFColors.OnSurface.copy(alpha = 0.55f),
+            color = HFColors.ink(0.55f),
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = 1.2.sp

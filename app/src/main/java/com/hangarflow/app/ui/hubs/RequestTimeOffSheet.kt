@@ -85,7 +85,7 @@ fun RequestTimeOffSheet(onDismiss: () -> Unit) {
                 Text(stringResource(R.string.tc_request_time_off), color = HFColors.OnSurface, fontSize = 24.sp, fontWeight = FontWeight.Bold)
                 Text(
                     stringResource(R.string.to_sub),
-                    color = HFColors.OnSurface.copy(alpha = 0.68f),
+                    color = HFColors.ink(0.68f),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium
                 )
@@ -94,7 +94,7 @@ fun RequestTimeOffSheet(onDismiss: () -> Unit) {
                 modifier = Modifier
                     .size(32.dp)
                     .clip(CircleShape)
-                    .background(HFColors.OnSurface.copy(alpha = 0.10f))
+                    .background(HFColors.fill(0.10f))
                     .clickable { onDismiss() },
                 contentAlignment = Alignment.Center
             ) {
@@ -120,17 +120,17 @@ fun RequestTimeOffSheet(onDismiss: () -> Unit) {
                 onClick = { showEndPicker = true }
             )
 
-            Text(stringResource(R.string.to_reason), color = HFColors.OnSurface.copy(alpha = 0.68f), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.to_reason), color = HFColors.ink(0.68f), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             OutlinedTextField(
                 value = reason,
                 onValueChange = { reason = it },
-                placeholder = { Text(stringResource(R.string.to_reason_hint), color = HFColors.OnSurface.copy(alpha = 0.40f), fontSize = 13.sp) },
+                placeholder = { Text(stringResource(R.string.to_reason_hint), color = HFColors.ink(0.40f), fontSize = 13.sp) },
                 modifier = Modifier.fillMaxWidth().heightIn(min = 80.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
-                    unfocusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
-                    focusedBorderColor = HFColors.OnSurface.copy(alpha = 0.25f),
-                    unfocusedBorderColor = HFColors.OnSurface.copy(alpha = 0.10f),
+                    focusedContainerColor = HFColors.fill(0.04f),
+                    unfocusedContainerColor = HFColors.fill(0.04f),
+                    focusedBorderColor = HFColors.stroke(0.25f),
+                    unfocusedBorderColor = HFColors.stroke(0.10f),
                     focusedTextColor = HFColors.OnSurface,
                     unfocusedTextColor = HFColors.OnSurface,
                     cursorColor = HFColors.OnSurface
@@ -193,13 +193,13 @@ fun RequestTimeOffSheet(onDismiss: () -> Unit) {
                 modifier = Modifier.fillMaxWidth().height(50.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = HFColors.StatusBlue,
-                    disabledContainerColor = HFColors.OnSurface.copy(alpha = 0.10f)
+                    disabledContainerColor = HFColors.fill(0.10f)
                 )
             ) {
                 if (isSaving) {
-                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                    CircularProgressIndicator(color = HFColors.OnAccent, modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                 } else {
-                    Text(stringResource(R.string.to_submit), color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.to_submit), color = HFColors.OnAccent, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -246,19 +246,19 @@ fun RequestTimeOffSheet(onDismiss: () -> Unit) {
 @Composable
 private fun DateField(label: String, value: String, onClick: () -> Unit) {
     Column {
-        Text(label, color = HFColors.OnSurface.copy(alpha = 0.68f), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+        Text(label, color = HFColors.ink(0.68f), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.height(6.dp))
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(12.dp))
-                .background(HFColors.OnSurface.copy(alpha = 0.04f))
-                .border(1.dp, HFColors.OnSurface.copy(alpha = 0.10f), RoundedCornerShape(12.dp))
+                .background(HFColors.fill(0.04f))
+                .border(1.dp, HFColors.stroke(0.10f), RoundedCornerShape(12.dp))
                 .clickable { onClick() }
                 .padding(horizontal = 14.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(Icons.Outlined.CalendarToday, contentDescription = null, tint = HFColors.OnSurface.copy(alpha = 0.65f), modifier = Modifier.size(16.dp))
+            Icon(Icons.Outlined.CalendarToday, contentDescription = null, tint = HFColors.ink(0.65f), modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(10.dp))
             Text(value, color = HFColors.OnSurface, fontSize = 14.sp, fontWeight = FontWeight.Medium)
         }

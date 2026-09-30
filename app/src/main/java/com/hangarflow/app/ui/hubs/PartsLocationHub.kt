@@ -182,12 +182,12 @@ private fun PartsLocationHubContent() {
                 onValueChange = { filters = filters.copy(query = it) },
                 singleLine = true,
                 leadingIcon = {
-                    Icon(Icons.Outlined.Search, null, tint = HFColors.OnSurface.copy(alpha = 0.55f))
+                    Icon(Icons.Outlined.Search, null, tint = HFColors.ink(0.55f))
                 },
                 placeholder = {
                     Text(
                         stringResource(R.string.pl_search),
-                        color = HFColors.OnSurface.copy(alpha = 0.45f),
+                        color = HFColors.ink(0.45f),
                         fontSize = 13.sp
                     )
                 },
@@ -216,7 +216,7 @@ private fun PartsLocationHubContent() {
             Text(
                 text = if (filters.isBlank()) "${filtered.size} parts"
                     else "${filtered.size} of ${state.partLocations.size} parts",
-                color = HFColors.OnSurface.copy(alpha = 0.55f),
+                color = HFColors.ink(0.55f),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold
             )
@@ -291,8 +291,8 @@ private fun AddPartButton(onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.06f))
-            .border(1.dp, HFColors.OnSurface.copy(alpha = 0.30f), RoundedCornerShape(14.dp))
+            .background(HFColors.fill(0.06f))
+            .border(1.dp, HFColors.stroke(0.30f), RoundedCornerShape(14.dp))
             .clickable(onClick = onClick)
             .padding(vertical = 14.dp),
         horizontalArrangement = Arrangement.Center,
@@ -319,7 +319,7 @@ private fun SummaryTile(label: String, value: String, accent: Color, modifier: M
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.04f))
+            .background(HFColors.fill(0.04f))
             .border(1.dp, accent.copy(alpha = 0.40f), RoundedCornerShape(16.dp))
             .padding(horizontal = 12.dp, vertical = 14.dp),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -416,15 +416,15 @@ private fun FilterDropdown(
     var expanded by remember { mutableStateOf(false) }
     val borderColor = when {
         active && accent != null -> accent.copy(alpha = 0.55f)
-        active -> HFColors.OnSurface.copy(alpha = 0.45f)
-        else -> HFColors.OnSurface.copy(alpha = 0.20f)
+        active -> HFColors.stroke(0.45f)
+        else -> HFColors.stroke(0.20f)
     }
     val fg = accent?.takeIf { active } ?: HFColors.OnSurface
     Box {
         Row(
             modifier = Modifier
                 .clip(RoundedCornerShape(100.dp))
-                .background(HFColors.OnSurface.copy(alpha = 0.06f))
+                .background(HFColors.fill(0.06f))
                 .border(1.dp, borderColor, RoundedCornerShape(100.dp))
                 .clickable { expanded = true }
                 .padding(horizontal = 12.dp, vertical = 8.dp),
@@ -481,9 +481,9 @@ private fun StatusPill(
     active: Boolean,
     onClick: () -> Unit
 ) {
-    val bg = if (active) color.copy(alpha = 0.18f) else HFColors.OnSurface.copy(alpha = 0.06f)
+    val bg = if (active) color.copy(alpha = 0.18f) else HFColors.fill(0.06f)
     val fg = if (active) color else HFColors.OnSurface
-    val border = if (active) color.copy(alpha = 0.55f) else HFColors.OnSurface.copy(alpha = 0.15f)
+    val border = if (active) color.copy(alpha = 0.55f) else HFColors.stroke(0.15f)
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(100.dp))
@@ -510,7 +510,7 @@ private fun PartLocationRow(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.04f))
+            .background(HFColors.fill(0.04f))
             .border(1.dp, status.color.copy(alpha = 0.35f), RoundedCornerShape(16.dp))
             .clickable(onClick = onClick)
             .padding(14.dp)
@@ -552,7 +552,7 @@ private fun PartLocationRow(
             if (row.location.isNotBlank()) {
                 Text(
                     row.location,
-                    color = HFColors.OnSurface.copy(alpha = 0.70f),
+                    color = HFColors.ink(0.70f),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -564,7 +564,7 @@ private fun PartLocationRow(
             if (tails.isNotEmpty()) {
                 Text(
                     "For: ${tails.joinToString(", ")}",
-                    color = HFColors.OnSurface.copy(alpha = 0.60f),
+                    color = HFColors.ink(0.60f),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium
                 )
@@ -574,7 +574,7 @@ private fun PartLocationRow(
             Spacer(Modifier.size(6.dp))
             Text(
                 row.notes,
-                color = HFColors.OnSurface.copy(alpha = 0.62f),
+                color = HFColors.ink(0.62f),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Medium,
                 maxLines = 3
@@ -605,7 +605,7 @@ private fun PartLocationRow(
                 Spacer(Modifier.size(4.dp))
                 Text(
                     if (vendorExpanded) "▾" else "▸",
-                    color = HFColors.OnSurface.copy(alpha = 0.6f),
+                    color = HFColors.ink(0.6f),
                     fontSize = 11.sp
                 )
             }
@@ -622,7 +622,7 @@ private fun PartLocationRow(
                     row.vendorPhone?.takeIf { it.isNotBlank() }?.let {
                         Text(
                             "Phone: $it",
-                            color = HFColors.OnSurface.copy(alpha = 0.62f),
+                            color = HFColors.ink(0.62f),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Medium
                         )
@@ -649,7 +649,7 @@ private fun PartLocationRow(
             Spacer(Modifier.size(6.dp))
             Text(
                 "Updated by ${row.updatedByUserName}",
-                color = HFColors.OnSurface.copy(alpha = 0.40f),
+                color = HFColors.ink(0.40f),
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Medium
             )
@@ -675,7 +675,7 @@ private fun QuantityBadge(q: Int) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(8.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.08f))
+            .background(HFColors.fill(0.08f))
             .padding(horizontal = 8.dp, vertical = 3.dp)
     ) {
         Text("× $q", color = HFColors.OnSurface, fontSize = 11.sp, fontWeight = FontWeight.Bold)
@@ -710,8 +710,8 @@ private fun PartLocationPhotoThumb(path: String, onClick: () -> Unit) {
         modifier = Modifier
             .size(88.dp)
             .clip(RoundedCornerShape(10.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.06f))
-            .border(1.dp, HFColors.OnSurface.copy(alpha = 0.10f), RoundedCornerShape(10.dp))
+            .background(HFColors.fill(0.06f))
+            .border(1.dp, HFColors.stroke(0.10f), RoundedCornerShape(10.dp))
             .clickable(onClick = onClick)
     ) {
         if (signedUrl != null) {
@@ -890,7 +890,7 @@ private fun PartLocationSheet(
                     }
                     Text(
                         stringResource(R.string.pl_shopwide_hint),
-                        color = HFColors.OnSurface.copy(alpha = 0.45f),
+                        color = HFColors.ink(0.45f),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -958,7 +958,7 @@ private fun PartLocationSheet(
                     else -> {
                         Text(
                             stringResource(R.string.pl_no_photo),
-                            color = HFColors.OnSurface.copy(alpha = 0.45f),
+                            color = HFColors.ink(0.45f),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium
                         )
@@ -974,7 +974,7 @@ private fun PartLocationSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
-                    .background(if (busy) HFColors.OnSurface.copy(alpha = 0.10f) else HFColors.OnSurface)
+                    .background(if (busy) HFColors.fill(0.10f) else HFColors.OnSurface)
                     .clickable(enabled = !busy) {
                         busy = true
                         error = null
@@ -1061,7 +1061,7 @@ private fun PartLocationSheet(
 private fun Label(text: String) {
     Text(
         text.uppercase(),
-        color = HFColors.OnSurface.copy(alpha = 0.60f),
+        color = HFColors.ink(0.60f),
         fontSize = 10.sp,
         fontWeight = FontWeight.Bold,
         letterSpacing = 1.0.sp
@@ -1086,7 +1086,7 @@ private fun InventoryField(
             onValueChange = onChange,
             singleLine = singleLine,
             placeholder = {
-                Text(placeholder, color = HFColors.OnSurface.copy(alpha = 0.35f), fontSize = 13.sp)
+                Text(placeholder, color = HFColors.ink(0.35f), fontSize = 13.sp)
             },
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
             modifier = Modifier.fillMaxWidth(),
@@ -1166,10 +1166,10 @@ private fun compressForUpload(bitmap: Bitmap): ByteArray {
 
 @Composable
 private fun inventoryFieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
-    unfocusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
-    focusedBorderColor = HFColors.OnSurface.copy(alpha = 0.25f),
-    unfocusedBorderColor = HFColors.OnSurface.copy(alpha = 0.10f),
+    focusedContainerColor = HFColors.fill(0.04f),
+    unfocusedContainerColor = HFColors.fill(0.04f),
+    focusedBorderColor = HFColors.stroke(0.25f),
+    unfocusedBorderColor = HFColors.stroke(0.10f),
     focusedTextColor = HFColors.OnSurface,
     unfocusedTextColor = HFColors.OnSurface,
     cursorColor = HFColors.OnSurface

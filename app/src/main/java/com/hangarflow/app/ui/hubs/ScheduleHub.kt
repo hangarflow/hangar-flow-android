@@ -128,7 +128,7 @@ private fun ScheduleHubContent(
         Spacer(Modifier.height(2.dp))
         Text(
             stringResource(R.string.sc_sub),
-            color = HFColors.OnSurface.copy(alpha = 0.55f),
+            color = HFColors.ink(0.55f),
             fontSize = 13.sp,
             fontWeight = FontWeight.Medium
         )
@@ -183,8 +183,8 @@ private fun ScheduleHubContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(14.dp))
-                    .background(HFColors.OnSurface.copy(alpha = 0.04f))
-                    .border(1.dp, HFColors.OnSurface.copy(alpha = 0.08f), RoundedCornerShape(14.dp))
+                    .background(HFColors.fill(0.04f))
+                    .border(1.dp, HFColors.stroke(0.08f), RoundedCornerShape(14.dp))
                     .padding(12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
@@ -281,7 +281,7 @@ private fun TimeOffSection(
         Spacer(Modifier.height(16.dp))
         Text(
             if (isAdmin) "RECENT DECISIONS" else "MY TIME-OFF",
-            color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 11.sp,
+            color = HFColors.ink(0.55f), fontSize = 11.sp,
             fontWeight = FontWeight.Bold, letterSpacing = 0.8.sp
         )
         Spacer(Modifier.height(8.dp))
@@ -315,7 +315,7 @@ private fun TimeOffRow(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.03f))
+            .background(HFColors.fill(0.03f))
             .padding(8.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -343,10 +343,10 @@ private fun TimeOffRow(
                             color = statusColor, fontSize = 9.sp, fontWeight = FontWeight.Bold
                         )
                     }
-                    Text(range, color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                    Text(range, color = HFColors.ink(0.55f), fontSize = 10.sp, fontWeight = FontWeight.Medium)
                 }
                 if (req.reason.isNotBlank()) {
-                    Text(req.reason, color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 10.sp, maxLines = 1)
+                    Text(req.reason, color = HFColors.ink(0.55f), fontSize = 10.sp, maxLines = 1)
                 }
             }
         }
@@ -396,7 +396,7 @@ private fun DayGroup(title: String, accent: Color, content: @Composable () -> Un
 
 @Composable
 private fun EmptyGroupText(text: String) {
-    Text(text, color = HFColors.OnSurface.copy(alpha = 0.40f), fontSize = 11.sp)
+    Text(text, color = HFColors.ink(0.40f), fontSize = 11.sp)
 }
 
 @Composable
@@ -439,8 +439,8 @@ private fun StatTile(label: String, value: String, accent: Color, modifier: Modi
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.04f))
-            .border(1.dp, HFColors.OnSurface.copy(alpha = 0.08f), RoundedCornerShape(12.dp))
+            .background(HFColors.fill(0.04f))
+            .border(1.dp, HFColors.stroke(0.08f), RoundedCornerShape(12.dp))
             .padding(10.dp)
     ) {
         Text(label, color = accent, fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.8.sp)
@@ -460,7 +460,7 @@ private fun MonthNav(monthLabel: String, onPrev: () -> Unit, onNext: () -> Unit)
             modifier = Modifier
                 .size(30.dp)
                 .clip(CircleShape)
-                .background(HFColors.OnSurface.copy(alpha = 0.06f))
+                .background(HFColors.fill(0.06f))
                 .clickable { onPrev() },
             contentAlignment = Alignment.Center
         ) {
@@ -471,7 +471,7 @@ private fun MonthNav(monthLabel: String, onPrev: () -> Unit, onNext: () -> Unit)
             modifier = Modifier
                 .size(30.dp)
                 .clip(CircleShape)
-                .background(HFColors.OnSurface.copy(alpha = 0.06f))
+                .background(HFColors.fill(0.06f))
                 .clickable { onNext() },
             contentAlignment = Alignment.Center
         ) {
@@ -493,7 +493,7 @@ private fun CalendarGrid(
         listOf("S", "M", "T", "W", "T", "F", "S").forEach { dayLabel ->
             Text(
                 dayLabel,
-                color = HFColors.OnSurface.copy(alpha = 0.45f),
+                color = HFColors.ink(0.45f),
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
@@ -543,13 +543,13 @@ private fun CalendarGrid(
 @Composable
 private fun DayCell(date: LocalDate, isToday: Boolean, isSelected: Boolean, hasEvents: Boolean, onClick: () -> Unit) {
     val bg = when {
-        isSelected -> HFColors.OnSurface.copy(alpha = 0.12f)
-        else -> HFColors.OnSurface.copy(alpha = 0.03f)
+        isSelected -> HFColors.fill(0.12f)
+        else -> HFColors.fill(0.03f)
     }
     val border = when {
-        isSelected -> HFColors.OnSurface.copy(alpha = 0.30f)
+        isSelected -> HFColors.stroke(0.30f)
         isToday -> HFColors.StatusBlue.copy(alpha = 0.45f)
-        else -> HFColors.OnSurface.copy(alpha = 0.06f)
+        else -> HFColors.stroke(0.06f)
     }
     Column(
         modifier = Modifier
@@ -592,7 +592,7 @@ private fun EventRow(event: PlaneScheduleEvent) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.03f))
+            .background(HFColors.fill(0.03f))
             .padding(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -613,7 +613,7 @@ private fun EventRow(event: PlaneScheduleEvent) {
             )
             Text(
                 event.subtitle,
-                color = HFColors.OnSurface.copy(alpha = 0.55f),
+                color = HFColors.ink(0.55f),
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Medium
             )
@@ -640,13 +640,13 @@ private fun SchedMaintChecklist(plane: HFPlane) {
     ) {
         Text(
             stringResource(R.string.sc_sched_maint_caps),
-            color = HFColors.OnSurface.copy(alpha = 0.5f),
+            color = HFColors.ink(0.5f),
             fontSize = 8.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = 0.8.sp
         )
         if (items.isEmpty()) {
-            Text(stringResource(R.string.sc_nothing_listed), color = HFColors.OnSurface.copy(alpha = 0.4f), fontSize = 11.sp)
+            Text(stringResource(R.string.sc_nothing_listed), color = HFColors.ink(0.4f), fontSize = 11.sp)
         } else {
             items.forEach { item ->
                 Row(
@@ -657,10 +657,10 @@ private fun SchedMaintChecklist(plane: HFPlane) {
                         modifier = Modifier
                             .size(16.dp)
                             .clip(RoundedCornerShape(4.dp))
-                            .background(if (item.done) HFColors.StatusGreen.copy(alpha = 0.25f) else HFColors.OnSurface.copy(alpha = 0.04f))
+                            .background(if (item.done) HFColors.StatusGreen.copy(alpha = 0.25f) else HFColors.fill(0.04f))
                             .border(
                                 1.dp,
-                                if (item.done) HFColors.StatusGreen.copy(alpha = 0.6f) else HFColors.OnSurface.copy(alpha = 0.15f),
+                                if (item.done) HFColors.StatusGreen.copy(alpha = 0.6f) else HFColors.stroke(0.15f),
                                 RoundedCornerShape(4.dp)
                             )
                             .clickable {
@@ -680,14 +680,14 @@ private fun SchedMaintChecklist(plane: HFPlane) {
                     Column(Modifier.weight(1f)) {
                         Text(
                             item.title,
-                            color = if (item.done) HFColors.OnSurface.copy(alpha = 0.5f) else HFColors.OnSurface,
+                            color = if (item.done) HFColors.ink(0.5f) else HFColors.OnSurface,
                             fontSize = 12.sp,
                             textDecoration = if (item.done) TextDecoration.LineThrough else null
                         )
                         if (item.done && item.doneByName.isNotBlank()) {
                             Text(
                                 "done by ${item.doneByName}${item.doneAt?.take(10)?.let { " · $it" } ?: ""}",
-                                color = HFColors.OnSurface.copy(alpha = 0.4f),
+                                color = HFColors.ink(0.4f),
                                 fontSize = 8.sp
                             )
                         }
@@ -712,12 +712,12 @@ private fun SchedMaintChecklist(plane: HFPlane) {
                 modifier = Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(8.dp))
-                    .background(HFColors.OnSurface.copy(alpha = 0.05f))
-                    .border(1.dp, HFColors.OnSurface.copy(alpha = 0.12f), RoundedCornerShape(8.dp))
+                    .background(HFColors.fill(0.05f))
+                    .border(1.dp, HFColors.stroke(0.12f), RoundedCornerShape(8.dp))
                     .padding(horizontal = 8.dp, vertical = 7.dp)
             ) {
                 if (newTitle.isEmpty()) {
-                    Text(stringResource(R.string.sc_add_item_hint), color = HFColors.OnSurface.copy(alpha = 0.35f), fontSize = 11.sp)
+                    Text(stringResource(R.string.sc_add_item_hint), color = HFColors.ink(0.35f), fontSize = 11.sp)
                 }
                 BasicTextField(
                     value = newTitle,
@@ -746,7 +746,7 @@ private fun SchedMaintChecklist(plane: HFPlane) {
             ) {
                 Text(
                     stringResource(R.string.action_add),
-                    color = if (canAdd) HFColors.StatusGreen else HFColors.OnSurface.copy(alpha = 0.35f),
+                    color = if (canAdd) HFColors.StatusGreen else HFColors.ink(0.35f),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -860,7 +860,7 @@ private fun CalendarEventRow(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.03f))
+            .background(HFColors.fill(0.03f))
             .padding(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -879,12 +879,12 @@ private fun CalendarEventRow(
                 event.description.takeIf { it.isNotBlank() }
             ).joinToString(" · ")
             if (sub.isNotBlank()) {
-                Text(sub, color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 10.sp, fontWeight = FontWeight.Medium, maxLines = 2)
+                Text(sub, color = HFColors.ink(0.55f), fontSize = 10.sp, fontWeight = FontWeight.Medium, maxLines = 2)
             }
             if (event.visibility != "public") {
                 Text(
                     if (event.visibility == "admin_only") "Admins only" else "Personal",
-                    color = HFColors.OnSurface.copy(alpha = 0.45f), fontSize = 9.sp, fontWeight = FontWeight.Medium
+                    color = HFColors.ink(0.45f), fontSize = 9.sp, fontWeight = FontWeight.Medium
                 )
             }
         }
@@ -979,22 +979,22 @@ private fun AddCalendarEventSheet(
             ) {
                 Text(
                     stringResource(R.string.sc_event_help),
-                    color = HFColors.OnSurface.copy(alpha = 0.6f), fontSize = 11.sp
+                    color = HFColors.ink(0.6f), fontSize = 11.sp
                 )
                 EventField("TITLE", title, "Borescope inspection, team meeting…") { title = it }
                 EventField("DESCRIPTION (OPTIONAL)", description, "Context techs should see.", singleLine = false) { description = it }
 
-                Text(stringResource(R.string.sc_start_date_caps), color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+                Text(stringResource(R.string.sc_start_date_caps), color = HFColors.ink(0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
                 DateStepperRow(startDate, dateFmt) {
                     startDate = it
                     if (endDate.isBefore(it)) endDate = it
                 }
-                Text(stringResource(R.string.sc_end_date_caps), color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+                Text(stringResource(R.string.sc_end_date_caps), color = HFColors.ink(0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
                 DateStepperRow(endDate, dateFmt) {
                     endDate = if (it.isBefore(startDate)) startDate else it
                 }
 
-                Text(stringResource(R.string.sc_plane_optional_caps), color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+                Text(stringResource(R.string.sc_plane_optional_caps), color = HFColors.ink(0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
                 Row(
                     modifier = Modifier.horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -1005,7 +1005,7 @@ private fun AddCalendarEventSheet(
                     }
                 }
 
-                Text(stringResource(R.string.sc_who_sees_caps), color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+                Text(stringResource(R.string.sc_who_sees_caps), color = HFColors.ink(0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     ScopeChip("Everyone", visibility == "public") { visibility = "public" }
                     // Same stored value for both roles; only the framing
@@ -1018,18 +1018,18 @@ private fun AddCalendarEventSheet(
                     ScopeChip("Only me", visibility == "personal") { visibility = "personal" }
                 }
 
-                androidx.compose.material3.HorizontalDivider(color = HFColors.OnSurface.copy(alpha = 0.10f))
+                androidx.compose.material3.HorizontalDivider(color = HFColors.ink(0.10f))
 
                 // Reminder: notify a teammate at a date + hour.
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(stringResource(R.string.sc_send_reminder_caps), color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
-                        Text(stringResource(R.string.sc_push_when_due), color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 11.sp)
+                        Text(stringResource(R.string.sc_send_reminder_caps), color = HFColors.ink(0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+                        Text(stringResource(R.string.sc_push_when_due), color = HFColors.ink(0.5f), fontSize = 11.sp)
                     }
                     androidx.compose.material3.Switch(checked = remindOn, onCheckedChange = { remindOn = it })
                 }
                 if (remindOn) {
-                    Text(stringResource(R.string.sc_remind_who_caps), color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+                    Text(stringResource(R.string.sc_remind_who_caps), color = HFColors.ink(0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
                     Row(
                         modifier = Modifier.horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -1040,9 +1040,9 @@ private fun AddCalendarEventSheet(
                             ScopeChip(label.ifBlank { "Teammate" }, remindUserAuthId == u.authUserId) { remindUserAuthId = u.authUserId }
                         }
                     }
-                    Text(stringResource(R.string.sc_remind_on_caps), color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+                    Text(stringResource(R.string.sc_remind_on_caps), color = HFColors.ink(0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
                     DateStepperRow(remindDate, dateFmt) { remindDate = it }
-                    Text(stringResource(R.string.sc_at_caps), color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+                    Text(stringResource(R.string.sc_at_caps), color = HFColors.ink(0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         StepChip("◄") { remindHour = (remindHour + 23) % 24 }
                         Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
@@ -1123,12 +1123,12 @@ private fun formatHour(h: Int): String {
 @Composable
 private fun EventField(label: String, value: String, placeholder: String, singleLine: Boolean = true, onChange: (String) -> Unit) {
     Column {
-        Text(label, color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
+        Text(label, color = HFColors.ink(0.55f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
         Spacer(Modifier.height(4.dp))
         androidx.compose.material3.OutlinedTextField(
             value = value,
             onValueChange = onChange,
-            placeholder = { Text(placeholder, color = HFColors.OnSurface.copy(alpha = 0.4f), fontSize = 13.sp) },
+            placeholder = { Text(placeholder, color = HFColors.ink(0.4f), fontSize = 13.sp) },
             singleLine = singleLine,
             modifier = Modifier.fillMaxWidth(),
             textStyle = androidx.compose.ui.text.TextStyle(color = HFColors.OnSurface, fontSize = 13.sp)
@@ -1143,8 +1143,8 @@ private fun DateStepperRow(date: LocalDate, fmt: DateTimeFormatter, onChange: (L
         Box(
             modifier = Modifier
                 .clip(RoundedCornerShape(10.dp))
-                .background(HFColors.OnSurface.copy(alpha = 0.06f))
-                .border(1.dp, HFColors.OnSurface.copy(alpha = 0.12f), RoundedCornerShape(10.dp))
+                .background(HFColors.fill(0.06f))
+                .border(1.dp, HFColors.stroke(0.12f), RoundedCornerShape(10.dp))
                 .padding(horizontal = 12.dp, vertical = 8.dp)
         ) {
             Text(date.format(fmt), color = HFColors.OnSurface, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
@@ -1159,7 +1159,7 @@ private fun StepChip(label: String, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(8.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.08f))
+            .background(HFColors.fill(0.08f))
             .clickable(onClick = onClick)
             .padding(horizontal = 8.dp, vertical = 5.dp)
     ) {
@@ -1173,8 +1173,8 @@ private fun ScopeChip(label: String, selected: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(100.dp))
-            .background(if (selected) accent.copy(alpha = 0.20f) else HFColors.OnSurface.copy(alpha = 0.06f))
-            .border(1.dp, if (selected) accent.copy(alpha = 0.55f) else HFColors.OnSurface.copy(alpha = 0.12f), RoundedCornerShape(100.dp))
+            .background(if (selected) accent.copy(alpha = 0.20f) else HFColors.fill(0.06f))
+            .border(1.dp, if (selected) accent.copy(alpha = 0.55f) else HFColors.stroke(0.12f), RoundedCornerShape(100.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 11.dp, vertical = 6.dp)
     ) {

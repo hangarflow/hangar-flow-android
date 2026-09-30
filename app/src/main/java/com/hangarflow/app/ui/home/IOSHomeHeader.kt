@@ -67,12 +67,12 @@ fun IOSHomeHeader(
                     Icon(
                         imageVector = Icons.Filled.Apartment,
                         contentDescription = null,
-                        tint = HFColors.OnSurface.copy(alpha = 0.55f),
+                        tint = HFColors.ink(0.55f),
                         modifier = Modifier.size(12.dp)
                     )
                     Text(
                         it,
-                        color = HFColors.OnSurface.copy(alpha = 0.55f),
+                        color = HFColors.ink(0.55f),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 0.8.sp,
@@ -109,7 +109,7 @@ private fun HeaderIconButton(icon: ImageVector, onClick: () -> Unit) {
         modifier = Modifier
             .size(44.dp)
             .clip(CircleShape)
-            .background(HFColors.OnSurface.copy(alpha = 0.10f))
+            .background(HFColors.fill(0.10f))
             .clickable(onClick = onClick),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = androidx.compose.foundation.layout.Arrangement.Center
@@ -142,13 +142,13 @@ fun HFRoleBadge(label: String, modifier: Modifier = Modifier) {
     }
     Text(
         text = label.uppercase(),
-        color = Color.White.copy(alpha = fg),
+        color = HFColors.ink(fg),
         fontSize = 9.sp,
         fontWeight = FontWeight.Bold,
         letterSpacing = 0.7.sp,
         modifier = modifier
             .clip(CircleShape)
-            .background(Color.White.copy(alpha = bg))
+            .background(HFColors.fill(bg))
             .padding(horizontal = 6.dp, vertical = 2.dp)
     )
 }

@@ -54,11 +54,11 @@ fun AINavigatorHost(
             text = {
                 Text(
                     stringResource(R.string.ai_disclaimer),
-                    color = HFColors.OnSurface.copy(alpha = 0.75f), fontSize = 13.sp
+                    color = HFColors.ink(0.75f), fontSize = 13.sp
                 )
             },
             confirmButton = { TextButton(onClick = onAcceptDisclaimer) { Text(stringResource(R.string.ai_understand), color = HFColors.StatusCyan, fontWeight = FontWeight.Bold) } },
-            dismissButton = { TextButton(onClick = onDismissDisclaimer) { Text(stringResource(R.string.action_cancel), color = HFColors.OnSurface.copy(alpha = 0.6f)) } },
+            dismissButton = { TextButton(onClick = onDismissDisclaimer) { Text(stringResource(R.string.action_cancel), color = HFColors.ink(0.6f)) } },
             containerColor = HFColors.Background
         )
     }
@@ -92,12 +92,12 @@ fun AINavigatorHost(
                 Column {
                     OutlinedTextField(
                         value = query, onValueChange = { query = it }, singleLine = true,
-                        placeholder = { Text(stringResource(R.string.ai_hint), color = HFColors.OnSurface.copy(alpha = 0.4f)) },
+                        placeholder = { Text(stringResource(R.string.ai_hint), color = HFColors.ink(0.4f)) },
                         modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = HFColors.OnSurface, unfocusedTextColor = HFColors.OnSurface,
                             cursorColor = HFColors.OnSurface,
-                            focusedBorderColor = HFColors.StatusCyan, unfocusedBorderColor = HFColors.OnSurface.copy(alpha = 0.2f)
+                            focusedBorderColor = HFColors.StatusCyan, unfocusedBorderColor = HFColors.stroke(0.2f)
                         )
                     )
                     if (loading) {
@@ -105,14 +105,14 @@ fun AINavigatorHost(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp, color = HFColors.StatusCyan)
                             Spacer(Modifier.width(8.dp))
-                            Text(stringResource(R.string.ai_finding), color = HFColors.OnSurface.copy(alpha = 0.7f), fontSize = 13.sp)
+                            Text(stringResource(R.string.ai_finding), color = HFColors.ink(0.7f), fontSize = 13.sp)
                         }
                     } else if (note != null) {
                         Spacer(Modifier.height(8.dp))
-                        Text(note!!, color = if (noMatch) HFColors.StatusOrange else HFColors.OnSurface.copy(alpha = 0.8f), fontSize = 13.sp)
+                        Text(note!!, color = if (noMatch) HFColors.StatusOrange else HFColors.ink(0.8f), fontSize = 13.sp)
                     }
                     Spacer(Modifier.height(8.dp))
-                    Text(stringResource(R.string.ai_double_check), color = HFColors.OnSurface.copy(alpha = 0.35f), fontSize = 10.sp)
+                    Text(stringResource(R.string.ai_double_check), color = HFColors.ink(0.35f), fontSize = 10.sp)
                 }
             },
             confirmButton = {
@@ -120,7 +120,7 @@ fun AINavigatorHost(
                     Text(stringResource(R.string.ai_go), color = HFColors.StatusCyan, fontWeight = FontWeight.Bold)
                 }
             },
-            dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel), color = HFColors.OnSurface.copy(alpha = 0.6f)) } },
+            dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel), color = HFColors.ink(0.6f)) } },
             containerColor = HFColors.Background
         )
     }

@@ -194,7 +194,7 @@ private fun SquawksHubContent(
 
         Text(
             text = "${filtered.size} item${if (filtered.size == 1) "" else "s"}",
-            color = HFColors.OnSurface.copy(alpha = 0.5f),
+            color = HFColors.ink(0.5f),
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold
         )
@@ -255,7 +255,7 @@ private fun SquawksHubContent(
             text = {
                 Text(
                     "\"${squawk.title.ifBlank { "Untitled squawk" }}\" will be removed for everyone. This can't be undone.",
-                    color = HFColors.OnSurface.copy(alpha = 0.8f)
+                    color = HFColors.ink(0.8f)
                 )
             },
             confirmButton = {
@@ -267,7 +267,7 @@ private fun SquawksHubContent(
             },
             dismissButton = {
                 androidx.compose.material3.TextButton(onClick = { deleteConfirmFor = null }) {
-                    Text(stringResource(R.string.action_cancel), color = HFColors.OnSurface.copy(alpha = 0.7f))
+                    Text(stringResource(R.string.action_cancel), color = HFColors.ink(0.7f))
                 }
             }
         )
@@ -283,7 +283,7 @@ private fun SquawkStatusPickerSheet(current: String, onPick: (String) -> Unit) {
     Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
         Text(
             stringResource(R.string.sq_change_status).uppercase(),
-            color = HFColors.OnSurface.copy(alpha = 0.55f),
+            color = HFColors.ink(0.55f),
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = 1.2.sp
@@ -296,10 +296,10 @@ private fun SquawkStatusPickerSheet(current: String, onPick: (String) -> Unit) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
-                    .background(if (isCurrent) color.copy(alpha = 0.14f) else HFColors.OnSurface.copy(alpha = 0.04f))
+                    .background(if (isCurrent) color.copy(alpha = 0.14f) else HFColors.fill(0.04f))
                     .border(
                         1.dp,
-                        if (isCurrent) color.copy(alpha = 0.45f) else HFColors.OnSurface.copy(alpha = 0.10f),
+                        if (isCurrent) color.copy(alpha = 0.45f) else HFColors.stroke(0.10f),
                         RoundedCornerShape(12.dp)
                     )
                     .clickable { onPick(option) }
@@ -325,7 +325,7 @@ private fun SquawkStatusPickerSheet(current: String, onPick: (String) -> Unit) {
 private fun SectionCaption(text: String) {
     Text(
         text = text,
-        color = HFColors.OnSurface.copy(alpha = 0.5f),
+        color = HFColors.ink(0.5f),
         fontSize = 11.sp,
         fontWeight = FontWeight.Bold,
         letterSpacing = 0.6.sp
@@ -338,15 +338,15 @@ private fun SquawkSearchBar(query: String, onChange: (String) -> Unit, onClear: 
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.06f))
-            .border(1.dp, HFColors.OnSurface.copy(alpha = 0.10f), RoundedCornerShape(14.dp))
+            .background(HFColors.fill(0.06f))
+            .border(1.dp, HFColors.stroke(0.10f), RoundedCornerShape(14.dp))
             .padding(horizontal = 14.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             imageVector = Icons.Outlined.Search,
             contentDescription = null,
-            tint = HFColors.OnSurface.copy(alpha = 0.55f),
+            tint = HFColors.ink(0.55f),
             modifier = Modifier.size(18.dp)
         )
         Spacer(Modifier.width(8.dp))
@@ -358,7 +358,7 @@ private fun SquawkSearchBar(query: String, onChange: (String) -> Unit, onClear: 
             placeholder = {
                 Text(
                     stringResource(R.string.sq_search),
-                    color = HFColors.OnSurface.copy(alpha = 0.4f),
+                    color = HFColors.ink(0.4f),
                     fontSize = 14.sp
                 )
             },
@@ -383,7 +383,7 @@ private fun SquawkSearchBar(query: String, onChange: (String) -> Unit, onClear: 
                 Icon(
                     imageVector = Icons.Outlined.Close,
                     contentDescription = stringResource(R.string.action_clear),
-                    tint = HFColors.OnSurface.copy(alpha = 0.5f),
+                    tint = HFColors.ink(0.5f),
                     modifier = Modifier.size(16.dp)
                 )
             }
@@ -395,9 +395,9 @@ private fun SquawkSearchBar(query: String, onChange: (String) -> Unit, onClear: 
 private fun SquawkFilterChip(label: String, isSelected: Boolean, onClick: () -> Unit) {
     // Capsule chip — white text, subtle fill, brighter when selected.
     // Mirrors the iOS plane-filter chip row.
-    val bg = HFColors.OnSurface.copy(alpha = if (isSelected) 0.16f else 0.06f)
-    val border = HFColors.OnSurface.copy(alpha = if (isSelected) 0.5f else 0.12f)
-    val fg = HFColors.OnSurface.copy(alpha = if (isSelected) 1f else 0.75f)
+    val bg = HFColors.fill(if (isSelected) 0.16f else 0.06f)
+    val border = HFColors.stroke(if (isSelected) 0.5f else 0.12f)
+    val fg = HFColors.ink(if (isSelected) 1f else 0.75f)
     Box(
         modifier = Modifier
             .clip(CircleShape)
@@ -432,8 +432,8 @@ private fun SquawkCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.05f))
-            .border(1.dp, HFColors.OnSurface.copy(alpha = 0.12f), RoundedCornerShape(18.dp))
+            .background(HFColors.fill(0.05f))
+            .border(1.dp, HFColors.stroke(0.12f), RoundedCornerShape(18.dp))
             .padding(16.dp)
     ) {
         Row(verticalAlignment = Alignment.Top) {
@@ -454,7 +454,7 @@ private fun SquawkCard(
                     .padding(horizontal = 6.dp, vertical = 2.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text(stringResource(R.string.action_edit), color = HFColors.OnSurface.copy(alpha = 0.75f), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.action_edit), color = HFColors.ink(0.75f), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             }
             Spacer(Modifier.width(2.dp))
             // Anyone (including techs) can delete a squawk.
@@ -486,7 +486,7 @@ private fun SquawkCard(
             Spacer(Modifier.size(10.dp))
             Text(
                 text = squawk.notes,
-                color = HFColors.OnSurface.copy(alpha = 0.72f),
+                color = HFColors.ink(0.72f),
                 fontSize = 13.sp,
                 maxLines = 4
             )
@@ -518,7 +518,7 @@ private fun SquawkCard(
                     Spacer(Modifier.size(4.dp))
                     Text(
                         listOfNotNull(by?.let { "Closed by $it" }, on).joinToString(" · "),
-                        color = HFColors.OnSurface.copy(alpha = 0.5f),
+                        color = HFColors.ink(0.5f),
                         fontSize = 10.sp
                     )
                 }
@@ -606,7 +606,7 @@ private fun RelatedManualsSection(squawk: HFSquawk) {
             if (loading) {
                 CircularProgressIndicator(Modifier.size(14.dp), color = HFColors.StatusCyan, strokeWidth = 2.dp)
             } else {
-                Text(if (expanded) "▲" else "▼", color = HFColors.OnSurface.copy(alpha = 0.4f), fontSize = 10.sp)
+                Text(if (expanded) "▲" else "▼", color = HFColors.ink(0.4f), fontSize = 10.sp)
             }
         }
         if (expanded) {
@@ -624,23 +624,23 @@ private fun RelatedManualsSection(squawk: HFSquawk) {
                             Text(r.referenceCode ?: "—", color = HFColors.StatusCyan, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                             r.pageLabel?.takeIf { it.isNotBlank() }?.let {
                                 Spacer(Modifier.width(6.dp))
-                                Text("p. $it", color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 11.sp)
+                                Text("p. $it", color = HFColors.ink(0.5f), fontSize = 11.sp)
                             }
                             Spacer(Modifier.weight(1f))
                             r.similarity?.let {
-                                Text("${(it * 100).roundToInt()}%", color = HFColors.OnSurface.copy(alpha = 0.4f), fontSize = 10.sp)
+                                Text("${(it * 100).roundToInt()}%", color = HFColors.ink(0.4f), fontSize = 10.sp)
                             }
                         }
                         r.title?.takeIf { it.isNotBlank() }?.let {
-                            Text(it, color = HFColors.OnSurface.copy(alpha = 0.8f), fontSize = 12.sp, maxLines = 2)
+                            Text(it, color = HFColors.ink(0.8f), fontSize = 12.sp, maxLines = 2)
                         }
                         r.sourceManualName?.takeIf { it.isNotBlank() }?.let {
-                            Text(it, color = HFColors.OnSurface.copy(alpha = 0.4f), fontSize = 10.sp, maxLines = 1)
+                            Text(it, color = HFColors.ink(0.4f), fontSize = 10.sp, maxLines = 1)
                         }
                     }
                 }
             } else if (loaded && !loading) {
-                Text(stringResource(R.string.sq_no_related), color = HFColors.OnSurface.copy(alpha = 0.4f), fontSize = 12.sp, modifier = Modifier.padding(vertical = 4.dp))
+                Text(stringResource(R.string.sq_no_related), color = HFColors.ink(0.4f), fontSize = 12.sp, modifier = Modifier.padding(vertical = 4.dp))
             }
         }
     }
@@ -660,8 +660,8 @@ private fun SquawkPhotoThumb(path: String, onClick: () -> Unit) {
         modifier = Modifier
             .size(88.dp)
             .clip(RoundedCornerShape(10.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.06f))
-            .border(1.dp, HFColors.OnSurface.copy(alpha = 0.10f), RoundedCornerShape(10.dp))
+            .background(HFColors.fill(0.06f))
+            .border(1.dp, HFColors.stroke(0.10f), RoundedCornerShape(10.dp))
             .clickable(onClick = onClick)
     ) {
         if (signedUrl != null) {
@@ -684,10 +684,10 @@ private fun MetaPill(text: String) {
     Box(
         modifier = Modifier
             .clip(CircleShape)
-            .background(HFColors.OnSurface.copy(alpha = 0.08f))
+            .background(HFColors.fill(0.08f))
             .padding(horizontal = 8.dp, vertical = 3.dp)
     ) {
-        Text(text, color = HFColors.OnSurface.copy(alpha = 0.6f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+        Text(text, color = HFColors.ink(0.6f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -698,7 +698,7 @@ private fun StatusBadge(color: Color, label: String, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .clip(CircleShape)
-            .background(HFColors.OnSurface.copy(alpha = 0.10f))
+            .background(HFColors.fill(0.10f))
             .clickable(onClick = onClick)
             .padding(horizontal = 10.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -710,7 +710,7 @@ private fun StatusBadge(color: Color, label: String, onClick: () -> Unit) {
                 .background(color)
         )
         Spacer(Modifier.width(6.dp))
-        Text(label, color = HFColors.OnSurface.copy(alpha = 0.8f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+        Text(label, color = HFColors.ink(0.8f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -719,7 +719,7 @@ private fun statusPresentation(raw: String): Pair<String, Color> = when (raw) {
     "inProgress" -> "In Progress" to HFColors.StatusYellow
     "waitingOnParts" -> "Waiting" to HFColors.StatusOrange
     "resolved" -> "Resolved" to HFColors.StatusGreen
-    "deferred" -> "Deferred" to HFColors.OnSurface.copy(alpha = 0.5f)
+    "deferred" -> "Deferred" to HFColors.ink(0.5f)
     "convertedToTask" -> "Converted" to HFColors.StatusPurple
-    else -> raw.replaceFirstChar { it.titlecase() } to HFColors.OnSurface.copy(alpha = 0.6f)
+    else -> raw.replaceFirstChar { it.titlecase() } to HFColors.ink(0.6f)
 }

@@ -55,7 +55,7 @@ import androidx.compose.ui.res.stringResource
 private enum class OrderUrgency(val raw: String, val label: String, val color: Color) {
     AOG("aog", "AOG", HFColors.StatusRed),
     Routine("normal", "Routine", HFColors.StatusBlue),
-    Defer("low", "Defer", HFColors.OnSurface.copy(alpha = 0.55f))
+    Defer("low", "Defer", HFColors.ink(0.55f))
 }
 
 @Composable
@@ -195,13 +195,13 @@ fun FindPartsHub(restrictToPlaneTail: String? = null) {
                 .padding(horizontal = 16.dp)
                 .padding(top = 12.dp, bottom = 8.dp)
                 .clip(RoundedCornerShape(14.dp))
-                .background(HFColors.OnSurface.copy(alpha = 0.08f))
+                .background(HFColors.fill(0.08f))
                 .padding(horizontal = 14.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
                 Icons.Outlined.Search, null,
-                tint = HFColors.OnSurface.copy(alpha = 0.5f),
+                tint = HFColors.ink(0.5f),
                 modifier = Modifier.size(18.dp)
             )
             Spacer(Modifier.width(10.dp))
@@ -218,7 +218,7 @@ fun FindPartsHub(restrictToPlaneTail: String? = null) {
                     if (query.isEmpty()) {
                         Text(
                             stringResource(R.string.fp_search),
-                            color = HFColors.OnSurface.copy(alpha = 0.4f),
+                            color = HFColors.ink(0.4f),
                             fontSize = 16.sp, fontWeight = FontWeight.Medium, maxLines = 1
                         )
                     }
@@ -233,7 +233,7 @@ fun FindPartsHub(restrictToPlaneTail: String? = null) {
                 ) {
                     Icon(
                         Icons.Outlined.Close, null,
-                        tint = HFColors.OnSurface.copy(alpha = 0.4f),
+                        tint = HFColors.ink(0.4f),
                         modifier = Modifier.size(16.dp)
                     )
                 }
@@ -250,18 +250,18 @@ fun FindPartsHub(restrictToPlaneTail: String? = null) {
                     .padding(bottom = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("✈", color = HFColors.OnSurface.copy(alpha = 0.6f), fontSize = 13.sp)
+                Text("✈", color = HFColors.ink(0.6f), fontSize = 13.sp)
                 Spacer(Modifier.width(8.dp))
                 Text(
                     "Searching only $tail",
-                    color = HFColors.OnSurface.copy(alpha = 0.85f),
+                    color = HFColors.ink(0.85f),
                     fontSize = 13.sp, fontWeight = FontWeight.Medium
                 )
                 Spacer(Modifier.weight(1f))
                 Row(
                     modifier = Modifier
                         .clip(CircleShape)
-                        .background(HFColors.OnSurface.copy(alpha = 0.12f))
+                        .background(HFColors.fill(0.12f))
                         .clickable { restrictedTail = null }
                         .padding(horizontal = 10.dp, vertical = 5.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -283,17 +283,17 @@ fun FindPartsHub(restrictToPlaneTail: String? = null) {
                 ) {
                     Icon(
                         Icons.Outlined.Search, null,
-                        tint = HFColors.OnSurface.copy(alpha = 0.2f),
+                        tint = HFColors.ink(0.2f),
                         modifier = Modifier.size(48.dp)
                     )
                     Text(
                         stringResource(R.string.fp_find_with_ai),
-                        color = HFColors.OnSurface.copy(alpha = 0.6f),
+                        color = HFColors.ink(0.6f),
                         fontSize = 17.sp, fontWeight = FontWeight.Bold
                     )
                     Text(
                         "Type a component name like \"generator\", \"oil filter\", or \"landing gear\" and the AI finds the part number + manual reference.",
-                        color = HFColors.OnSurface.copy(alpha = 0.35f),
+                        color = HFColors.ink(0.35f),
                         fontSize = 13.sp,
                         lineHeight = 18.sp,
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -359,7 +359,7 @@ fun FindPartsHub(restrictToPlaneTail: String? = null) {
                 Column(
                     modifier = Modifier.fillMaxWidth()
                         .clip(RoundedCornerShape(14.dp))
-                        .background(HFColors.OnSurface.copy(alpha = 0.06f))
+                        .background(HFColors.fill(0.06f))
                         .padding(horizontal = 14.dp, vertical = 12.dp)
                 ) {
                     Row(verticalAlignment = Alignment.Top) {
@@ -390,27 +390,27 @@ fun FindPartsHub(restrictToPlaneTail: String? = null) {
                         Spacer(Modifier.width(10.dp))
                         Box(
                             Modifier.size(30.dp).clip(CircleShape)
-                                .background(HFColors.OnSurface.copy(alpha = 0.08f))
+                                .background(HFColors.fill(0.08f))
                                 .clickable { selectedHit = null },
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.Outlined.Close, null, tint = HFColors.OnSurface.copy(alpha = 0.7f), modifier = Modifier.size(16.dp))
+                            Icon(Icons.Outlined.Close, null, tint = HFColors.ink(0.7f), modifier = Modifier.size(16.dp))
                         }
                     }
                     Spacer(Modifier.height(12.dp))
                     Box(
                         Modifier.fillMaxWidth()
                             .clip(RoundedCornerShape(10.dp))
-                            .background(Color.Black)
+                            .background(HFColors.Background)
                             .border(2.dp, HFColors.StatusGreen, RoundedCornerShape(10.dp))
                             .clickable { showOrderDialog = true }
                             .padding(vertical = 10.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Outlined.ShoppingCart, null, tint = Color.White, modifier = Modifier.size(14.dp))
+                            Icon(Icons.Outlined.ShoppingCart, null, tint = HFColors.OnSurface, modifier = Modifier.size(14.dp))
                             Spacer(Modifier.width(8.dp))
-                            Text(stringResource(R.string.fp_order_part), color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.fp_order_part), color = HFColors.OnSurface, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -421,15 +421,15 @@ fun FindPartsHub(restrictToPlaneTail: String? = null) {
                 Box(
                     modifier = Modifier.fillMaxSize()
                         .clip(RoundedCornerShape(14.dp))
-                        .background(HFColors.OnSurface.copy(alpha = 0.06f))
-                        .border(1.dp, HFColors.OnSurface.copy(alpha = 0.08f), RoundedCornerShape(14.dp))
+                        .background(HFColors.fill(0.06f))
+                        .border(1.dp, HFColors.stroke(0.08f), RoundedCornerShape(14.dp))
                 ) {
                     when {
                         pdfLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                CircularProgressIndicator(color = HFColors.OnSurface.copy(alpha = 0.55f), strokeWidth = 2.dp, modifier = Modifier.size(20.dp))
+                                CircularProgressIndicator(color = HFColors.ink(0.55f), strokeWidth = 2.dp, modifier = Modifier.size(20.dp))
                                 Spacer(Modifier.height(8.dp))
-                                Text(stringResource(R.string.fp_loading_manual), color = HFColors.OnSurface.copy(alpha = 0.40f), fontSize = 12.sp)
+                                Text(stringResource(R.string.fp_loading_manual), color = HFColors.ink(0.40f), fontSize = 12.sp)
                             }
                         }
                         pdfFile != null -> InlinePdfPager(file = pdfFile!!, initialPage = pdfPage)
@@ -442,7 +442,7 @@ fun FindPartsHub(restrictToPlaneTail: String? = null) {
                                 Spacer(Modifier.height(6.dp))
                                 Text(
                                     pdfUnavailable ?: "Upload the manual on this plane (Manuals → Add) so techs can see diagrams and part assemblies here.",
-                                    color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 12.sp,
+                                    color = HFColors.ink(0.55f), fontSize = 12.sp,
                                     lineHeight = 17.sp,
                                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                                 )
@@ -535,7 +535,7 @@ private fun SimplePdfList(file: File, initialPage: Int) {
 
     if (renderer == null || pageCount == 0) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(color = HFColors.OnSurface.copy(alpha = 0.55f), strokeWidth = 2.dp)
+            CircularProgressIndicator(color = HFColors.ink(0.55f), strokeWidth = 2.dp)
         }
         return
     }
@@ -592,7 +592,7 @@ private fun InlinePdfPage(
                 modifier = Modifier.fillMaxSize()
             )
         } else {
-            Box(Modifier.fillMaxSize().background(HFColors.OnSurface.copy(alpha = 0.03f)))
+            Box(Modifier.fillMaxSize().background(HFColors.fill(0.03f)))
         }
     }
 }
@@ -609,11 +609,11 @@ private fun extractPartNumbers(body: String?): List<String> {
 private fun MetaChip(text: String) {
     Box(
         Modifier.clip(RoundedCornerShape(6.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.06f))
-            .border(1.dp, HFColors.OnSurface.copy(alpha = 0.10f), RoundedCornerShape(6.dp))
+            .background(HFColors.fill(0.06f))
+            .border(1.dp, HFColors.stroke(0.10f), RoundedCornerShape(6.dp))
             .padding(horizontal = 7.dp, vertical = 3.dp)
     ) {
-        Text(text, color = HFColors.OnSurface.copy(alpha = 0.70f), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+        Text(text, color = HFColors.ink(0.70f), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -675,8 +675,8 @@ private fun OrderPartDialog(
         // doesn't bleed through.
         Column(
             modifier = Modifier.width(520.dp)
-                .background(Color.Black, RoundedCornerShape(14.dp))
-                .border(1.dp, Color.White.copy(alpha = 0.12f), RoundedCornerShape(14.dp))
+                .background(HFColors.Background, RoundedCornerShape(14.dp))
+                .border(1.dp, HFColors.stroke(0.12f), RoundedCornerShape(14.dp))
                 .padding(20.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -684,7 +684,7 @@ private fun OrderPartDialog(
                 Spacer(Modifier.width(10.dp))
                 Text(stringResource(R.string.fp_order_part), color = HFColors.OnSurface, fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                 Box(Modifier.size(28.dp).clip(CircleShape).clickable(onClick = onDismiss), contentAlignment = Alignment.Center) {
-                    Icon(Icons.Outlined.Close, null, tint = HFColors.OnSurface.copy(alpha = 0.55f), modifier = Modifier.size(15.dp))
+                    Icon(Icons.Outlined.Close, null, tint = HFColors.ink(0.55f), modifier = Modifier.size(15.dp))
                 }
             }
             Spacer(Modifier.height(14.dp))
@@ -713,8 +713,8 @@ private fun OrderPartDialog(
                     OutlinedTextField(
                         value = needByText, onValueChange = { needByText = it.take(10) },
                         singleLine = true,
-                        placeholder = { Text("e.g. 2026-05-20", color = HFColors.OnSurface.copy(alpha = 0.40f), fontSize = 12.sp) },
-                        leadingIcon = { Icon(Icons.Outlined.CalendarToday, null, tint = HFColors.OnSurface.copy(alpha = 0.40f), modifier = Modifier.size(14.dp)) },
+                        placeholder = { Text("e.g. 2026-05-20", color = HFColors.ink(0.40f), fontSize = 12.sp) },
+                        leadingIcon = { Icon(Icons.Outlined.CalendarToday, null, tint = HFColors.ink(0.40f), modifier = Modifier.size(14.dp)) },
                         modifier = Modifier.fillMaxWidth(),
                         colors = dialogFieldColors()
                     )
@@ -753,8 +753,8 @@ private fun OrderPartDialog(
                     Box(
                         Modifier.weight(1f)
                             .clip(RoundedCornerShape(8.dp))
-                            .background(if (selected) u.color.copy(alpha = 0.18f) else HFColors.OnSurface.copy(alpha = 0.06f))
-                            .border(1.dp, if (selected) u.color else HFColors.OnSurface.copy(alpha = 0.10f), RoundedCornerShape(8.dp))
+                            .background(if (selected) u.color.copy(alpha = 0.18f) else HFColors.fill(0.06f))
+                            .border(1.dp, if (selected) u.color else HFColors.stroke(0.10f), RoundedCornerShape(8.dp))
                             .clickable { urgency = u }
                             .padding(vertical = 9.dp),
                         contentAlignment = Alignment.Center
@@ -777,7 +777,7 @@ private fun OrderPartDialog(
                 Box(
                     Modifier.weight(1f)
                         .clip(RoundedCornerShape(8.dp))
-                        .border(1.dp, HFColors.OnSurface.copy(alpha = 0.10f), RoundedCornerShape(8.dp))
+                        .border(1.dp, HFColors.stroke(0.10f), RoundedCornerShape(8.dp))
                         .clickable(onClick = onDismiss)
                         .padding(vertical = 11.dp),
                     contentAlignment = Alignment.Center
@@ -806,7 +806,7 @@ private fun OrderPartDialog(
                         .padding(vertical = 11.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(stringResource(R.string.fp_add_to_order), color = Color.Black, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.fp_add_to_order), color = HFColors.BrandInk, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -822,16 +822,16 @@ private fun validateDate(s: String): String? {
 
 @Composable
 private fun DialogLabel(text: String) {
-    Text(text, color = HFColors.OnSurface.copy(alpha = 0.45f), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+    Text(text, color = HFColors.ink(0.45f), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
     Spacer(Modifier.height(4.dp))
 }
 
 @Composable
 private fun dialogFieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedContainerColor = HFColors.OnSurface.copy(alpha = 0.06f),
-    unfocusedContainerColor = HFColors.OnSurface.copy(alpha = 0.06f),
-    focusedBorderColor = HFColors.OnSurface.copy(alpha = 0.25f),
-    unfocusedBorderColor = HFColors.OnSurface.copy(alpha = 0.10f),
+    focusedContainerColor = HFColors.fill(0.06f),
+    unfocusedContainerColor = HFColors.fill(0.06f),
+    focusedBorderColor = HFColors.stroke(0.25f),
+    unfocusedBorderColor = HFColors.stroke(0.10f),
     focusedTextColor = HFColors.OnSurface, unfocusedTextColor = HFColors.OnSurface, cursorColor = HFColors.OnSurface
 )
 
@@ -846,13 +846,13 @@ private fun <T> DropdownChooser(
         Row(
             modifier = Modifier.fillMaxWidth()
                 .clip(RoundedCornerShape(8.dp))
-                .background(HFColors.OnSurface.copy(alpha = 0.06f))
-                .border(1.dp, HFColors.OnSurface.copy(alpha = 0.10f), RoundedCornerShape(8.dp))
+                .background(HFColors.fill(0.06f))
+                .border(1.dp, HFColors.stroke(0.10f), RoundedCornerShape(8.dp))
                 .clickable { expanded = true }
                 .padding(horizontal = 12.dp, vertical = 11.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(Icons.Outlined.Person, null, tint = HFColors.OnSurface.copy(alpha = 0.40f), modifier = Modifier.size(14.dp))
+            Icon(Icons.Outlined.Person, null, tint = HFColors.ink(0.40f), modifier = Modifier.size(14.dp))
             Spacer(Modifier.width(8.dp))
             Text(label, color = HFColors.OnSurface, fontSize = 13.sp, modifier = Modifier.weight(1f), maxLines = 1)
         }
@@ -887,12 +887,12 @@ private fun StructuredPartsFinder(
             loading -> Row(verticalAlignment = Alignment.CenterVertically) {
                 CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp, color = HFColors.StatusCyan)
                 Spacer(Modifier.width(8.dp))
-                Text(stringResource(R.string.fp_finding), color = HFColors.OnSurface.copy(alpha = 0.7f), fontSize = 13.sp)
+                Text(stringResource(R.string.fp_finding), color = HFColors.ink(0.7f), fontSize = 13.sp)
             }
             error != null -> Text(error, color = HFColors.StatusRed, fontSize = 12.sp)
             ran && results.isEmpty() -> Text(
                 note.ifBlank { "No matching part found for this aircraft. Try different words." },
-                color = HFColors.OnSurface.copy(alpha = 0.6f), fontSize = 13.sp
+                color = HFColors.ink(0.6f), fontSize = 13.sp
             )
             ran -> {
                 results.forEach { part ->
@@ -902,7 +902,7 @@ private fun StructuredPartsFinder(
                 }
                 Text(
                     stringResource(R.string.fp_ai_verify),
-                    color = HFColors.OnSurface.copy(alpha = 0.4f), fontSize = 11.sp
+                    color = HFColors.ink(0.4f), fontSize = 11.sp
                 )
             }
         }
@@ -919,7 +919,7 @@ private fun StructuredPartCard(
     Column(
         modifier = Modifier.fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.06f))
+            .background(HFColors.fill(0.06f))
             .border(1.dp, HFColors.StatusCyan.copy(alpha = 0.22f), RoundedCornerShape(16.dp))
             .padding(14.dp)
     ) {
@@ -954,7 +954,7 @@ private fun StructuredPartCard(
             Spacer(Modifier.height(8.dp))
             Column(
                 modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
-                    .background(HFColors.OnSurface.copy(alpha = 0.05f))
+                    .background(HFColors.fill(0.05f))
                     .border(
                         1.dp,
                         HFColors.StatusCyan.copy(alpha = if (canOpen) 0.3f else 0f),
@@ -964,21 +964,21 @@ private fun StructuredPartCard(
                     .padding(10.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(R.string.fp_verify_manual), color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.fp_verify_manual), color = HFColors.ink(0.55f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.weight(1f))
                     if (canOpen) {
                         Text(stringResource(R.string.set_open), color = HFColors.StatusCyan, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                     }
                 }
                 Spacer(Modifier.height(3.dp))
-                Text(ref.title, color = HFColors.OnSurface.copy(alpha = 0.85f), fontSize = 12.sp, maxLines = 3)
+                Text(ref.title, color = HFColors.ink(0.85f), fontSize = 12.sp, maxLines = 3)
                 val meta = listOfNotNull(ref.code, ref.page?.let { "p.$it" }, ref.manual).joinToString(" · ")
-                if (meta.isNotBlank()) Text(meta, color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 10.sp)
+                if (meta.isNotBlank()) Text(meta, color = HFColors.ink(0.5f), fontSize = 10.sp)
             }
         }
         if (part.note.isNotBlank()) {
             Spacer(Modifier.height(8.dp))
-            Text(part.note, color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 11.sp)
+            Text(part.note, color = HFColors.ink(0.55f), fontSize = 11.sp)
         }
         Spacer(Modifier.height(10.dp))
         Box(
@@ -1011,14 +1011,14 @@ private fun AIPartsPanel(
     Column(
         modifier = Modifier.fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.05f))
+            .background(HFColors.fill(0.05f))
             .padding(10.dp)
     ) {
         when {
             loading -> Row(verticalAlignment = Alignment.CenterVertically) {
                 CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp, color = HFColors.StatusCyan)
                 Spacer(Modifier.width(8.dp))
-                Text(stringResource(R.string.fp_asking_ai), color = HFColors.OnSurface.copy(alpha = 0.7f), fontSize = 12.sp)
+                Text(stringResource(R.string.fp_asking_ai), color = HFColors.ink(0.7f), fontSize = 12.sp)
             }
             answer != null -> {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1026,7 +1026,7 @@ private fun AIPartsPanel(
                     Spacer(Modifier.weight(1f))
                     Text(
                         "✕",
-                        color = HFColors.OnSurface.copy(alpha = 0.4f),
+                        color = HFColors.ink(0.4f),
                         fontSize = 13.sp,
                         modifier = Modifier.clip(CircleShape).clickable(onClick = onClear).padding(4.dp)
                     )
@@ -1038,7 +1038,7 @@ private fun AIPartsPanel(
                 Spacer(Modifier.height(4.dp))
                 Text(
                     stringResource(R.string.fp_advisory),
-                    color = HFColors.OnSurface.copy(alpha = 0.35f), fontSize = 9.sp
+                    color = HFColors.ink(0.35f), fontSize = 9.sp
                 )
             }
             else -> Box(
@@ -1073,11 +1073,11 @@ private fun AIMarkdownText(text: String) {
                 line.startsWith("- ") || line.startsWith("* ") -> Row(verticalAlignment = Alignment.Top) {
                     Text("•", color = HFColors.StatusCyan, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     Spacer(Modifier.width(5.dp))
-                    Text(parseInlineBold(line.drop(2)), color = HFColors.OnSurface.copy(alpha = 0.78f), fontSize = 11.sp)
+                    Text(parseInlineBold(line.drop(2)), color = HFColors.ink(0.78f), fontSize = 11.sp)
                 }
                 line.startsWith("> ") -> Text(parseInlineBold(line.removePrefix("> ")), color = HFColors.StatusYellow, fontSize = 10.sp)
-                line.startsWith("---") -> Box(Modifier.fillMaxWidth().height(1.dp).background(HFColors.OnSurface.copy(alpha = 0.12f)))
-                else -> Text(parseInlineBold(line), color = HFColors.OnSurface.copy(alpha = 0.78f), fontSize = 11.sp)
+                line.startsWith("---") -> Box(Modifier.fillMaxWidth().height(1.dp).background(HFColors.fill(0.12f)))
+                else -> Text(parseInlineBold(line), color = HFColors.ink(0.78f), fontSize = 11.sp)
             }
         }
     }

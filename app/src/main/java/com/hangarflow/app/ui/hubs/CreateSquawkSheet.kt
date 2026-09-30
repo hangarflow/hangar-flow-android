@@ -199,7 +199,7 @@ fun CreateSquawkSheet(onDismiss: () -> Unit) {
                 Text(stringResource(R.string.sq_new), color = HFColors.OnSurface, fontSize = 24.sp, fontWeight = FontWeight.Bold)
                 Text(
                     stringResource(R.string.cs_report_sub),
-                    color = HFColors.OnSurface.copy(alpha = 0.68f),
+                    color = HFColors.ink(0.68f),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium
                 )
@@ -208,7 +208,7 @@ fun CreateSquawkSheet(onDismiss: () -> Unit) {
                 modifier = Modifier
                     .size(32.dp)
                     .clip(CircleShape)
-                    .background(HFColors.OnSurface.copy(alpha = 0.10f))
+                    .background(HFColors.fill(0.10f))
                     .clickable(onClick = onDismiss),
                 contentAlignment = Alignment.Center
             ) {
@@ -235,8 +235,8 @@ fun CreateSquawkSheet(onDismiss: () -> Unit) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
-                        .background(HFColors.OnSurface.copy(alpha = 0.06f))
-                        .border(1.dp, HFColors.OnSurface.copy(alpha = 0.10f), RoundedCornerShape(12.dp))
+                        .background(HFColors.fill(0.06f))
+                        .border(1.dp, HFColors.stroke(0.10f), RoundedCornerShape(12.dp))
                         .clickable { planeMenuExpanded = true }
                         .padding(horizontal = 14.dp, vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -244,7 +244,7 @@ fun CreateSquawkSheet(onDismiss: () -> Unit) {
                     Text(
                         text = selectedPlane?.let { "${it.tailNumber} — ${it.displayName.ifBlank { "Unnamed" }}" }
                             ?: "Pick a plane",
-                        color = if (selectedPlane == null) HFColors.OnSurface.copy(alpha = 0.45f) else HFColors.OnSurface,
+                        color = if (selectedPlane == null) HFColors.ink(0.45f) else HFColors.OnSurface,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -348,7 +348,7 @@ fun CreateSquawkSheet(onDismiss: () -> Unit) {
             if (photos.isEmpty()) {
                 Text(
                     stringResource(R.string.cs_no_photos),
-                    color = HFColors.OnSurface.copy(alpha = 0.45f),
+                    color = HFColors.ink(0.45f),
                     fontSize = 12.sp
                 )
             } else {
@@ -399,7 +399,7 @@ fun CreateSquawkSheet(onDismiss: () -> Unit) {
                     .clip(RoundedCornerShape(14.dp))
                     .background(
                         if (canSave) HFColors.BrandWhite
-                        else HFColors.OnSurface.copy(alpha = 0.15f)
+                        else HFColors.fill(0.15f)
                     )
                     .clickable(enabled = canSave) { doSave(false) }
                     .padding(vertical = 14.dp),
@@ -414,7 +414,7 @@ fun CreateSquawkSheet(onDismiss: () -> Unit) {
                 } else {
                     Text(
                         text = if (photos.isEmpty()) "Save Squawk" else "Upload & Save",
-                        color = if (canSave) HFColors.BrandInk else HFColors.OnSurface.copy(alpha = 0.4f),
+                        color = if (canSave) HFColors.BrandInk else HFColors.ink(0.4f),
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -435,7 +435,7 @@ fun CreateSquawkSheet(onDismiss: () -> Unit) {
             ) {
                 Text(
                     stringResource(R.string.cs_save_another),
-                    color = if (canSave) HFColors.StatusOrange else HFColors.OnSurface.copy(alpha = 0.4f),
+                    color = if (canSave) HFColors.StatusOrange else HFColors.ink(0.4f),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -464,11 +464,11 @@ private fun NeedsPartsSection(
                 .clip(RoundedCornerShape(12.dp))
                 .background(
                     if (needsParts) HFColors.StatusOrange.copy(alpha = 0.12f)
-                    else HFColors.OnSurface.copy(alpha = 0.06f)
+                    else HFColors.fill(0.06f)
                 )
                 .border(
                     1.dp,
-                    if (needsParts) HFColors.StatusOrange.copy(alpha = 0.45f) else HFColors.OnSurface.copy(alpha = 0.10f),
+                    if (needsParts) HFColors.StatusOrange.copy(alpha = 0.45f) else HFColors.stroke(0.10f),
                     RoundedCornerShape(12.dp)
                 )
                 .clickable { onToggle(!needsParts) }
@@ -484,7 +484,7 @@ private fun NeedsPartsSection(
                 )
                 Text(
                     if (needsParts) "Adds this to the parts-to-order queue" else "Toggle on to request a part",
-                    color = HFColors.OnSurface.copy(alpha = 0.60f),
+                    color = HFColors.ink(0.60f),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium
                 )
@@ -495,7 +495,7 @@ private fun NeedsPartsSection(
                     .size(width = 44.dp, height = 24.dp)
                     .clip(RoundedCornerShape(100.dp))
                     .background(
-                        if (needsParts) HFColors.StatusOrange else HFColors.OnSurface.copy(alpha = 0.15f)
+                        if (needsParts) HFColors.StatusOrange else HFColors.fill(0.15f)
                     )
                     .padding(3.dp)
             ) {
@@ -518,7 +518,7 @@ private fun NeedsPartsSection(
                 placeholder = {
                     Text(
                         stringResource(R.string.cs_part_hint),
-                        color = HFColors.OnSurface.copy(alpha = 0.40f),
+                        color = HFColors.ink(0.40f),
                         fontSize = 13.sp
                     )
                 },
@@ -571,8 +571,8 @@ private fun UrgencyPill(
     onPick: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val bg = if (isSelected) color.copy(alpha = 0.18f) else HFColors.OnSurface.copy(alpha = 0.04f)
-    val border = if (isSelected) color else HFColors.OnSurface.copy(alpha = 0.10f)
+    val bg = if (isSelected) color.copy(alpha = 0.18f) else HFColors.fill(0.04f)
+    val border = if (isSelected) color else HFColors.stroke(0.10f)
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(10.dp))
@@ -598,7 +598,7 @@ private fun UrgencyPill(
 private fun SectionLabel(text: String) {
     Text(
         text = text.uppercase(),
-        color = HFColors.OnSurface.copy(alpha = 0.55f),
+        color = HFColors.ink(0.55f),
         fontSize = 11.sp,
         fontWeight = FontWeight.Bold
     )
@@ -630,10 +630,10 @@ private fun AttachButton(
 
 @Composable
 private fun hfFieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
-    unfocusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
-    focusedBorderColor = HFColors.OnSurface.copy(alpha = 0.25f),
-    unfocusedBorderColor = HFColors.OnSurface.copy(alpha = 0.10f),
+    focusedContainerColor = HFColors.fill(0.04f),
+    unfocusedContainerColor = HFColors.fill(0.04f),
+    focusedBorderColor = HFColors.stroke(0.25f),
+    unfocusedBorderColor = HFColors.stroke(0.10f),
     focusedTextColor = HFColors.OnSurface,
     unfocusedTextColor = HFColors.OnSurface,
     cursorColor = HFColors.OnSurface
@@ -671,7 +671,7 @@ private fun SquawkTriageCard(triage: HFCloudSyncService.SquawkTriageResult, onAp
     Column(
         modifier = Modifier.fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.05f))
+            .background(HFColors.fill(0.05f))
             .border(1.dp, HFColors.StatusCyan.copy(alpha = 0.25f), RoundedCornerShape(10.dp))
             .padding(11.dp),
         verticalArrangement = Arrangement.spacedBy(5.dp)
@@ -684,11 +684,11 @@ private fun SquawkTriageCard(triage: HFCloudSyncService.SquawkTriageResult, onAp
                 modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(sevColor.copy(alpha = 0.15f)).padding(horizontal = 6.dp, vertical = 2.dp)
             )
         }
-        if (triage.problemStatement.isNotBlank()) Text(triage.problemStatement, color = HFColors.OnSurface.copy(alpha = 0.9f), fontSize = 12.sp)
+        if (triage.problemStatement.isNotBlank()) Text(triage.problemStatement, color = HFColors.ink(0.9f), fontSize = 12.sp)
         if (triage.ataChapter.isNotBlank()) Text("ATA ${triage.ataChapter}", color = HFColors.StatusCyan.copy(alpha = 0.85f), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
-        triage.parts.take(6).forEach { Text("• $it", color = HFColors.OnSurface.copy(alpha = 0.7f), fontSize = 10.sp) }
+        triage.parts.take(6).forEach { Text("• $it", color = HFColors.ink(0.7f), fontSize = 10.sp) }
         if (triage.vague && triage.ask.isNotBlank()) Text("⚠️ ${triage.ask}", color = HFColors.StatusYellow.copy(alpha = 0.85f), fontSize = 10.sp)
-        if (triage.note.isNotBlank()) Text(triage.note, color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 9.sp)
+        if (triage.note.isNotBlank()) Text(triage.note, color = HFColors.ink(0.5f), fontSize = 9.sp)
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (triage.draftTitle.isNotBlank()) {
                 Text(
@@ -697,7 +697,7 @@ private fun SquawkTriageCard(triage: HFCloudSyncService.SquawkTriageResult, onAp
                 )
             }
             Spacer(Modifier.weight(1f))
-            Text(stringResource(R.string.cs_verify_ai), color = HFColors.OnSurface.copy(alpha = 0.3f), fontSize = 9.sp)
+            Text(stringResource(R.string.cs_verify_ai), color = HFColors.ink(0.3f), fontSize = 9.sp)
         }
     }
 }

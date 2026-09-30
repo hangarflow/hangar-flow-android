@@ -66,8 +66,8 @@ fun IOSLiveViewPanel(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.04f))
-            .border(1.dp, HFColors.OnSurface.copy(alpha = 0.10f), RoundedCornerShape(20.dp))
+            .background(HFColors.fill(0.04f))
+            .border(1.dp, HFColors.stroke(0.10f), RoundedCornerShape(20.dp))
             .padding(16.dp)
     ) {
         // Header row
@@ -84,7 +84,7 @@ fun IOSLiveViewPanel(
             )
             Text(
                 text = userName ?: "All techs",
-                color = HFColors.OnSurface.copy(alpha = if (userName == null) 0.45f else 0.55f),
+                color = HFColors.ink(if (userName == null) 0.45f else 0.55f),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold
             )
@@ -92,7 +92,7 @@ fun IOSLiveViewPanel(
         Spacer(Modifier.height(4.dp))
         Text(
             text = syncLabel,
-            color = HFColors.OnSurface.copy(alpha = 0.55f),
+            color = HFColors.ink(0.55f),
             fontSize = 10.sp,
             fontWeight = FontWeight.Medium
         )
@@ -202,7 +202,7 @@ private fun SkipLunchButton(onClick: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.04f))
+            .background(HFColors.fill(0.04f))
             .border(1.dp, accent.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
             .padding(vertical = 10.dp),
@@ -237,8 +237,8 @@ private fun IOSStatTile(
     Column(
         modifier = modifier
             .clip(RoundedCornerShape(16.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.04f))
-            .border(1.dp, HFColors.OnSurface.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
+            .background(HFColors.fill(0.04f))
+            .border(1.dp, HFColors.stroke(0.08f), RoundedCornerShape(16.dp))
             .let { if (onTap != null) it.clickable(onClick = onTap) else it }
             .padding(horizontal = 16.dp, vertical = 18.dp)
     ) {
@@ -255,7 +255,7 @@ private fun IOSStatTile(
             Spacer(Modifier.width(8.dp))
             Text(
                 label,
-                color = HFColors.OnSurface.copy(alpha = 0.55f),
+                color = HFColors.ink(0.55f),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 0.8.sp
@@ -267,7 +267,7 @@ private fun IOSStatTile(
                 Icon(
                     imageVector = Icons.AutoMirrored.Outlined.KeyboardArrowRight,
                     contentDescription = null,
-                    tint = HFColors.OnSurface.copy(alpha = 0.35f),
+                    tint = HFColors.ink(0.35f),
                     modifier = Modifier.size(14.dp)
                 )
             }
@@ -283,7 +283,7 @@ private fun IOSStatTile(
         Spacer(Modifier.height(2.dp))
         Text(
             footer,
-            color = HFColors.OnSurface.copy(alpha = 0.55f),
+            color = HFColors.ink(0.55f),
             fontSize = 12.sp,
             fontWeight = FontWeight.Medium,
             maxLines = 1

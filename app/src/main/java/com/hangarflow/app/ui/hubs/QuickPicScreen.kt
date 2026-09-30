@@ -128,13 +128,13 @@ fun QuickPicScreen() {
                 Spacer(Modifier.size(8.dp))
                 Text(
                     stringResource(R.string.qp_sub),
-                    color = HFColors.OnSurface.copy(alpha = 0.65f), fontSize = 13.sp, fontWeight = FontWeight.Medium
+                    color = HFColors.ink(0.65f), fontSize = 13.sp, fontWeight = FontWeight.Medium
                 )
                 QpLandingTile("Scan a Label", "Camera → part usage or equipment due", Icons.Outlined.QrCodeScanner, HFColors.StatusCyan) { launchScan() }
                 QpLandingTile("Print QR Labels", "Make a sheet for parts & equipment", Icons.Outlined.QrCode2, HFColors.StatusGreen) { mode = "labels" }
                 Text(
                     "${state.partLocations.size} parts • ${state.equipment.size} pieces of gear on file",
-                    color = HFColors.OnSurface.copy(alpha = 0.45f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
+                    color = HFColors.ink(0.45f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
                     textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -155,7 +155,7 @@ private fun QpLandingTile(title: String, subtitle: String, icon: androidx.compos
         modifier = Modifier.fillMaxWidth()
             .hfPressClickable(onClick)
             .clip(RoundedCornerShape(18.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.04f))
+            .background(HFColors.fill(0.04f))
             .border(1.dp, accent.copy(alpha = 0.35f), RoundedCornerShape(18.dp))
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -167,7 +167,7 @@ private fun QpLandingTile(title: String, subtitle: String, icon: androidx.compos
         Spacer(Modifier.size(14.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(title, color = HFColors.OnSurface, fontSize = 17.sp, fontWeight = FontWeight.Bold)
-            Text(subtitle, color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 12.sp, fontWeight = FontWeight.Medium)
+            Text(subtitle, color = HFColors.ink(0.55f), fontSize = 12.sp, fontWeight = FontWeight.Medium)
         }
     }
 }
@@ -211,7 +211,7 @@ private fun PartUsageSheet(part: HFPartLocation, onDismiss: () -> Unit) {
                 if (part.partNumber.isNotBlank()) QPTag("PN ${part.partNumber}", HFColors.StatusCyan)
                 if (part.location.isNotBlank()) QPTag(part.location, HFColors.StatusBlue)
             }
-            Text("In stock: ${part.quantity}", color = HFColors.OnSurface.copy(alpha = 0.7f), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            Text("In stock: ${part.quantity}", color = HFColors.ink(0.7f), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
 
             LabelQP("How many are you using?")
             OutlinedTextField(
@@ -271,7 +271,7 @@ private fun EquipmentInfoSheet(equipment: HFEquipment, onDismiss: () -> Unit) {
         ) {
             Text(eq.name.ifBlank { "Equipment" }, color = HFColors.OnSurface, fontSize = 20.sp, fontWeight = FontWeight.Bold)
             val sub = listOf(eq.equipmentType, eq.location).filter { it.isNotBlank() }.joinToString(" • ")
-            if (sub.isNotBlank()) Text(sub, color = HFColors.OnSurface.copy(alpha = 0.6f), fontSize = 12.sp, fontWeight = FontWeight.Medium)
+            if (sub.isNotBlank()) Text(sub, color = HFColors.ink(0.6f), fontSize = 12.sp, fontWeight = FontWeight.Medium)
 
             InfoRow("Hour meter", "${fmtHrsQP(eq.usageHours)} hrs", HFColors.StatusBlue)
 
@@ -295,7 +295,7 @@ private fun EquipmentInfoSheet(equipment: HFEquipment, onDismiss: () -> Unit) {
                     if (it.performedByUserName.isNotBlank()) v += " by ${it.performedByUserName}"
                     v
                 } ?: "Never",
-                HFColors.OnSurface.copy(alpha = 0.75f)
+                HFColors.ink(0.75f)
             )
 
             // Usage-based "service due" summary.
@@ -306,7 +306,7 @@ private fun EquipmentInfoSheet(equipment: HFEquipment, onDismiss: () -> Unit) {
                     val remaining = (item.nextDueHours ?: 0.0) - eq.usageHours
                     val c = sevColor(item.dueInfo(eq.usageHours).severity)
                     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text(item.title, color = HFColors.OnSurface.copy(alpha = 0.8f), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                        Text(item.title, color = HFColors.ink(0.8f), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
                         Text(
                             if (remaining < 0) "OVERDUE ${fmtHrsQP(-remaining)} hrs" else "${fmtHrsQP(remaining)} hrs left",
                             color = c, fontSize = 13.sp, fontWeight = FontWeight.Bold
@@ -385,9 +385,9 @@ private fun UnknownCodeSheet(raw: String, onDismiss: () -> Unit) {
             Text(stringResource(R.string.qp_not_hf_label), color = HFColors.OnSurface, fontSize = 18.sp, fontWeight = FontWeight.Bold)
             Text(
                 stringResource(R.string.qp_no_match),
-                color = HFColors.OnSurface.copy(alpha = 0.65f), fontSize = 13.sp, fontWeight = FontWeight.Medium
+                color = HFColors.ink(0.65f), fontSize = 13.sp, fontWeight = FontWeight.Medium
             )
-            Text(raw, color = HFColors.OnSurface.copy(alpha = 0.4f), fontSize = 11.sp, fontWeight = FontWeight.Medium)
+            Text(raw, color = HFColors.ink(0.4f), fontSize = 11.sp, fontWeight = FontWeight.Medium)
             QPPrimary("Close", enabled = true, onClick = onDismiss)
             Spacer(Modifier.size(20.dp))
         }
@@ -417,7 +417,7 @@ private fun ScanHistorySection(title: String, events: List<HFAuditEvent>) {
         LabelQP(title)
         Column(
             modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
-                .background(HFColors.OnSurface.copy(alpha = 0.04f)).padding(12.dp),
+                .background(HFColors.fill(0.04f)).padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             events.take(8).forEach { e ->
@@ -434,7 +434,7 @@ private fun ScanHistorySection(title: String, events: List<HFAuditEvent>) {
                         )
                         Text(
                             "${e.actorName.ifBlank { "Someone" }} • ${relTime(e.createdAt)}",
-                            color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 11.sp, fontWeight = FontWeight.Medium
+                            color = HFColors.ink(0.5f), fontSize = 11.sp, fontWeight = FontWeight.Medium
                         )
                     }
                 }
@@ -449,7 +449,7 @@ private fun actionColor(action: String): Color = when (action) {
     "created" -> HFColors.StatusBlue
     "updated" -> HFColors.StatusCyan
     "deleted" -> HFColors.StatusRed
-    else -> HFColors.OnSurface.copy(alpha = 0.6f)
+    else -> HFColors.ink(0.6f)
 }
 
 private fun relTime(iso: String?): String {
@@ -470,18 +470,18 @@ private fun relTime(iso: String?): String {
 @Composable
 private fun InfoRow(label: String, value: String, valueColor: Color) {
     Column(
-        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(HFColors.OnSurface.copy(alpha = 0.04f))
-            .border(1.dp, HFColors.OnSurface.copy(alpha = 0.10f), RoundedCornerShape(12.dp)).padding(12.dp),
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(HFColors.fill(0.04f))
+            .border(1.dp, HFColors.stroke(0.10f), RoundedCornerShape(12.dp)).padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(3.dp)
     ) {
-        Text(label.uppercase(), color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.0.sp)
+        Text(label.uppercase(), color = HFColors.ink(0.5f), fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.0.sp)
         Text(value, color = valueColor, fontSize = 14.sp, fontWeight = FontWeight.Bold)
     }
 }
 
 @Composable
 private fun LabelQP(text: String) {
-    Text(text.uppercase(), color = HFColors.OnSurface.copy(alpha = 0.60f), fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.0.sp)
+    Text(text.uppercase(), color = HFColors.ink(0.60f), fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.0.sp)
 }
 
 @Composable
@@ -494,8 +494,8 @@ private fun QPTag(text: String, color: Color) {
 @Composable
 private fun QPChip(label: String, onClick: () -> Unit) {
     Box(
-        modifier = Modifier.clip(RoundedCornerShape(100.dp)).background(HFColors.OnSurface.copy(alpha = 0.08f))
-            .border(1.dp, HFColors.OnSurface.copy(alpha = 0.20f), RoundedCornerShape(100.dp))
+        modifier = Modifier.clip(RoundedCornerShape(100.dp)).background(HFColors.fill(0.08f))
+            .border(1.dp, HFColors.stroke(0.20f), RoundedCornerShape(100.dp))
             .clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
         Text(label, color = HFColors.OnSurface, fontSize = 13.sp, fontWeight = FontWeight.Bold)
@@ -506,7 +506,7 @@ private fun QPChip(label: String, onClick: () -> Unit) {
 private fun QPPrimary(label: String, enabled: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
-            .background(if (!enabled) HFColors.OnSurface.copy(alpha = 0.10f) else HFColors.OnSurface)
+            .background(if (!enabled) HFColors.fill(0.10f) else HFColors.OnSurface)
             .clickable(enabled = enabled, onClick = onClick).padding(vertical = 14.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -519,10 +519,10 @@ private fun fmtHrsQP(v: Double): String =
 
 @Composable
 private fun qpFieldColors() = OutlinedTextFieldDefaults.colors(
-    focusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
-    unfocusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
-    focusedBorderColor = HFColors.OnSurface.copy(alpha = 0.25f),
-    unfocusedBorderColor = HFColors.OnSurface.copy(alpha = 0.10f),
+    focusedContainerColor = HFColors.fill(0.04f),
+    unfocusedContainerColor = HFColors.fill(0.04f),
+    focusedBorderColor = HFColors.stroke(0.25f),
+    unfocusedBorderColor = HFColors.stroke(0.10f),
     focusedTextColor = HFColors.OnSurface,
     unfocusedTextColor = HFColors.OnSurface,
     cursorColor = HFColors.OnSurface

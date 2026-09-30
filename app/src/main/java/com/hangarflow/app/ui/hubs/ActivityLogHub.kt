@@ -51,7 +51,7 @@ fun ActivityLogHub() {
                 items(events, key = { it.id }) { ev ->
                     Column(
                         modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
-                            .background(HFColors.OnSurface.copy(alpha = 0.04f))
+                            .background(HFColors.fill(0.04f))
                             .padding(12.dp)
                     ) {
                         Text(ev.summary, color = HFColors.OnSurface, fontSize = 13.sp, fontWeight = FontWeight.Medium)

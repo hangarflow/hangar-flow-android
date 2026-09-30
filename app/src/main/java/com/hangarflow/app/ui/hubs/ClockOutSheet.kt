@@ -189,7 +189,7 @@ fun ClockOutSheet(onDismiss: () -> Unit) {
                 Text(stringResource(R.string.clock_out), color = HFColors.OnSurface, fontSize = 24.sp, fontWeight = FontWeight.Bold)
                 Text(
                     stringResource(R.string.co_sub),
-                    color = HFColors.OnSurface.copy(alpha = 0.68f),
+                    color = HFColors.ink(0.68f),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium
                 )
@@ -198,7 +198,7 @@ fun ClockOutSheet(onDismiss: () -> Unit) {
                 modifier = Modifier
                     .size(32.dp)
                     .clip(CircleShape)
-                    .background(HFColors.OnSurface.copy(alpha = 0.10f))
+                    .background(HFColors.fill(0.10f))
                     .clickable(enabled = !submitting) { onDismiss() },
                 contentAlignment = Alignment.Center
             ) {
@@ -217,7 +217,7 @@ fun ClockOutSheet(onDismiss: () -> Unit) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         stringResource(R.string.co_what_caps),
-                        color = HFColors.OnSurface.copy(alpha = 0.55f),
+                        color = HFColors.ink(0.55f),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 0.6.sp,
@@ -254,16 +254,16 @@ fun ClockOutSheet(onDismiss: () -> Unit) {
                     placeholder = {
                         Text(
                             stringResource(R.string.co_hint),
-                            color = HFColors.OnSurface.copy(alpha = 0.40f),
+                            color = HFColors.ink(0.40f),
                             fontSize = 13.sp
                         )
                     },
                     modifier = Modifier.fillMaxWidth().heightIn(min = 110.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
-                        unfocusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
-                        focusedBorderColor = HFColors.OnSurface.copy(alpha = 0.25f),
-                        unfocusedBorderColor = HFColors.OnSurface.copy(alpha = 0.10f),
+                        focusedContainerColor = HFColors.fill(0.04f),
+                        unfocusedContainerColor = HFColors.fill(0.04f),
+                        focusedBorderColor = HFColors.stroke(0.25f),
+                        unfocusedBorderColor = HFColors.stroke(0.10f),
                         focusedTextColor = HFColors.OnSurface,
                         unfocusedTextColor = HFColors.OnSurface,
                         cursorColor = HFColors.OnSurface
@@ -277,7 +277,7 @@ fun ClockOutSheet(onDismiss: () -> Unit) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             stringResource(R.string.co_hours_caps),
-                            color = HFColors.OnSurface.copy(alpha = 0.55f),
+                            color = HFColors.ink(0.55f),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             letterSpacing = 0.6.sp,
@@ -285,7 +285,7 @@ fun ClockOutSheet(onDismiss: () -> Unit) {
                         )
                         Text(
                             stringResource(R.string.co_of_hours, assigned, shiftMinutes / 60.0),
-                            color = HFColors.OnSurface.copy(alpha = 0.55f),
+                            color = HFColors.ink(0.55f),
                             fontSize = 12.sp
                         )
                     }
@@ -297,7 +297,7 @@ fun ClockOutSheet(onDismiss: () -> Unit) {
                         else
                             "Put your hours against the aircraft you worked on. You didn't " +
                                 "log any work today, so nothing is pre-filled.",
-                        color = HFColors.OnSurface.copy(alpha = 0.50f),
+                        color = HFColors.ink(0.50f),
                         fontSize = 12.sp
                     )
                     planeCandidates.forEach { cand ->
@@ -318,7 +318,7 @@ fun ClockOutSheet(onDismiss: () -> Unit) {
                                         1 -> "1 work log today"
                                         else -> "${cand.workLogCount} work logs today"
                                     },
-                                    color = HFColors.OnSurface.copy(alpha = 0.45f),
+                                    color = HFColors.ink(0.45f),
                                     fontSize = 11.sp
                                 )
                                 // WHICH job the hours went on. Optional, and
@@ -336,14 +336,14 @@ fun ClockOutSheet(onDismiss: () -> Unit) {
                                 value = planeHours[cand.planeTailNumber] ?: "",
                                 onValueChange = { planeHours[cand.planeTailNumber] = it },
                                 singleLine = true,
-                                suffix = { Text("h", color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 12.sp) },
+                                suffix = { Text("h", color = HFColors.ink(0.5f), fontSize = 12.sp) },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                 modifier = Modifier.width(104.dp),
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    focusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
-                                    unfocusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
-                                    focusedBorderColor = HFColors.OnSurface.copy(alpha = 0.25f),
-                                    unfocusedBorderColor = HFColors.OnSurface.copy(alpha = 0.10f),
+                                    focusedContainerColor = HFColors.fill(0.04f),
+                                    unfocusedContainerColor = HFColors.fill(0.04f),
+                                    focusedBorderColor = HFColors.stroke(0.25f),
+                                    unfocusedBorderColor = HFColors.stroke(0.10f),
                                     focusedTextColor = HFColors.OnSurface,
                                     unfocusedTextColor = HFColors.OnSurface,
                                     cursorColor = HFColors.OnSurface
@@ -358,7 +358,7 @@ fun ClockOutSheet(onDismiss: () -> Unit) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         stringResource(R.string.co_reimb_caps),
-                        color = HFColors.OnSurface.copy(alpha = 0.55f),
+                        color = HFColors.ink(0.55f),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 0.6.sp,
@@ -378,12 +378,12 @@ fun ClockOutSheet(onDismiss: () -> Unit) {
                 if (rows.isEmpty()) {
                     Text(
                         stringResource(R.string.co_receipt_hint),
-                        color = HFColors.OnSurface.copy(alpha = 0.55f),
+                        color = HFColors.ink(0.55f),
                         fontSize = 12.sp,
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
-                            .background(HFColors.OnSurface.copy(alpha = 0.03f))
+                            .background(HFColors.fill(0.03f))
                             .padding(12.dp)
                     )
                 } else {
@@ -521,13 +521,13 @@ fun ClockOutSheet(onDismiss: () -> Unit) {
                 modifier = Modifier.fillMaxWidth().height(50.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = HFColors.StatusRed,
-                    disabledContainerColor = HFColors.OnSurface.copy(alpha = 0.10f)
+                    disabledContainerColor = HFColors.fill(0.10f)
                 )
             ) {
                 if (submitting) {
-                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                    CircularProgressIndicator(color = HFColors.OnAccent, modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                 } else {
-                    Text(stringResource(R.string.clock_out), color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.clock_out), color = HFColors.OnAccent, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -546,26 +546,26 @@ private fun ReimbursementRow(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.05f))
-            .border(1.dp, HFColors.OnSurface.copy(alpha = 0.10f), RoundedCornerShape(12.dp))
+            .background(HFColors.fill(0.05f))
+            .border(1.dp, HFColors.stroke(0.10f), RoundedCornerShape(12.dp))
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("$", color = HFColors.OnSurface.copy(alpha = 0.6f), fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text("$", color = HFColors.ink(0.6f), fontSize = 16.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.width(6.dp))
             OutlinedTextField(
                 value = row.amountText,
                 onValueChange = onChangeAmount,
-                placeholder = { Text("0.00", color = HFColors.OnSurface.copy(alpha = 0.4f)) },
+                placeholder = { Text("0.00", color = HFColors.ink(0.4f)) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.weight(1f),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
-                    unfocusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
-                    focusedBorderColor = HFColors.OnSurface.copy(alpha = 0.25f),
-                    unfocusedBorderColor = HFColors.OnSurface.copy(alpha = 0.10f),
+                    focusedContainerColor = HFColors.fill(0.04f),
+                    unfocusedContainerColor = HFColors.fill(0.04f),
+                    focusedBorderColor = HFColors.stroke(0.25f),
+                    unfocusedBorderColor = HFColors.stroke(0.10f),
                     focusedTextColor = HFColors.OnSurface,
                     unfocusedTextColor = HFColors.OnSurface,
                     cursorColor = HFColors.OnSurface
@@ -582,13 +582,13 @@ private fun ReimbursementRow(
         OutlinedTextField(
             value = row.description,
             onValueChange = onChangeDescription,
-            placeholder = { Text(stringResource(R.string.co_what_for), color = HFColors.OnSurface.copy(alpha = 0.4f)) },
+            placeholder = { Text(stringResource(R.string.co_what_for), color = HFColors.ink(0.4f)) },
             modifier = Modifier.fillMaxWidth().heightIn(min = 60.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
-                unfocusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
-                focusedBorderColor = HFColors.OnSurface.copy(alpha = 0.25f),
-                unfocusedBorderColor = HFColors.OnSurface.copy(alpha = 0.10f),
+                focusedContainerColor = HFColors.fill(0.04f),
+                unfocusedContainerColor = HFColors.fill(0.04f),
+                focusedBorderColor = HFColors.stroke(0.25f),
+                unfocusedBorderColor = HFColors.stroke(0.10f),
                 focusedTextColor = HFColors.OnSurface,
                 unfocusedTextColor = HFColors.OnSurface,
                 cursorColor = HFColors.OnSurface
@@ -650,7 +650,7 @@ private fun JobPicker(
     Box {
         Text(
             selected?.label ?: "What was it on? (optional)",
-            color = if (selected == null) HFColors.OnSurface.copy(alpha = 0.45f) else HFColors.StatusBlue,
+            color = if (selected == null) HFColors.ink(0.45f) else HFColors.StatusBlue,
             fontSize = 11.sp,
             fontWeight = if (selected == null) FontWeight.Medium else FontWeight.SemiBold,
             modifier = Modifier

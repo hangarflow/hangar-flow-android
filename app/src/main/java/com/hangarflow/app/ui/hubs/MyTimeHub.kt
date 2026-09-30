@@ -62,7 +62,7 @@ fun MyTimeHub() {
             Column(Modifier.weight(1f)) {
                 Text(stringResource(R.string.mt_my_time), color = HFColors.OnSurface, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                 Text(day.format(DateTimeFormatter.ofPattern("EEEE, MMM d")),
-                    color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 11.sp)
+                    color = HFColors.ink(0.55f), fontSize = 11.sp)
             }
             Step("‹") { day = day.minusDays(1) }
             Spacer(Modifier.width(6.dp))
@@ -73,7 +73,7 @@ fun MyTimeHub() {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(hrs(total), color = HFColors.StatusGreen, fontSize = 26.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.width(8.dp))
-            Text(stringResource(R.string.mt_logged), color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 12.sp)
+            Text(stringResource(R.string.mt_logged), color = HFColors.ink(0.5f), fontSize = 12.sp)
             Spacer(Modifier.weight(1f))
             Box(
                 Modifier.clip(RoundedCornerShape(100.dp))
@@ -86,7 +86,7 @@ fun MyTimeHub() {
 
         if (mine.isEmpty()) {
             Text(stringResource(R.string.mt_nothing_day),
-                color = HFColors.OnSurface.copy(alpha = 0.45f), fontSize = 13.sp)
+                color = HFColors.ink(0.45f), fontSize = 13.sp)
         } else {
             mine.forEach { SegRow(it) }
         }
@@ -114,7 +114,7 @@ private fun SegRow(e: HFTimeEntry) {
     }
     Column(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.04f))
+            .background(HFColors.fill(0.04f))
             .border(1.dp, color.copy(alpha = 0.25f), RoundedCornerShape(14.dp))
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -122,7 +122,7 @@ private fun SegRow(e: HFTimeEntry) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(span(e), color = HFColors.OnSurface, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.width(8.dp))
-            Text(hrs(e.minutesWorked), color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 11.sp)
+            Text(hrs(e.minutesWorked), color = HFColors.ink(0.5f), fontSize = 11.sp)
             Spacer(Modifier.weight(1f))
             Box(
                 Modifier.clip(RoundedCornerShape(100.dp)).background(color.copy(alpha = 0.16f))
@@ -133,7 +133,7 @@ private fun SegRow(e: HFTimeEntry) {
             Text(it, color = HFColors.StatusBlue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
         }
         if (e.notes.isNotBlank()) {
-            Text(e.notes, color = HFColors.OnSurface.copy(alpha = 0.7f), fontSize = 12.sp)
+            Text(e.notes, color = HFColors.ink(0.7f), fontSize = 12.sp)
         }
         if (e.approvalStatus == "rejected" && !e.rejectionReason.isNullOrBlank()) {
             Text("Reason: ${e.rejectionReason}", color = HFColors.StatusRed, fontSize = 11.sp)
@@ -182,10 +182,10 @@ private fun AddSegmentSheet(
                     minutes == null -> "The end has to be after the start."
                     else -> "That's ${hrs(minutes)}."
                 },
-                color = if (minutes == null) HFColors.StatusOrange else HFColors.OnSurface.copy(alpha = 0.55f),
+                color = if (minutes == null) HFColors.StatusOrange else HFColors.ink(0.55f),
                 fontSize = 12.sp
             )
-            Text(stringResource(R.string.mt_aircraft_optional_caps), color = HFColors.OnSurface.copy(alpha = 0.55f),
+            Text(stringResource(R.string.mt_aircraft_optional_caps), color = HFColors.ink(0.55f),
                 fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp)
             Row(Modifier.horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -199,7 +199,7 @@ private fun AddSegmentSheet(
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
                     .background(
                         if (minutes != null && !busy) HFColors.StatusGreen.copy(alpha = 0.18f)
-                        else HFColors.OnSurface.copy(alpha = 0.06f)
+                        else HFColors.fill(0.06f)
                     )
                     .clickable(enabled = minutes != null && !busy) {
                         busy = true
@@ -215,7 +215,7 @@ private fun AddSegmentSheet(
                 contentAlignment = Alignment.Center
             ) {
                 Text(if (busy) "Saving…" else "Save",
-                    color = if (minutes != null) HFColors.StatusGreen else HFColors.OnSurface.copy(alpha = 0.4f),
+                    color = if (minutes != null) HFColors.StatusGreen else HFColors.ink(0.4f),
                     fontWeight = FontWeight.Bold)
             }
         }
@@ -226,17 +226,17 @@ private fun AddSegmentSheet(
 private fun Pick(label: String, sel: Boolean, onClick: () -> Unit) {
     Box(
         Modifier.clip(RoundedCornerShape(100.dp))
-            .background(if (sel) HFColors.StatusBlue.copy(alpha = 0.15f) else HFColors.OnSurface.copy(alpha = 0.05f))
-            .border(1.dp, if (sel) HFColors.StatusBlue.copy(alpha = 0.4f) else HFColors.OnSurface.copy(alpha = 0.12f), RoundedCornerShape(100.dp))
+            .background(if (sel) HFColors.StatusBlue.copy(alpha = 0.15f) else HFColors.fill(0.05f))
+            .border(1.dp, if (sel) HFColors.StatusBlue.copy(alpha = 0.4f) else HFColors.stroke(0.12f), RoundedCornerShape(100.dp))
             .clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 8.dp)
-    ) { Text(label, color = if (sel) HFColors.StatusBlue else HFColors.OnSurface.copy(alpha = 0.6f), fontSize = 12.sp, fontWeight = FontWeight.SemiBold) }
+    ) { Text(label, color = if (sel) HFColors.StatusBlue else HFColors.ink(0.6f), fontSize = 12.sp, fontWeight = FontWeight.SemiBold) }
 }
 
 @Composable
 private fun Step(g: String, onClick: () -> Unit) {
     Box(
         Modifier.size(34.dp).clip(RoundedCornerShape(10.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.08f)).clickable(onClick = onClick),
+            .background(HFColors.fill(0.08f)).clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) { Text(g, color = HFColors.OnSurface, fontSize = 15.sp, fontWeight = FontWeight.Bold) }
 }

@@ -110,7 +110,7 @@ private fun TasksHubContent() {
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(14.dp))
-                .background(HFColors.OnSurface.copy(alpha = 0.06f))
+                .background(HFColors.fill(0.06f))
                 .padding(4.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
@@ -120,14 +120,14 @@ private fun TasksHubContent() {
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(10.dp))
-                        .background(if (sel) HFColors.OnSurface.copy(alpha = 0.16f) else Color.Transparent)
+                        .background(if (sel) HFColors.fill(0.16f) else Color.Transparent)
                         .clickable { section = s }
                         .padding(vertical = 10.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         s.label,
-                        color = if (sel) HFColors.OnSurface else HFColors.OnSurface.copy(alpha = 0.65f),
+                        color = if (sel) HFColors.OnSurface else HFColors.ink(0.65f),
                         fontSize = 13.sp,
                         fontWeight = if (sel) FontWeight.Bold else FontWeight.SemiBold
                     )
@@ -169,12 +169,12 @@ private fun TasksHubContent() {
                         .clip(RoundedCornerShape(12.dp))
                         .background(
                             if (assignedToMe) HFColors.StatusBlue.copy(alpha = 0.12f)
-                            else HFColors.OnSurface.copy(alpha = 0.04f)
+                            else HFColors.fill(0.04f)
                         )
                         .border(
                             1.dp,
                             if (assignedToMe) HFColors.StatusBlue.copy(alpha = 0.45f)
-                            else HFColors.OnSurface.copy(alpha = 0.10f),
+                            else HFColors.stroke(0.10f),
                             RoundedCornerShape(12.dp)
                         )
                         .clickable { assignedToMe = !assignedToMe }
@@ -190,7 +190,7 @@ private fun TasksHubContent() {
                     Spacer(Modifier.weight(1f))
                     Text(
                         if (assignedToMe) "ON" else "OFF",
-                        color = if (assignedToMe) HFColors.StatusBlue else HFColors.OnSurface.copy(alpha = 0.50f),
+                        color = if (assignedToMe) HFColors.StatusBlue else HFColors.ink(0.50f),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -276,12 +276,12 @@ private fun FilterChipPill(label: String, selected: Boolean, onClick: () -> Unit
         modifier = Modifier
             .clip(RoundedCornerShape(100.dp))
             .background(
-                if (selected) HFColors.OnSurface.copy(alpha = 0.18f)
-                else HFColors.OnSurface.copy(alpha = 0.04f)
+                if (selected) HFColors.fill(0.18f)
+                else HFColors.fill(0.04f)
             )
             .border(
                 1.dp,
-                if (selected) HFColors.OnSurface.copy(alpha = 0.30f) else HFColors.OnSurface.copy(alpha = 0.10f),
+                if (selected) HFColors.stroke(0.30f) else HFColors.stroke(0.10f),
                 RoundedCornerShape(100.dp)
             )
             .clickable(onClick = onClick)
@@ -290,7 +290,7 @@ private fun FilterChipPill(label: String, selected: Boolean, onClick: () -> Unit
     ) {
         Text(
             label,
-            color = if (selected) HFColors.OnSurface else HFColors.OnSurface.copy(alpha = 0.72f),
+            color = if (selected) HFColors.OnSurface else HFColors.ink(0.72f),
             fontSize = 13.sp,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold
         )
@@ -308,8 +308,8 @@ private fun TaskCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.06f))
-            .border(1.dp, HFColors.OnSurface.copy(alpha = 0.10f), RoundedCornerShape(18.dp))
+            .background(HFColors.fill(0.06f))
+            .border(1.dp, HFColors.stroke(0.10f), RoundedCornerShape(18.dp))
             .clickable(onClick = onToggle)
             .padding(16.dp)
     ) {
@@ -335,7 +335,7 @@ private fun TaskCard(
             Spacer(Modifier.size(4.dp))
             Text(
                 task.details,
-                color = HFColors.OnSurface.copy(alpha = 0.68f),
+                color = HFColors.ink(0.68f),
                 fontSize = 12.sp,
                 maxLines = if (expanded) Int.MAX_VALUE else 3
             )
@@ -346,7 +346,7 @@ private fun TaskCard(
             Spacer(Modifier.size(12.dp))
             Text(
                 stringResource(R.string.tk_update_status),
-                color = HFColors.OnSurface.copy(alpha = 0.72f),
+                color = HFColors.ink(0.72f),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold
             )
@@ -366,7 +366,7 @@ private fun TaskCard(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(8.dp))
-                    .background(HFColors.OnSurface.copy(alpha = 0.08f))
+                    .background(HFColors.fill(0.08f))
                     .clickable(onClick = onEdit)
                     .padding(horizontal = 14.dp, vertical = 7.dp)
             ) {
@@ -387,7 +387,7 @@ private fun StatusButton(
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(if (isSelected) accent else HFColors.OnSurface.copy(alpha = 0.08f))
+            .background(if (isSelected) accent else HFColors.fill(0.08f))
             .clickable(onClick = onClick)
             .padding(horizontal = 10.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -395,7 +395,7 @@ private fun StatusButton(
     ) {
         Text(
             label,
-            color = if (isSelected) Color.Black else HFColors.OnSurface,
+            color = if (isSelected) HFColors.BrandInk else HFColors.OnSurface,
             fontSize = 11.sp,
             fontWeight = FontWeight.SemiBold,
             maxLines = 1
@@ -413,7 +413,7 @@ private fun StatusPill(status: String) {
     ) {
         Text(
             statusLabel(status),
-            color = Color.Black,
+            color = HFColors.BrandInk,
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold
         )
@@ -436,8 +436,8 @@ private fun PlaneTaskProgressCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.06f))
-            .border(1.dp, HFColors.OnSurface.copy(alpha = 0.10f), RoundedCornerShape(18.dp))
+            .background(HFColors.fill(0.06f))
+            .border(1.dp, HFColors.stroke(0.10f), RoundedCornerShape(18.dp))
             .padding(16.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -445,7 +445,7 @@ private fun PlaneTaskProgressCard(
             Spacer(Modifier.weight(1f))
             Text(
                 displayName,
-                color = HFColors.OnSurface.copy(alpha = 0.72f),
+                color = HFColors.ink(0.72f),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold
             )
@@ -461,14 +461,14 @@ private fun PlaneTaskProgressCard(
             Spacer(Modifier.size(8.dp))
             Text(
                 "Next: $next",
-                color = HFColors.OnSurface.copy(alpha = 0.68f),
+                color = HFColors.ink(0.68f),
                 fontSize = 12.sp
             )
         } else if (tasks.isEmpty()) {
             Spacer(Modifier.size(8.dp))
             Text(
                 stringResource(R.string.tk_none_for_plane),
-                color = HFColors.OnSurface.copy(alpha = 0.50f),
+                color = HFColors.ink(0.50f),
                 fontSize = 12.sp
             )
         }
@@ -483,7 +483,7 @@ private fun CountChip(text: String, accent: Color) {
             .background(accent.copy(alpha = 0.90f))
             .padding(horizontal = 10.dp, vertical = 6.dp)
     ) {
-        Text(text, color = Color.Black, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+        Text(text, color = HFColors.BrandInk, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -493,13 +493,13 @@ private fun EmptyTasksPanel(message: String) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.04f))
-            .border(1.dp, HFColors.OnSurface.copy(alpha = 0.10f), RoundedCornerShape(18.dp))
+            .background(HFColors.fill(0.04f))
+            .border(1.dp, HFColors.stroke(0.10f), RoundedCornerShape(18.dp))
             .padding(20.dp)
     ) {
         Text(
             stringResource(R.string.nav_tasks),
-            color = HFColors.OnSurface.copy(alpha = 0.55f),
+            color = HFColors.ink(0.55f),
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = 1.2.sp
@@ -522,7 +522,7 @@ private fun statusAccent(status: String): Color = when (status) {
     "inProgress" -> HFColors.StatusBlue
     "waitingOnParts" -> HFColors.StatusYellow
     "done" -> HFColors.StatusGreen
-    else -> HFColors.OnSurface.copy(alpha = 0.30f)
+    else -> HFColors.ink(0.30f)
 }
 
 /** Create or edit a task. `existing == null` => create; otherwise edit.
@@ -661,7 +661,7 @@ private fun TaskEditSheet(existing: HFTask?, onDismiss: () -> Unit) {
 private fun SheetLabel(text: String) {
     Text(
         text.uppercase(),
-        color = HFColors.OnSurface.copy(alpha = 0.60f),
+        color = HFColors.ink(0.60f),
         fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.0.sp
     )
 }
@@ -677,12 +677,12 @@ private fun SheetField(
         OutlinedTextField(
             value = value, onValueChange = onChange,
             modifier = Modifier.fillMaxWidth(), singleLine = singleLine,
-            placeholder = { Text(placeholder, color = HFColors.OnSurface.copy(alpha = 0.35f), fontSize = 13.sp) },
+            placeholder = { Text(placeholder, color = HFColors.ink(0.35f), fontSize = 13.sp) },
             colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
-                unfocusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
-                focusedBorderColor = HFColors.OnSurface.copy(alpha = 0.25f),
-                unfocusedBorderColor = HFColors.OnSurface.copy(alpha = 0.10f),
+                focusedContainerColor = HFColors.fill(0.04f),
+                unfocusedContainerColor = HFColors.fill(0.04f),
+                focusedBorderColor = HFColors.stroke(0.25f),
+                unfocusedBorderColor = HFColors.stroke(0.10f),
                 focusedTextColor = HFColors.OnSurface,
                 unfocusedTextColor = HFColors.OnSurface,
                 cursorColor = HFColors.OnSurface

@@ -48,7 +48,7 @@ fun PayrollHub() {
 
     if (!auth.isAdmin) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text(stringResource(R.string.py_admin_only), color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 13.sp)
+            Text(stringResource(R.string.py_admin_only), color = HFColors.ink(0.5f), fontSize = 13.sp)
         }
         return
     }
@@ -59,7 +59,7 @@ fun PayrollHub() {
     ) {
         Text(stringResource(R.string.card_payroll_t), color = HFColors.OnSurface, fontSize = 20.sp, fontWeight = FontWeight.Bold)
         Text(stringResource(R.string.py_rates_note),
-            color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 11.sp)
+            color = HFColors.ink(0.5f), fontSize = 11.sp)
 
         state.users.filter { it.isActive }.forEach { user ->
             val pay = state.employeePay.firstOrNull { it.userId == user.authUserId || it.userId == user.id }
@@ -70,8 +70,8 @@ fun PayrollHub() {
 
             Column(
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
-                    .background(HFColors.OnSurface.copy(alpha = 0.04f))
-                    .border(1.dp, HFColors.OnSurface.copy(alpha = 0.10f), RoundedCornerShape(14.dp))
+                    .background(HFColors.fill(0.04f))
+                    .border(1.dp, HFColors.stroke(0.10f), RoundedCornerShape(14.dp))
                     .padding(14.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
@@ -80,13 +80,13 @@ fun PayrollHub() {
                         Text(user.displayName.ifBlank { "Unnamed" },
                             color = HFColors.OnSurface, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                         Text("${scheduleLabel(pay)} · ${label(start, end)}",
-                            color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 10.sp)
+                            color = HFColors.ink(0.5f), fontSize = 10.sp)
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     Stat("APPROVED", hrs(approved.sumOf { it.minutesWorked }), HFColors.StatusGreen)
                     Stat("PENDING", hrs(pending.sumOf { it.minutesWorked }),
-                        if (pending.isNotEmpty()) HFColors.StatusOrange else HFColors.OnSurface.copy(alpha = 0.4f))
+                        if (pending.isNotEmpty()) HFColors.StatusOrange else HFColors.ink(0.4f))
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (pending.isNotEmpty()) {
@@ -114,7 +114,7 @@ fun PayrollHub() {
 // (ui/time/PayrollPanel.kt).
 
 @Composable private fun Stat(l: String, v: String, c: androidx.compose.ui.graphics.Color) {
-    Column { Text(l, color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+    Column { Text(l, color = HFColors.ink(0.5f), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
         Text(v, color = c, fontSize = 14.sp, fontWeight = FontWeight.Bold) }
 }
 

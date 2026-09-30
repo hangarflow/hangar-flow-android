@@ -120,7 +120,7 @@ private fun WorkLogsViewToggle(viewMode: String, onChange: (String) -> Unit) {
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 12.dp)
             .clip(RoundedCornerShape(12.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.06f))
+            .background(HFColors.fill(0.06f))
             .padding(4.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
@@ -141,7 +141,7 @@ private fun ViewToggleChip(label: String, selected: Boolean, modifier: Modifier 
     ) {
         Text(
             label,
-            color = if (selected) HFColors.BrandInk else HFColors.OnSurface.copy(alpha = 0.65f),
+            color = if (selected) HFColors.BrandInk else HFColors.ink(0.65f),
             fontSize = 13.sp,
             fontWeight = FontWeight.SemiBold
         )
@@ -240,7 +240,7 @@ private fun WorkLogsHeader(total: Int, overall: Int) {
         Spacer(Modifier.weight(1f))
         Text(
             if (total == overall) "$total" else "$total / $overall",
-            color = HFColors.OnSurface.copy(alpha = 0.45f),
+            color = HFColors.ink(0.45f),
             fontSize = 13.sp,
             fontWeight = FontWeight.SemiBold
         )
@@ -252,7 +252,7 @@ private fun WorkLogsHeader(total: Int, overall: Int) {
 private fun FilterSectionLabel(text: String) {
     Text(
         text = text.uppercase(),
-        color = HFColors.OnSurface.copy(alpha = 0.55f),
+        color = HFColors.ink(0.55f),
         fontSize = 10.sp,
         fontWeight = FontWeight.Bold,
         letterSpacing = 1.0.sp
@@ -334,9 +334,9 @@ private fun FilterPill(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    val bg = if (isSelected) HFColors.BrandWhite else HFColors.OnSurface.copy(alpha = 0.06f)
+    val bg = if (isSelected) HFColors.BrandWhite else HFColors.fill(0.06f)
     val fg = if (isSelected) HFColors.BrandInk else HFColors.OnSurface
-    val border = if (isSelected) HFColors.BrandWhite else HFColors.OnSurface.copy(alpha = 0.10f)
+    val border = if (isSelected) HFColors.BrandWhite else HFColors.stroke(0.10f)
 
     Box(
         modifier = Modifier
@@ -371,12 +371,12 @@ private fun WorkLogCard(log: HFWorkLog, onClick: () -> Unit = {}) {
             .clip(RoundedCornerShape(18.dp))
             .background(
                 if (isPinned) HFColors.StatusOrange.copy(alpha = 0.08f)
-                else HFColors.OnSurface.copy(alpha = 0.06f)
+                else HFColors.fill(0.06f)
             )
             .border(
                 1.dp,
                 if (isPinned) HFColors.StatusOrange.copy(alpha = 0.35f)
-                else HFColors.OnSurface.copy(alpha = 0.10f),
+                else HFColors.stroke(0.10f),
                 RoundedCornerShape(18.dp)
             )
             .clickable(onClick = onClick)
@@ -403,7 +403,7 @@ private fun WorkLogCard(log: HFWorkLog, onClick: () -> Unit = {}) {
                 Spacer(Modifier.size(8.dp))
                 Text(
                     updated,
-                    color = HFColors.OnSurface.copy(alpha = 0.45f),
+                    color = HFColors.ink(0.45f),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Medium
                 )
@@ -422,7 +422,7 @@ private fun WorkLogCard(log: HFWorkLog, onClick: () -> Unit = {}) {
         if (log.details.isNotBlank()) {
             Text(
                 text = log.details,
-                color = HFColors.OnSurface.copy(alpha = 0.68f),
+                color = HFColors.ink(0.68f),
                 fontSize = 12.sp,
                 maxLines = 3
             )
@@ -448,7 +448,7 @@ private fun WorkLogCard(log: HFWorkLog, onClick: () -> Unit = {}) {
             Spacer(Modifier.weight(1f))
             Text(
                 "›",
-                color = HFColors.OnSurface.copy(alpha = 0.36f),
+                color = HFColors.ink(0.36f),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -466,12 +466,12 @@ private fun PinToggle(isPinned: Boolean, onToggle: () -> Unit) {
             .clip(RoundedCornerShape(100.dp))
             .background(
                 if (isPinned) HFColors.StatusOrange.copy(alpha = 0.18f)
-                else HFColors.OnSurface.copy(alpha = 0.06f)
+                else HFColors.fill(0.06f)
             )
             .border(
                 1.dp,
                 if (isPinned) HFColors.StatusOrange.copy(alpha = 0.45f)
-                else HFColors.OnSurface.copy(alpha = 0.12f),
+                else HFColors.stroke(0.12f),
                 RoundedCornerShape(100.dp)
             )
             .clickable(onClick = onToggle)
@@ -480,7 +480,7 @@ private fun PinToggle(isPinned: Boolean, onToggle: () -> Unit) {
     ) {
         Text(
             if (isPinned) "📌 Pinned" else "📌 Pin",
-            color = if (isPinned) HFColors.StatusOrange else HFColors.OnSurface.copy(alpha = 0.6f),
+            color = if (isPinned) HFColors.StatusOrange else HFColors.ink(0.6f),
             fontSize = 10.sp,
             fontWeight = FontWeight.Bold
         )
@@ -493,7 +493,7 @@ private fun NeutralPill(text: String) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(100.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.08f))
+            .background(HFColors.fill(0.08f))
             .padding(horizontal = 8.dp, vertical = 4.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -535,11 +535,11 @@ private fun NeutralBadge(text: String) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(100.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.08f))
+            .background(HFColors.fill(0.08f))
             .padding(horizontal = 8.dp, vertical = 4.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(text, color = HFColors.OnSurface.copy(alpha = 0.72f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+        Text(text, color = HFColors.ink(0.72f), fontSize = 10.sp, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -688,10 +688,10 @@ private fun WorkLogLinkSheet(log: HFWorkLog, onDismiss: () -> Unit) {
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
-                        unfocusedContainerColor = HFColors.OnSurface.copy(alpha = 0.04f),
-                        focusedBorderColor = HFColors.OnSurface.copy(alpha = 0.25f),
-                        unfocusedBorderColor = HFColors.OnSurface.copy(alpha = 0.10f),
+                        focusedContainerColor = HFColors.fill(0.04f),
+                        unfocusedContainerColor = HFColors.fill(0.04f),
+                        focusedBorderColor = HFColors.stroke(0.25f),
+                        unfocusedBorderColor = HFColors.stroke(0.10f),
                         focusedTextColor = HFColors.OnSurface,
                         unfocusedTextColor = HFColors.OnSurface,
                         cursorColor = HFColors.OnSurface
@@ -821,7 +821,7 @@ private fun WorkLogAIOrganizeCard(log: HFWorkLog) {
                 Column(
                     modifier = Modifier.fillMaxWidth()
                         .clip(RoundedCornerShape(10.dp))
-                        .background(HFColors.OnSurface.copy(alpha = 0.05f))
+                        .background(HFColors.fill(0.05f))
                         .padding(10.dp)
                 ) {
                     Text(
@@ -829,10 +829,10 @@ private fun WorkLogAIOrganizeCard(log: HFWorkLog) {
                         color = HFColors.OnSurface, fontSize = 13.sp, fontWeight = FontWeight.SemiBold
                     )
                     if (!p.partNumber.isNullOrBlank() && p.description.isNotBlank()) {
-                        Text(p.description, color = HFColors.OnSurface.copy(alpha = 0.7f), fontSize = 11.sp)
+                        Text(p.description, color = HFColors.ink(0.7f), fontSize = 11.sp)
                     }
                     if (p.reason.isNotBlank()) {
-                        Text(p.reason, color = HFColors.OnSurface.copy(alpha = 0.5f), fontSize = 11.sp)
+                        Text(p.reason, color = HFColors.ink(0.5f), fontSize = 11.sp)
                     }
                 }
             }
@@ -840,7 +840,7 @@ private fun WorkLogAIOrganizeCard(log: HFWorkLog) {
             Text(
                 if (enriched) "AI found no specific parts for this log."
                 else "Let AI link this log to the right manual reference and suggest parts.",
-                color = HFColors.OnSurface.copy(alpha = 0.55f), fontSize = 12.sp
+                color = HFColors.ink(0.55f), fontSize = 12.sp
             )
         }
         if (status.isNotBlank()) {

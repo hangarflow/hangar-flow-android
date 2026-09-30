@@ -130,7 +130,7 @@ private fun PartsToOrderHubContent() {
 
         Text(
             text = "${filtered.size} of ${state.partRequests.size}",
-            color = HFColors.OnSurface.copy(alpha = 0.45f),
+            color = HFColors.ink(0.45f),
             fontSize = 11.sp,
             fontWeight = FontWeight.SemiBold
         )
@@ -188,7 +188,7 @@ private fun PartRequestCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(HFColors.OnSurface.copy(alpha = 0.04f))
+            .background(HFColors.fill(0.04f))
             .border(1.dp, urgency.color.copy(alpha = 0.30f), RoundedCornerShape(16.dp))
             .padding(14.dp)
     ) {
@@ -205,7 +205,7 @@ private fun PartRequestCard(
                 if (request.requestedPart.isNotBlank() && request.requestedPart != request.title) {
                     Text(
                         text = "PN ${request.requestedPart}",
-                        color = HFColors.OnSurface.copy(alpha = 0.68f),
+                        color = HFColors.ink(0.68f),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -213,7 +213,7 @@ private fun PartRequestCard(
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (!request.planeTailNumber.isNullOrBlank()) {
-                        MetaPill(request.planeTailNumber, HFColors.OnSurface.copy(alpha = 0.55f))
+                        MetaPill(request.planeTailNumber, HFColors.ink(0.55f))
                         Spacer(Modifier.width(6.dp))
                     }
                     UrgencyPill(urgency.label, urgency.color)
@@ -225,7 +225,7 @@ private fun PartRequestCard(
                     }
                     if (request.supplierName.isNotBlank()) {
                         Spacer(Modifier.width(6.dp))
-                        MetaPill(request.supplierName, HFColors.OnSurface.copy(alpha = 0.55f))
+                        MetaPill(request.supplierName, HFColors.ink(0.55f))
                     }
                 }
             }
@@ -243,7 +243,7 @@ private fun PartRequestCard(
             Spacer(Modifier.size(10.dp))
             Text(
                 text = request.notes,
-                color = HFColors.OnSurface.copy(alpha = 0.70f),
+                color = HFColors.ink(0.70f),
                 fontSize = 12.sp,
                 maxLines = 3
             )
@@ -260,9 +260,9 @@ private fun HubChip(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    val bg = if (isSelected) HFColors.BrandWhite else HFColors.OnSurface.copy(alpha = 0.06f)
+    val bg = if (isSelected) HFColors.BrandWhite else HFColors.fill(0.06f)
     val fg = if (isSelected) HFColors.BrandInk else HFColors.OnSurface
-    val border = if (isSelected) HFColors.BrandWhite else HFColors.OnSurface.copy(alpha = 0.10f)
+    val border = if (isSelected) HFColors.BrandWhite else HFColors.stroke(0.10f)
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(10.dp))
@@ -322,7 +322,7 @@ private fun StatusPickerSheet(current: String, onPick: (String) -> Unit) {
     Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
         Text(
             stringResource(R.string.tk_update_status).uppercase(),
-            color = HFColors.OnSurface.copy(alpha = 0.55f),
+            color = HFColors.ink(0.55f),
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold
         )
@@ -336,11 +336,11 @@ private fun StatusPickerSheet(current: String, onPick: (String) -> Unit) {
                     .clip(RoundedCornerShape(12.dp))
                     .background(
                         if (isCurrent) preset.color.copy(alpha = 0.14f)
-                        else HFColors.OnSurface.copy(alpha = 0.04f)
+                        else HFColors.fill(0.04f)
                     )
                     .border(
                         1.dp,
-                        if (isCurrent) preset.color.copy(alpha = 0.45f) else HFColors.OnSurface.copy(alpha = 0.10f),
+                        if (isCurrent) preset.color.copy(alpha = 0.45f) else HFColors.stroke(0.10f),
                         RoundedCornerShape(12.dp)
                     )
                     .clickable { onPick(option) }

@@ -106,13 +106,13 @@ private fun ManualsHubContent() {
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(18.dp))
-                    .background(HFColors.OnSurface.copy(alpha = 0.05f))
-                    .border(1.dp, HFColors.OnSurface.copy(alpha = 0.10f), RoundedCornerShape(18.dp))
+                    .background(HFColors.fill(0.05f))
+                    .border(1.dp, HFColors.stroke(0.10f), RoundedCornerShape(18.dp))
                     .padding(18.dp)
             ) {
                 Text(
                     stringResource(R.string.mh_no_manuals_caps),
-                    color = HFColors.OnSurface.copy(alpha = 0.55f),
+                    color = HFColors.ink(0.55f),
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.0.sp
@@ -120,7 +120,7 @@ private fun ManualsHubContent() {
                 Spacer(Modifier.size(8.dp))
                 Text(
                     stringResource(R.string.mh_admins_import),
-                    color = HFColors.OnSurface.copy(alpha = 0.68f),
+                    color = HFColors.ink(0.68f),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium
                 )
@@ -138,7 +138,7 @@ private fun ManualsHubContent() {
         item(key = "__plane_manuals_caption") {
             Text(
                 stringResource(R.string.mh_plane_manuals_caps),
-                color = HFColors.OnSurface.copy(alpha = 0.62f),
+                color = HFColors.ink(0.62f),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 0.8.sp,
@@ -308,7 +308,7 @@ private fun ManualRow(
                 Spacer(Modifier.size(3.dp))
                 Text(
                     text = manual.title.takeIf { it.isNotBlank() } ?: manual.fileName,
-                    color = HFColors.OnSurface.copy(alpha = 0.60f),
+                    color = HFColors.ink(0.60f),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium,
                     maxLines = 2
@@ -325,8 +325,8 @@ private fun ManualRow(
                 .size(40.dp)
                 .clip(CircleShape)
                 .background(
-                    if (cached) HFColors.OnSurface.copy(alpha = 0.12f)
-                    else HFColors.OnSurface.copy(alpha = 0.08f)
+                    if (cached) HFColors.fill(0.12f)
+                    else HFColors.fill(0.08f)
                 )
                 .clickable(enabled = !cached, onClick = onDownload),
             contentAlignment = Alignment.Center
@@ -346,7 +346,7 @@ private fun ManualRow(
                 else -> Icon(
                     imageVector = Icons.Outlined.Download,
                     contentDescription = stringResource(R.string.mh_download_offline),
-                    tint = HFColors.OnSurface.copy(alpha = 0.85f),
+                    tint = HFColors.ink(0.85f),
                     modifier = Modifier.size(22.dp)
                 )
             }
