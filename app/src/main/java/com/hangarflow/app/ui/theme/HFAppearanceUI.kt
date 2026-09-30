@@ -115,41 +115,40 @@ fun HFAppearanceSettingsRow() {
  * a bright ramp should be able to make the screen readable before they have
  * typed a password, not after.
  *
- * Cycles rather than opening a dialog — there are only three states and the
- * result is visible immediately, so a dialog would be more taps for nothing.
+ * It names the mode you will GET, not the one you are in — in dark it says
+ * "Light", in light it says "Dark". A control that reports the current state
+ * reads as a label; one that names the result reads as a button, and this is a
+ * button. It flips against the RESOLVED scheme, so it still says the right
+ * thing when the mode is System.
+ *
+ * Two-way on purpose. System is a real preference but not one anyone wants to
+ * land on mid-cycle, so it lives in Settings where it can be chosen
+ * deliberately.
  */
 @Composable
 fun HFAppearanceButton(modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    val current = HFAppearance.mode
+    val goingToDark = !HFColors.isDark
+    val target = if (goingToDark) HFAppearance.Mode.DARK else HFAppearance.Mode.LIGHT
 
     Row(
         modifier = modifier
             .clip(RoundedCornerShape(100.dp))
             .background(HFColors.OnSurface.copy(alpha = 0.06f))
             .border(1.dp, HFColors.OnSurface.copy(alpha = 0.12f), RoundedCornerShape(100.dp))
-            .clickable {
-                HFAppearance.save(
-                    context,
-                    when (current) {
-                        HFAppearance.Mode.DARK -> HFAppearance.Mode.LIGHT
-                        HFAppearance.Mode.LIGHT -> HFAppearance.Mode.SYSTEM
-                        HFAppearance.Mode.SYSTEM -> HFAppearance.Mode.DARK
-                    }
-                )
-            }
+            .clickable { HFAppearance.save(context, target) }
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
-            icon(current),
-            contentDescription = stringResource(R.string.settings_appearance),
+            icon(target),
+            contentDescription = label(target),
             tint = HFColors.OnSurface.copy(alpha = 0.70f),
             modifier = Modifier.size(15.dp)
         )
         Spacer(Modifier.width(6.dp))
         Text(
-            label(current),
+            label(target),
             color = HFColors.OnSurface.copy(alpha = 0.80f),
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold
