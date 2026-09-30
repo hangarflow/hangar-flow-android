@@ -60,6 +60,7 @@ import com.hangarflow.app.ui.theme.HFColors
 import kotlinx.coroutines.launch
 import com.hangarflow.app.R
 import androidx.compose.ui.res.stringResource
+import com.hangarflow.app.util.HFNum
 
 // Shop-gear equipment types offered as quick-pick chips.
 private val EQUIPMENT_TYPES = listOf(
@@ -399,7 +400,7 @@ private fun EquipmentEditSheet(existing: HFEquipment?, onDismiss: () -> Unit) {
                         manufacturer = manufacturer,
                         modelNumber = modelNumber,
                         serialNumber = serialNumber,
-                        usageHours = usageHours.toDoubleOrNull() ?: (existing?.usageHours ?: 0.0),
+                        usageHours = HFNum.parseQty(usageHours) ?: (existing?.usageHours ?: 0.0),
                         notes = notes
                     )
                     when (val r = SharedStore.saveEquipment(draft)) {
@@ -519,7 +520,7 @@ private fun UsageHoursRow(equipment: HFEquipment) {
                     colors = equipFieldColors()
                 )
                 SecondaryChip("Save") {
-                    SharedStore.logEquipmentHours(equipment.id, value.toDoubleOrNull() ?: equipment.usageHours)
+                    SharedStore.logEquipmentHours(equipment.id, HFNum.parseQty(value) ?: equipment.usageHours)
                     editing = false
                 }
             }
@@ -662,9 +663,9 @@ private fun MaintenanceItemSheet(equipmentId: String, onDismiss: () -> Unit) {
                         itemKind = kind,
                         intervalType = intervalType,
                         intervalMonths = if (intervalType == "time") intervalMonths.toIntOrNull() else null,
-                        intervalHours = if (intervalType == "usage") intervalHours.toDoubleOrNull() else null,
+                        intervalHours = if (intervalType == "usage") HFNum.parseQty(intervalHours) else null,
                         lastDoneAt = if (intervalType == "time") lastDoneAt.trim().ifBlank { null } else null,
-                        lastDoneHours = if (intervalType == "usage") lastDoneHours.toDoubleOrNull() else null,
+                        lastDoneHours = if (intervalType == "usage") HFNum.parseQty(lastDoneHours) else null,
                         remindUserId = remindUserId
                     )
                     when (val r = SharedStore.saveMaintenanceItem(draft)) {
@@ -718,7 +719,7 @@ private fun LogServiceSheet(
                         equipmentId = equipmentId,
                         maintenanceItemId = maintenanceItemId,
                         performedAt = performedAt.trim(),
-                        hoursAtService = hours.toDoubleOrNull(),
+                        hoursAtService = HFNum.parseQty(hours),
                         notes = notes
                     )) {
                         SharedStore.CreateResult.Success -> onDismiss()
@@ -826,7 +827,7 @@ private fun PrimaryButton(label: String, enabled: Boolean, onClick: () -> Unit) 
 }
 
 private fun fmtHours(v: Double): String =
-    if (v == v.toLong().toDouble()) v.toLong().toString() else String.format("%.1f", v)
+    HFNum.fieldNum(v)
 
 @Composable
 private fun equipFieldColors() = OutlinedTextFieldDefaults.colors(

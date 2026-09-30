@@ -52,6 +52,7 @@ import com.hangarflow.app.ui.theme.HFColors
 import kotlinx.coroutines.launch
 import com.hangarflow.app.R
 import androidx.compose.ui.res.stringResource
+import com.hangarflow.app.util.HFNum
 
 /**
  * The touch answer to the Desktop's right-click menu.
@@ -251,8 +252,7 @@ internal fun ReceivePartSheet(onDismiss: () -> Unit) {
                                     trackingNumber = tracking.trim().ifBlank { null },
                                     condition = condition.trim().ifBlank { null },
                                     coreOwed = coreOwed,
-                                    coreDepositCents = coreDeposit.trim().toDoubleOrNull()
-                                        ?.let { (it * 100).toLong() }?.takeIf { it > 0 },
+                                    coreDepositCents = HFNum.parseCents(coreDeposit)?.takeIf { it > 0 },
                                     coreWindowDays = 30,
                                     notes = notes
                                 )
@@ -303,7 +303,7 @@ internal fun EditMovementSheet(movement: HFPartMovement, onDismiss: () -> Unit) 
     var tracking by remember { mutableStateOf(movement.trackingNumber ?: "") }
     var condition by remember { mutableStateOf(movement.condition ?: "") }
     var deposit by remember {
-        mutableStateOf(movement.coreDepositCents?.let { (it / 100.0).toString() } ?: "")
+        mutableStateOf(movement.coreDepositCents?.let { HFNum.field(it) } ?: "")
     }
     var dueBack by remember { mutableStateOf(movement.coreDueBackBy?.take(10) ?: "") }
     var notes by remember { mutableStateOf(movement.notes) }
@@ -462,8 +462,7 @@ internal fun EditMovementSheet(movement: HFPartMovement, onDismiss: () -> Unit) 
                                     trackingNumber = tracking.trim().ifBlank { null },
                                     condition = condition.trim().ifBlank { null },
                                     coreDueBackBy = dueBack.trim().ifBlank { null },
-                                    coreDepositCents = deposit.trim().toDoubleOrNull()
-                                        ?.let { (it * 100).toLong() }?.takeIf { it > 0 },
+                                    coreDepositCents = HFNum.parseCents(deposit)?.takeIf { it > 0 },
                                     notes = notes
                                 )
                                 when (r) {

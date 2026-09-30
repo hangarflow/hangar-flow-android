@@ -90,6 +90,26 @@ class HFCloudSyncService {
     suspend fun fetchSquawks(orgId: String): List<HFSquawk> =
         fetchAllByOrg("hf_squawks", orgId)
 
+    /**
+     * The jobs currently taking work — id, tail and title only.
+     *
+     * Columns are named explicitly rather than `select()` so this can never start
+     * pulling money: the three money columns were dropped from `hf_work_orders`
+     * in September precisely because every member of the org can read that row,
+     * and a tech's tablet runs this.
+     */
+    suspend fun fetchOpenJobs(orgId: String): List<com.hangarflow.app.data.model.HFOpenJob> =
+        client.postgrest
+            .from("hf_work_orders")
+            .select(io.github.jan.supabase.postgrest.query.Columns.raw(
+                "id,plane_id,wo_number,title,status")) {
+                filter {
+                    eq("org_id", orgId)
+                    isIn("status", listOf("open", "in_progress"))
+                }
+            }
+            .decodeList()
+
     // ---- Payroll ----------------------------------------------------
 
     @kotlinx.serialization.Serializable
@@ -1132,7 +1152,11 @@ class HFCloudSyncService {
         val status: String,
         val reported_by_user_id: String?,
         val reported_by_user_name: String?,
-        val photo_paths: List<String>
+        val photo_paths: List<String>,
+        /** The open job this squawk belongs to, when the aeroplane is in for
+         *  exactly one. Set at INSERT only — see the note above about never
+         *  putting this column in an update payload. */
+        val work_order_id: String? = null
     )
 
     @kotlinx.serialization.Serializable
@@ -1218,7 +1242,8 @@ class HFCloudSyncService {
         reportedByUserId: String?,
         reportedByUserName: String?,
         photoPaths: List<String>,
-        sourceDevice: String
+        sourceDevice: String,
+        workOrderId: String? = null
     ): String {
         val id = java.util.UUID.randomUUID().toString()
         val row = NewSquawkRow(
@@ -1232,7 +1257,8 @@ class HFCloudSyncService {
             status = "open",
             reported_by_user_id = reportedByUserId,
             reported_by_user_name = reportedByUserName,
-            photo_paths = photoPaths
+            photo_paths = photoPaths,
+            work_order_id = workOrderId
         )
         client.postgrest.from("hf_squawks").insert(row)
         emitOrgEvent(orgId = orgId, sourceDevice = sourceDevice, eventType = "squawk_created")
@@ -1507,7 +1533,9 @@ class HFCloudSyncService {
         val status: String,
         val details: String,
         val created_by_user_id: String? = null,
-        val created_by_user_name: String? = null
+        val created_by_user_name: String? = null,
+        /** Set at INSERT only, never in an update payload — see NewSquawkRow. */
+        val work_order_id: String? = null
     )
 
     /** Insert a work log row. Category/status are validated against the
@@ -1520,7 +1548,8 @@ class HFCloudSyncService {
         category: String,
         details: String,
         createdByUserId: String? = null,
-        createdByUserName: String? = null
+        createdByUserName: String? = null,
+        workOrderId: String? = null
     ): String {
         val id = java.util.UUID.randomUUID().toString()
         val row = NewWorkLogRow(
@@ -1533,7 +1562,8 @@ class HFCloudSyncService {
             status = "open",
             details = details.trim(),
             created_by_user_id = createdByUserId,
-            created_by_user_name = createdByUserName
+            created_by_user_name = createdByUserName,
+            work_order_id = workOrderId
         )
         client.postgrest.from("hf_work_logs").insert(row)
         return id

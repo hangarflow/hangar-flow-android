@@ -99,6 +99,9 @@ dependencies {
     implementation(libs.androidx.metrics.performance)
 
     testImplementation(libs.junit)
+    // kotlin.test so HFNumVectorTest can be byte-identical to the
+    // Compose Desktop copy — see Tools/verify_hfnum_parity.sh.
+    testImplementation(kotlin("test-junit"))
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))

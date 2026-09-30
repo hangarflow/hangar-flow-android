@@ -5,6 +5,7 @@ import kotlinx.serialization.Serializable
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+import com.hangarflow.app.util.HFNum
 
 /**
  * A piece of shop equipment — "due lists for the shop's gear."
@@ -142,4 +143,4 @@ fun worstDueSeverity(items: List<HFEquipmentMaintenanceItem>, currentUsageHours:
 }
 
 private fun fmtHrs(v: Double): String =
-    if (v == v.toLong().toDouble()) v.toLong().toString() else String.format("%.1f", v)
+    HFNum.fieldNum(v)

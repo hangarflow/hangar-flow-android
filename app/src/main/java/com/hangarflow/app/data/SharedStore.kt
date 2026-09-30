@@ -1613,6 +1613,18 @@ object SharedStore {
         }
     }
 
+    /**
+     * The ONE job this aeroplane is in the shop for right now, or null.
+     *
+     * Deliberately null when TWO jobs are open on the same tail rather than
+     * picking the newest. Auto-attach acts on this, and a wrong guess bills one
+     * customer's squawk to another customer's job — silently, in a place nobody
+     * looks again. When it is ambiguous the work stays loose and a human chooses
+     * it with "Attach work…" on a desktop. Same rule on all four clients.
+     */
+    fun openJobForPlane(planeId: String?): com.hangarflow.app.data.model.HFOpenJob? =
+        com.hangarflow.app.data.model.HFOpenJob.soleOpenJob(_state.value.openJobs, planeId)
+
     suspend fun createWorkLog(
         planeId: String?,
         planeTailNumber: String,
@@ -1624,7 +1636,11 @@ object SharedStore {
         if (title.trim().isBlank()) return CreateResult.Error(HFStrings.get(R.string.err_title_required, fallback = "Title is required."))
         val me = _state.value.currentUser  // paper trail
         return try {
-            val wlId = cloud.createWorkLog(orgId, planeId, planeTailNumber, title, category, details, me?.id, me?.displayName)
+            val wlId = cloud.createWorkLog(
+                orgId, planeId, planeTailNumber, title, category, details,
+                me?.id, me?.displayName,
+                workOrderId = openJobForPlane(planeId)?.id
+            )
             cloud.emitOrgEvent(orgId, deviceId, "work_log_created")
             logAudit("work_log", wlId, "created", "Added work log \"${title.trim()}\" to ${planeTailNumber.uppercase()}")
             pullSnapshot(orgId)
@@ -1966,7 +1982,11 @@ object SharedStore {
         val me = _state.value.currentUser  // paper trail
         return try {
             valid.forEach { d ->
-                val wlId = cloud.createWorkLog(orgId, d.planeId, d.planeTailNumber, d.title, d.category, d.details, me?.id, me?.displayName)
+                val wlId = cloud.createWorkLog(
+                    orgId, d.planeId, d.planeTailNumber, d.title, d.category, d.details,
+                    me?.id, me?.displayName,
+                    workOrderId = openJobForPlane(d.planeId)?.id
+                )
                 logAudit("work_log", wlId, "created", "Added work log \"${d.title.trim()}\" to ${d.planeTailNumber.uppercase()}")
             }
             cloud.emitOrgEvent(orgId, deviceId, "work_log_created")
@@ -2382,6 +2402,7 @@ object SharedStore {
             val timeOffRequestsD = async { runCatching { cloud.fetchTimeOffRequests(orgId) }.getOrElse { emptyList() } }
             val calendarEventsD = async { runCatching { cloud.fetchCalendarEvents(orgId) }.getOrElse { emptyList() } }
             val timeEntryCorrectionsD = async { runCatching { cloud.fetchTimeEntryCorrections(orgId) }.getOrElse { emptyList() } }
+            val openJobsD = async { runCatching { cloud.fetchOpenJobs(orgId) }.getOrElse { emptyList() } }
             val authUserIdD = async { runCatching { SupabaseClientProvider.client.auth.currentUserOrNull()?.id }.getOrNull() }
 
             val planes = planesD.await()
@@ -2402,6 +2423,7 @@ object SharedStore {
             val timeOffRequests = timeOffRequestsD.await()
             val calendarEvents = calendarEventsD.await()
             val timeEntryCorrections = timeEntryCorrectionsD.await()
+            val openJobs = openJobsD.await()
             val authUserId = authUserIdD.await()
             val me = users.firstOrNull { it.authUserId == authUserId }
             _state.value.copy(
@@ -2425,6 +2447,7 @@ object SharedStore {
                 timeOffRequests = timeOffRequests.sortedByDescending { it.createdAt ?: "" },
                 calendarEvents = calendarEvents.sortedBy { it.startDate },
                 timeEntryCorrections = timeEntryCorrections.sortedByDescending { it.createdAt ?: "" },
+                openJobs = openJobs,
                 currentUser = me,
                 loading = false,
                 error = null
@@ -2547,6 +2570,10 @@ data class ShopState(
     val timeOffRequests: List<com.hangarflow.app.data.model.HFTimeOffRequest> = emptyList(),
     val calendarEvents: List<com.hangarflow.app.data.model.HFCalendarEvent> = emptyList(),
     val timeEntryCorrections: List<com.hangarflow.app.data.model.HFTimeEntryCorrection> = emptyList(),
+    /** Jobs currently taking work, so a squawk raised on the floor lands on the
+     *  one that bills it. Defaulted: ShopState is persisted, and a cached
+     *  snapshot written before this field existed must still load. */
+    val openJobs: List<com.hangarflow.app.data.model.HFOpenJob> = emptyList(),
     val currentUser: HFUserProfile?,
     val loading: Boolean,
     val error: String?

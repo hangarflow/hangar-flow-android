@@ -54,6 +54,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.runtime.mutableStateMapOf
 import com.hangarflow.app.R
 import androidx.compose.ui.res.stringResource
+import com.hangarflow.app.util.HFNum
 
 /**
  * Full-screen sheet shown when a tech taps Clock Out. Captures:
@@ -273,7 +274,7 @@ fun ClockOutSheet(onDismiss: () -> Unit) {
 
             if (planeCandidates.isNotEmpty()) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    val assigned = planeHours.values.sumOf { it.toDoubleOrNull() ?: 0.0 }
+                    val assigned = planeHours.values.sumOf { HFNum.parseQty(it) ?: 0.0 }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             stringResource(R.string.co_hours_caps),
@@ -434,7 +435,10 @@ fun ClockOutSheet(onDismiss: () -> Unit) {
                             it.amountText.isNotBlank() || it.description.isNotBlank() || it.bitmap != null
                         }
                         val invalid = cleanedRows.firstOrNull {
-                            val v = it.amountText.replace("$", "").trim().toDoubleOrNull()
+                            // Through HFNum: a tech on a German or French phone typed
+                            // "23,47", got null, and was told their own expense claim
+                            // was not a positive number — with no way to submit it.
+                            val v = HFNum.parseNum(it.amountText)
                             v == null || v <= 0
                         }
                         if (invalid != null) {
@@ -448,7 +452,7 @@ fun ClockOutSheet(onDismiss: () -> Unit) {
                         // refuses one from 2026-11-01. Say so here rather than
                         // letting the write fail with a constraint error.
                         if (planeCandidates.isNotEmpty() &&
-                            planeCandidates.none { (planeHours[it.planeTailNumber]?.toDoubleOrNull() ?: 0.0) > 0 }
+                            planeCandidates.none { (planeHours[it.planeTailNumber]?.let { h -> HFNum.parseQty(h) } ?: 0.0) > 0 }
                         ) {
                             submitting = false
                             errorMessage = "Put your hours against at least one aircraft before clocking out."
@@ -456,7 +460,7 @@ fun ClockOutSheet(onDismiss: () -> Unit) {
                         }
 
                         val splits = planeCandidates.mapNotNull { cand ->
-                            val h = planeHours[cand.planeTailNumber]?.toDoubleOrNull() ?: 0.0
+                            val h = planeHours[cand.planeTailNumber]?.let { HFNum.parseQty(it) } ?: 0.0
                             if (h <= 0) null else SharedStore.PlaneSplit(
                                 planeId = cand.planeId,
                                 planeTailNumber = cand.planeTailNumber,

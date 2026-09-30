@@ -69,6 +69,7 @@ import java.time.LocalDate
 import kotlinx.coroutines.launch
 import com.hangarflow.app.R
 import androidx.compose.ui.res.stringResource
+import com.hangarflow.app.util.HFNum
 
 /**
  * What landed, and what still owes a vendor.
@@ -625,4 +626,4 @@ private fun MiniStat(label: String, value: String, accent: Color, modifier: Modi
     }
 }
 
-internal fun money(cents: Long): String = "$" + String.format("%,.2f", cents / 100.0)
+internal fun money(cents: Long): String = HFNum.money(cents)

@@ -147,7 +147,12 @@ fun CreateSquawkSheet(onDismiss: () -> Unit) {
                     reportedByUserId = shopState.currentUser?.id,
                     reportedByUserName = shopState.currentUser?.displayName,
                     photoPaths = uploadedPaths,
-                    sourceDevice = SharedStore.deviceIdentifier()
+                    sourceDevice = SharedStore.deviceIdentifier(),
+                    // Lands on the open job when this aeroplane is in for exactly
+                    // one. Until now every squawk a tech reported from a phone
+                    // stayed loose, so an invoice raised against the job never
+                    // offered it.
+                    workOrderId = SharedStore.openJobForPlane(plane.id)?.id
                 )
                 SharedStore.logAudit("squawk", newSquawkId, "created",
                     "Reported squawk \"${title.trim()}\" on ${plane.tailNumber.uppercase()}")

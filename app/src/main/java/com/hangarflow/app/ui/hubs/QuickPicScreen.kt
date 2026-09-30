@@ -65,6 +65,7 @@ import com.journeyapps.barcodescanner.ScanOptions
 import kotlinx.coroutines.launch
 import com.hangarflow.app.R
 import androidx.compose.ui.res.stringResource
+import com.hangarflow.app.util.HFNum
 
 /**
  * QuickPic — scan a printed Hangar Flow QR label with the phone camera.
@@ -358,7 +359,7 @@ private fun QuickLogServiceSheet(equipmentId: String, currentHours: Double, onDi
                         equipmentId = equipmentId,
                         maintenanceItemId = null,
                         performedAt = performedAt.trim(),
-                        hoursAtService = hours.toDoubleOrNull(),
+                        hoursAtService = HFNum.parseQty(hours),
                         notes = notes
                     )) {
                         SharedStore.CreateResult.Success -> onDismiss()
@@ -515,7 +516,7 @@ private fun QPPrimary(label: String, enabled: Boolean, onClick: () -> Unit) {
 }
 
 private fun fmtHrsQP(v: Double): String =
-    if (v == v.toLong().toDouble()) v.toLong().toString() else String.format("%.1f", v)
+    HFNum.fieldNum(v)
 
 @Composable
 private fun qpFieldColors() = OutlinedTextFieldDefaults.colors(
