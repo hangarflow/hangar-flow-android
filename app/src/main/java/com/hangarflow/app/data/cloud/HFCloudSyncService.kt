@@ -560,11 +560,24 @@ class HFCloudSyncService {
             }
     }
 
+
+    /**
+     * Body text of an AI edge-function response, refusing to pass a quota
+     * refusal off as an answer. Every decoder below uses ignoreUnknownKeys
+     * over a defaulted result type, so a 429 would otherwise decode into an
+     * empty result and the user would see a blank answer with no explanation.
+     */
+    private suspend fun hfAiBody(resp: io.ktor.client.statement.HttpResponse): String {
+        val text = resp.bodyAsText()
+        com.hangarflow.app.data.model.HFAiQuota.throwIfExceeded(resp.status.value, text)
+        return text
+    }
+
     suspend fun aiIdentifyPart(partNumber: String, aircraftType: String?): PartIdentifyResult {
         val body = PartIdentifyRequest(partNumber = partNumber.trim(), aircraftType = aircraftType)
         val resp = client.functions.invoke(function = "part-identify", body = body)
         return kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
-            .decodeFromString(PartIdentifyResult.serializer(), resp.bodyAsText())
+            .decodeFromString(PartIdentifyResult.serializer(), hfAiBody(resp))
     }
 
     // ----------------------------------------------------------------------
@@ -1557,7 +1570,7 @@ class HFCloudSyncService {
                 body = AircraftLookupRequest(tailNumber.trim().uppercase())
             )
             kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
-                .decodeFromString(AircraftLookupResult.serializer(), resp.bodyAsText())
+                .decodeFromString(AircraftLookupResult.serializer(), hfAiBody(resp))
         }.getOrNull()
 
     @kotlinx.serialization.Serializable
@@ -1681,7 +1694,7 @@ class HFCloudSyncService {
         val body = AIPartsSearchRequest(query = query.trim(), planeTail = planeTail, aircraftType = aircraftType)
         val resp = client.functions.invoke(function = "parts-search", body = body)
         return kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
-            .decodeFromString(AIPartsSearchResult.serializer(), resp.bodyAsText())
+            .decodeFromString(AIPartsSearchResult.serializer(), hfAiBody(resp))
     }
 
     // ---------- Squawk → related manuals (squawk-manuals edge function) ----------
@@ -1719,7 +1732,7 @@ class HFCloudSyncService {
             body = SquawkManualsRequest(text = text.trim(), planeTail = planeTail, limit = limit),
         )
         return kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
-            .decodeFromString(SquawkManualsResult.serializer(), resp.bodyAsText())
+            .decodeFromString(SquawkManualsResult.serializer(), hfAiBody(resp))
     }
 
     // ---------- AI parts FIND (parts-find edge function — structured) ----------
@@ -1754,7 +1767,7 @@ class HFCloudSyncService {
             body = AIPartsFindRequest(query.trim(), planeId, planeTail, aircraftType),
         )
         return kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
-            .decodeFromString(AIPartsFindResult.serializer(), resp.bodyAsText())
+            .decodeFromString(AIPartsFindResult.serializer(), hfAiBody(resp))
     }
 
     // ---------- AI organize (organize-worklogs edge function) ----------
@@ -1774,7 +1787,7 @@ class HFCloudSyncService {
             body = OrganizeRequest(worklogId = worklogId, limit = limit),
         )
         return kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
-            .decodeFromString(OrganizeResult.serializer(), resp.bodyAsText()).enriched
+            .decodeFromString(OrganizeResult.serializer(), hfAiBody(resp)).enriched
     }
 
     // ---------- Org AI-indexing toggle (organizations.ai_indexing_enabled) ----------
@@ -1814,7 +1827,7 @@ class HFCloudSyncService {
         val body = AINavigateRequest(query = query.trim(), destinations = destinations)
         val resp = client.functions.invoke(function = "ai-navigate", body = body)
         return kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
-            .decodeFromString(AINavigateResult.serializer(), resp.bodyAsText())
+            .decodeFromString(AINavigateResult.serializer(), hfAiBody(resp))
     }
 
     // ---------- AI clock-out summary (clockout-summary edge function) ----------
@@ -1840,7 +1853,7 @@ class HFCloudSyncService {
         val body = ClockoutSummaryRequest(techName, minutesWorked, workLogs, squawks)
         val resp = client.functions.invoke(function = "clockout-summary", body = body)
         return kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
-            .decodeFromString(ClockoutSummaryResult.serializer(), resp.bodyAsText())
+            .decodeFromString(ClockoutSummaryResult.serializer(), hfAiBody(resp))
     }
 
     // ---------- AI squawk triage (squawk-triage edge function) ----------
@@ -1868,7 +1881,7 @@ class HFCloudSyncService {
         val body = SquawkTriageRequest(title.trim(), notes, category, planeTail, aircraftType)
         val resp = client.functions.invoke(function = "squawk-triage", body = body)
         return kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
-            .decodeFromString(SquawkTriageResult.serializer(), resp.bodyAsText())
+            .decodeFromString(SquawkTriageResult.serializer(), hfAiBody(resp))
     }
 
     // ---------- AI receipt extraction (receipt-extract edge function) ----------
@@ -1891,7 +1904,7 @@ class HFCloudSyncService {
         val body = ReceiptExtractRequest(imageBase64, mediaType)
         val resp = client.functions.invoke(function = "receipt-extract", body = body)
         return kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
-            .decodeFromString(ReceiptExtractResult.serializer(), resp.bodyAsText())
+            .decodeFromString(ReceiptExtractResult.serializer(), hfAiBody(resp))
     }
 
     // ---------- AI hours anomalies (hours-anomalies edge function) ----------
@@ -1918,7 +1931,7 @@ class HFCloudSyncService {
         if (entries.isEmpty()) return emptyList()
         val resp = client.functions.invoke(function = "hours-anomalies", body = HoursAnomaliesRequest(entries))
         return kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
-            .decodeFromString(HoursAnomaliesResult.serializer(), resp.bodyAsText()).flags
+            .decodeFromString(HoursAnomaliesResult.serializer(), hfAiBody(resp)).flags
     }
 
     // ---------- Delete operations ----------

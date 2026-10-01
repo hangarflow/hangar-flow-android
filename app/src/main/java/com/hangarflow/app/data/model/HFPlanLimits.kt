@@ -81,3 +81,41 @@ object HFPlanLimitError {
             "You've reached a limit on your current plan. Upgrade to add more."
     }
 }
+
+/** Raised when an AI edge function answers 429 because the shop is out of AI actions. */
+class HFAiQuotaException(
+    val limit: Int?,
+    val used: Int?,
+    message: String,
+) : Exception(message)
+
+/**
+ * Recognises the quota refusal an AI edge function returns.
+ *
+ * This matters more than it looks. Every AI decoder in the cloud service uses
+ * `ignoreUnknownKeys` over a result type whose fields are defaulted, so the
+ * 429 body — {"error": …, "code": "ai_quota_exceeded"} — decodes perfectly
+ * well into an EMPTY result. Without this check the tech presses Search, waits,
+ * and gets a blank answer with nothing to explain it.
+ */
+object HFAiQuota {
+    @Serializable
+    private data class Body(
+        val error: String? = null,
+        val code: String? = null,
+        val limit: Int? = null,
+        val used: Int? = null,
+    )
+
+    private val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+
+    /** Throws [HFAiQuotaException] when [status]/[body] are a quota refusal. */
+    fun throwIfExceeded(status: Int, body: String) {
+        if (status != 429) return
+        val parsed = runCatching { json.decodeFromString(Body.serializer(), body) }.getOrNull()
+        if (parsed?.code != null && parsed.code != "ai_quota_exceeded") return
+        val msg = parsed?.error?.takeIf { it.isNotBlank() }
+            ?: "This plan's AI actions for the month are used up. Upgrade to Core for unlimited."
+        throw HFAiQuotaException(parsed?.limit, parsed?.used, msg)
+    }
+}

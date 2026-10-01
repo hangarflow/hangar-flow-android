@@ -62,6 +62,7 @@ private enum class OrderUrgency(val raw: String, val label: String, val color: C
 fun FindPartsHub(restrictToPlaneTail: String? = null) {
     val authState by AuthManager.state.collectAsState()
     val shopState by SharedStore.state.collectAsState()
+    val planStatus by SharedStore.planStatus.collectAsState()
     val orgId = authState.orgId
     val context = LocalContext.current
 
@@ -142,7 +143,13 @@ fun FindPartsHub(restrictToPlaneTail: String? = null) {
             aiLoading = true
             runCatching { cloud.aiPartsFind(query, plane?.id, restrictedTail, plane?.aircraftType) }
                 .onSuccess { aiFindResults = it.parts; aiFindNote = it.note; aiFindRan = true }
-                .onFailure { aiError = it.message ?: "AI find failed"; aiFindRan = true }
+                // hfSafeMessage, not it.message: that scrubs request dumps and
+                // presigned URLs, and reports a plan or AI-quota refusal in
+                // words the tech can act on.
+                .onFailure {
+                    aiError = com.hangarflow.app.util.hfSafeMessage(it) ?: "AI find failed"
+                    aiFindRan = true
+                }
             aiLoading = false
         }
         val raw = runCatching {
@@ -307,6 +314,16 @@ fun FindPartsHub(restrictToPlaneTail: String? = null) {
                     .verticalScroll(rememberScrollState())
                     .padding(16.dp)
             ) {
+                // Shown only when the plan caps AI, so Core shops see no meter.
+                planStatus.aiCaption()?.let { cap ->
+                    val out = (planStatus.aiRemaining ?: 1) <= 0
+                    Text(
+                        if (out) "$cap · upgrade to Core for unlimited" else cap,
+                        color = if (out) HFColors.StatusRed else HFColors.OnSurfaceMuted,
+                        fontSize = 12.sp,
+                    )
+                    Spacer(Modifier.size(8.dp))
+                }
                 StructuredPartsFinder(
                     loading = aiLoading,
                     error = aiError,
