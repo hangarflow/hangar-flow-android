@@ -437,7 +437,21 @@ private fun CreatePlaneForm(onDone: () -> Unit) {
 
     ErrorLine(error)
     Spacer(Modifier.size(14.dp))
-    PrimaryButton(label = if (busy) "Saving…" else "Create Plane", enabled = !busy) {
+    // Enforced by a database trigger regardless; this is so a tech learns the
+    // shop is full before filling the form in, not after pressing Create.
+    val planStatus by SharedStore.planStatus.collectAsState()
+    planStatus.planesCaption()?.let { cap ->
+        Text(
+            if (planStatus.canAddPlane) cap else "$cap · upgrade the plan to add another",
+            color = if (planStatus.canAddPlane) HFColors.OnSurfaceMuted else HFColors.StatusRed,
+            fontSize = 12.sp,
+        )
+        Spacer(Modifier.size(6.dp))
+    }
+    PrimaryButton(
+        label = if (busy) "Saving…" else "Create Plane",
+        enabled = !busy && planStatus.canAddPlane,
+    ) {
         busy = true
         error = null
         // Auto-attach recalled (tail-matched) manuals + user ticks + the
@@ -662,7 +676,19 @@ private fun InviteUserForm(onDone: () -> Unit) {
     }
     ErrorLine(error)
     Spacer(Modifier.size(14.dp))
-    PrimaryButton(label = if (busy) "Sending…" else "Send Invite", enabled = !busy) {
+    val seatStatus by SharedStore.planStatus.collectAsState()
+    seatStatus.techsCaption()?.let { cap ->
+        Text(
+            if (seatStatus.canAddTech) cap else "$cap · upgrade the plan to invite another",
+            color = if (seatStatus.canAddTech) HFColors.OnSurfaceMuted else HFColors.StatusRed,
+            fontSize = 12.sp,
+        )
+        Spacer(Modifier.size(6.dp))
+    }
+    PrimaryButton(
+        label = if (busy) "Sending…" else "Send Invite",
+        enabled = !busy && seatStatus.canAddTech,
+    ) {
         busy = true
         error = null
         scope.launch {

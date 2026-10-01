@@ -53,6 +53,26 @@ object SharedStore {
     private val timeEntryService = TimeEntryService()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
+    /** Plan caps + usage. Out of ShopState because that is serialized. */
+    private val _planStatus =
+        MutableStateFlow(com.hangarflow.app.data.model.HFPlanStatus.unlimited)
+    val planStatus: kotlinx.coroutines.flow.StateFlow<com.hangarflow.app.data.model.HFPlanStatus> =
+        _planStatus.asStateFlow()
+
+    /**
+     * Refresh the caps and fold in the counts already held locally, counted the
+     * same way the database triggers count: active profiles, unarchived aircraft.
+     */
+    suspend fun refreshPlanStatus() {
+        val orgId = bootstrappedOrgId ?: return
+        val fetched = cloud.fetchPlanStatus(orgId)
+        val st = _state.value
+        _planStatus.value = fetched.copy(
+            techsUsed = st.users.count { it.isActive },
+            planesUsed = st.planes.count { !it.isArchived },
+        )
+    }
+
     private val _state = MutableStateFlow(ShopState.empty())
     val state: StateFlow<ShopState> = _state.asStateFlow()
 
@@ -2469,6 +2489,8 @@ object SharedStore {
             // just mark the error so Settings can show it. Don't clear.
             _state.update { it.copy(loading = false, error = t.message) }
         }
+        // Caps and usage, after the data they are counted from.
+        runCatching { refreshPlanStatus() }
     }
 
     private fun startRealtime(orgId: String) {

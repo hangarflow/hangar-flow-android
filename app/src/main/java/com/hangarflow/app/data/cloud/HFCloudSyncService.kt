@@ -75,6 +75,44 @@ class HFCloudSyncService {
     suspend fun fetchWorkLogs(orgId: String): List<HFWorkLog> =
         fetchAllByOrg("hf_work_logs", orgId)
 
+    /**
+     * The shop's plan, its caps, and this month's AI usage.
+     *
+     * Returns the unlimited status on any failure: the real enforcement is a
+     * Postgres trigger, so a client that cannot read its limits must not start
+     * refusing work the server would have allowed.
+     */
+    suspend fun fetchPlanStatus(orgId: String): com.hangarflow.app.data.model.HFPlanStatus =
+        runCatching {
+            @kotlinx.serialization.Serializable
+            data class OrgPlanRow(
+                @kotlinx.serialization.SerialName("subscription_plan") val plan: String? = null,
+            )
+            val plan = client.postgrest.from("organizations")
+                .select(io.github.jan.supabase.postgrest.query.Columns.list("subscription_plan")) {
+                    filter { eq("id", orgId) }
+                }
+                .decodeSingleOrNull<OrgPlanRow>()?.plan
+
+            val row = if (plan == null) null else client.postgrest.from("hf_plan_limits")
+                .select { filter { eq("plan", plan) } }
+                .decodeSingleOrNull<com.hangarflow.app.data.model.HFPlanLimitRow>()
+
+            var aiUsed = 0
+            runCatching {
+                val q = client.postgrest.rpc("hf_ai_quota")
+                    .decodeAs<kotlinx.serialization.json.JsonObject>()
+                aiUsed = (q["used"] as? kotlinx.serialization.json.JsonPrimitive)
+                    ?.content?.toIntOrNull() ?: 0
+            }
+
+            com.hangarflow.app.data.model.HFPlanStatus(
+                plan = plan, label = row?.label ?: "",
+                maxTechs = row?.maxTechs, maxPlanes = row?.maxPlanes,
+                maxAiCalls = row?.maxAiCalls, aiUsed = aiUsed,
+            )
+        }.getOrElse { com.hangarflow.app.data.model.HFPlanStatus.unlimited }
+
     suspend fun fetchUserProfiles(orgId: String): List<HFUserProfile> =
         client.postgrest
             .from("hf_user_profiles")

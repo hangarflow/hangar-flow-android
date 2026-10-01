@@ -22,6 +22,12 @@ package com.hangarflow.app.util
  */
 fun hfSafeMessage(t: Throwable?): String? {
     val raw = t?.message?.takeIf { it.isNotBlank() } ?: return null
+
+    // Plan limits first. The trigger raises a check_violation, so any generic
+    // constraint handling downstream would turn a clear, actionable refusal
+    // into something that reads like a bug in the app.
+    com.hangarflow.app.data.model.HFPlanLimitError.friendlyOrNull(raw)
+        ?.let { return it }
     val reason = raw.lineSequence()
         .takeWhile { line ->
             val l = line.trimStart()
