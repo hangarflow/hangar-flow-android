@@ -53,6 +53,13 @@ import kotlinx.coroutines.launch
 import com.hangarflow.app.R
 import androidx.compose.ui.res.stringResource
 import androidx.annotation.StringRes
+import com.hangarflow.app.data.cloud.GuidedRunCloud
+import com.hangarflow.app.data.cloud.GuidedRunStarter
+import com.hangarflow.app.data.cloud.HFGuidedRun
+import com.hangarflow.app.ui.guided.GuidedRunScreen
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import androidx.compose.material3.TextButton
 
 /**
  * Source bubbles for the Work Logs list — slice items by where they
@@ -156,6 +163,15 @@ private fun WorkLogsContent() {
     var sourceFilter by remember { mutableStateOf(WorkLogSource.ALL) }
     var linkingLog by remember { mutableStateOf<HFWorkLog?>(null) }
 
+    // "Walk me through it" — the deck built from this shop's own manuals for
+    // THIS task. A tablet in front of the aeroplane is the device this feature
+    // was imagined for, and the one where Roger can be talked to.
+    var walkingLog by remember { mutableStateOf<HFWorkLog?>(null) }
+    var guidedRun by remember { mutableStateOf<HFGuidedRun?>(null) }
+    var guidedBusy by remember { mutableStateOf(false) }
+    var guidedNote by remember { mutableStateOf<String?>(null) }
+    val guidedScope = rememberCoroutineScope()
+
     // Everything except the source bubble — feeds both the bubble counts
     // and (after the source predicate) the final list, so each bubble can
     // preview how many it WOULD show.
@@ -217,7 +233,43 @@ private fun WorkLogsContent() {
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 items(filtered, key = { it.id }) { log ->
-                    WorkLogCard(log = log, onClick = { linkingLog = log })
+                    WorkLogCard(
+                        log = log,
+                        onClick = { linkingLog = log },
+                        onWalkThrough = {
+                            walkingLog = log
+                            guidedNote = null
+                            guidedScope.launch {
+                                guidedBusy = true
+                                val orgId = AuthManager.state.value.orgId
+                                if (orgId.isNullOrBlank()) {
+                                    guidedBusy = false
+                                    guidedNote = "No shop."
+                                    return@launch
+                                }
+                                val me = SharedStore.state.value.currentUser
+                                val (runId, err) = withContext(Dispatchers.IO) {
+                                    GuidedRunStarter.start(
+                                        orgId = orgId, workLogId = log.id.toString(),
+                                        planeId = log.planeId?.toString(), title = log.title,
+                                        actorId = me?.authUserId, actorName = me?.displayName,
+                                    )
+                                }
+                                // Re-read rather than trusting the insert's
+                                // echo: the deck a mechanic follows should be
+                                // the row the database actually holds.
+                                val fetched = if (runId == null) null else withContext(Dispatchers.IO) {
+                                    runCatching { GuidedRunCloud.fetch(orgId) }
+                                        .getOrDefault(emptyList())
+                                        .firstOrNull { it.id == runId }
+                                }
+                                guidedBusy = false
+                                guidedNote = err
+                                guidedRun = fetched
+                                if (fetched == null) walkingLog = null
+                            }
+                        },
+                    )
                 }
             }
         }
@@ -225,6 +277,36 @@ private fun WorkLogsContent() {
 
     linkingLog?.let { log ->
         WorkLogLinkSheet(log = log, onDismiss = { linkingLog = null })
+    }
+
+    guidedRun?.let { r ->
+        // Full screen rather than a sheet: the mechanic is working from this,
+        // not glancing at it, and a half-height sheet would put the current
+        // step under their thumb.
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = { guidedRun = null; walkingLog = null },
+            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false),
+        ) {
+            GuidedRunScreen(run = r, onClose = { guidedRun = null; walkingLog = null })
+        }
+    }
+
+    // Reported where the tap happened. "Your manuals don't have enough on this
+    // task" is a true and useful answer, not an error to swallow.
+    if (guidedBusy || guidedNote != null) {
+        androidx.compose.material3.Snackbar(
+            modifier = Modifier.padding(12.dp),
+            action = {
+                if (guidedNote != null) {
+                    TextButton(onClick = { guidedNote = null }) { Text("OK") }
+                }
+            },
+        ) {
+            Text(
+                if (guidedBusy) "Reading your manuals…" else (guidedNote ?: ""),
+                fontSize = 13.sp,
+            )
+        }
     }
 }
 
@@ -356,7 +438,11 @@ private fun FilterPill(
 }
 
 @Composable
-private fun WorkLogCard(log: HFWorkLog, onClick: () -> Unit = {}) {
+private fun WorkLogCard(
+    log: HFWorkLog,
+    onClick: () -> Unit = {},
+    onWalkThrough: (() -> Unit)? = null,
+) {
     val status = HFWorkLogStatus.fromRaw(log.status)
     val category = HFWorkCategory.fromRaw(log.category)
     val isPinned = !log.pinnedAt.isNullOrBlank()
@@ -452,6 +538,28 @@ private fun WorkLogCard(log: HFWorkLog, onClick: () -> Unit = {}) {
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold
             )
+        }
+
+        // "Walk me through it" — its own tap target, not the card's. Tapping
+        // the card links a manual reference; this starts the deck, and
+        // conflating the two would make one of them a surprise.
+        onWalkThrough?.let { start ->
+            Spacer(Modifier.size(10.dp))
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(9.dp))
+                    .background(HFColors.StatusCyan.copy(alpha = 0.12f))
+                    .clickable { start() }
+                    .padding(horizontal = 11.dp, vertical = 7.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "Walk me through it",
+                    color = HFColors.StatusCyan,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
         }
     }
 }

@@ -5,6 +5,9 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Roger. Push-to-talk only: the microphone opens while a button is
+         held and closes when it is released, never on a wake word. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <!-- Runtime notification permission (Android 13+). Required before
          we can deliver push notifications from the hangar backend. -->
