@@ -43,6 +43,7 @@ import com.hangarflow.app.ui.theme.HFColors
 import kotlinx.coroutines.launch
 import com.hangarflow.app.R
 import androidx.compose.ui.res.stringResource
+import androidx.compose.material3.OutlinedTextField
 
 /**
  * Admin-only user roster. Lists every user in the org with role badge,
@@ -245,6 +246,15 @@ private fun UserActionsSheet(
             )
             Spacer(Modifier.size(8.dp))
         }
+        // The certificate this person signs maintenance records with. Admin
+        // only, like the role above it — and nobody sets their own anywhere,
+        // because the signing trigger compares what a client sends against
+        // this row, so a self-served number would defeat the whole check.
+        if (auth.isAdmin) {
+            CertificateBlock(user = user, scope = scope)
+            Spacer(Modifier.size(8.dp))
+        }
+
         // Lead techs can delete non-admin members; admins can delete anyone.
         if (canDeleteThis) {
             ActionRow(
@@ -319,5 +329,134 @@ private fun ActionRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(label, color = color, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+
+/**
+ * Set a certificate from a tablet.
+ *
+ * The five kinds are the same list macOS and Windows offer, verbatim.
+ * "A&P/IA" and "Repair Station" are the two strings canSignInspection tests
+ * for, so a variant spelling here would silently stop someone signing an
+ * annual with no error anywhere to explain it.
+ */
+@Composable
+private fun CertificateBlock(
+    user: HFUserProfile,
+    scope: kotlinx.coroutines.CoroutineScope,
+) {
+    var editing by remember(user.id) { mutableStateOf(false) }
+    var number by remember(user.id) { mutableStateOf(user.certNumber.orEmpty()) }
+    var type by remember(user.id) { mutableStateOf(user.certType.orEmpty()) }
+    var expires by remember(user.id) { mutableStateOf(user.certExpiresOn.orEmpty()) }
+    var busy by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+
+    Column(
+        Modifier.fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(HFColors.fill(0.05f))
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                stringResource(R.string.users_certificate),
+                color = HFColors.ink(0.55f), fontSize = 11.sp, fontWeight = FontWeight.Bold,
+            )
+            Spacer(Modifier.weight(1f))
+            if (!editing) {
+                TextButton(onClick = { editing = true }) {
+                    Text(stringResource(R.string.users_edit), color = HFColors.StatusBlue,
+                         fontSize = 12.sp)
+                }
+            }
+        }
+
+        if (!editing) {
+            Text(
+                listOfNotNull(
+                    user.certType?.ifBlank { null },
+                    user.certNumber?.ifBlank { null },
+                ).joinToString(" ").ifBlank { "—" },
+                color = HFColors.OnSurface, fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
+            )
+            if (!user.canSign) {
+                Text(
+                    stringResource(R.string.users_no_cert_cannot_sign),
+                    color = HFColors.StatusOrange, fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+            user.certWarning?.let {
+                Text(it, color = HFColors.StatusOrange, fontSize = 11.sp,
+                     fontWeight = FontWeight.SemiBold)
+            }
+            if (user.canSign && !user.canSignInspection) {
+                Text(
+                    stringResource(R.string.users_cannot_sign_inspection),
+                    color = HFColors.OnSurfaceMuted, fontSize = 11.sp,
+                )
+            }
+        } else {
+            OutlinedTextField(
+                value = number, onValueChange = { number = it },
+                label = { Text(stringResource(R.string.users_cert_number), fontSize = 12.sp) },
+                singleLine = true, modifier = Modifier.fillMaxWidth(),
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                listOf("A&P", "A&P/IA", "Repairman", "Repair Station", "Pilot").forEach { opt ->
+                    val on = type == opt
+                    Box(
+                        Modifier.clip(RoundedCornerShape(7.dp))
+                            .background(if (on) HFColors.StatusBlue else HFColors.fill(0.10f))
+                            .clickable { type = if (on) "" else opt }
+                            .padding(horizontal = 9.dp, vertical = 6.dp),
+                    ) {
+                        Text(
+                            opt, fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
+                            color = if (on) HFColors.OnAccent else HFColors.OnSurface,
+                        )
+                    }
+                }
+            }
+            OutlinedTextField(
+                value = expires, onValueChange = { expires = it },
+                label = { Text(stringResource(R.string.users_cert_expires), fontSize = 12.sp) },
+                singleLine = true, modifier = Modifier.fillMaxWidth(),
+            )
+            error?.let { Text(it, color = HFColors.StatusRed, fontSize = 11.sp) }
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                TextButton(
+                    enabled = !busy,
+                    onClick = {
+                        scope.launch {
+                            busy = true; error = null
+                            val r = SharedStore.updateUserCertificate(
+                                user.id, number, type, expires,
+                            )
+                            busy = false
+                            if (r is SharedStore.CreateResult.Error) error = r.message
+                            else editing = false
+                        }
+                    },
+                ) {
+                    Text(
+                        if (busy) stringResource(R.string.users_saving)
+                        else stringResource(R.string.users_save),
+                        color = HFColors.StatusGreen,
+                    )
+                }
+                TextButton(onClick = {
+                    number = user.certNumber.orEmpty()
+                    type = user.certType.orEmpty()
+                    expires = user.certExpiresOn.orEmpty()
+                    editing = false; error = null
+                }) {
+                    Text(stringResource(R.string.users_cancel), color = HFColors.OnSurfaceMuted)
+                }
+            }
+        }
     }
 }

@@ -1819,6 +1819,23 @@ object SharedStore {
         } catch (t: Throwable) { CreateResult.Error(hfSafeMessage(t) ?: "Couldn't delete user.") }
     }
 
+    suspend fun updateUserCertificate(
+        profileId: String,
+        certNumber: String?,
+        certType: String?,
+        certExpiresOn: String?,
+    ): CreateResult {
+        val orgId = bootstrappedOrgId ?: return CreateResult.Error("No org loaded.")
+        return try {
+            cloud.updateUserCertificate(profileId, certNumber, certType, certExpiresOn)
+            cloud.emitOrgEvent(orgId, deviceId, "user_cert_changed")
+            pullSnapshot(orgId)
+            CreateResult.Success
+        } catch (t: Throwable) {
+            CreateResult.Error(hfSafeMessage(t) ?: "Couldn't save the certificate.")
+        }
+    }
+
     suspend fun updateUserRole(userId: String, newRole: String): CreateResult {
         val orgId = bootstrappedOrgId ?: return CreateResult.Error(HFStrings.get(R.string.err_no_org, fallback = "No org loaded."))
         return try {

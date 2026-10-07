@@ -1980,6 +1980,45 @@ class HFCloudSyncService {
         client.postgrest.from("hf_user_profiles").delete { filter { eq("id", userId) } }
     }
 
+    /**
+     * Set the certificate a person signs maintenance records with.
+     *
+     * 14 CFR 43.9(a)(4) wants the number AND the kind, so both are written
+     * together; an empty string clears the field rather than leaving a half
+     * identity behind. The expiry is optional — plenty of authorisations do
+     * not carry one.
+     *
+     * Nothing anywhere lets a person set their OWN certificate. It is an
+     * admin act, and the signing trigger compares what is sent at signing
+     * time against this row, so a self-served number would defeat the check.
+     */
+    suspend fun updateUserCertificate(
+        profileId: String,
+        certNumber: String?,
+        certType: String?,
+        certExpiresOn: String?,
+    ) {
+        fun blank(v: String?) = v?.trim()?.takeIf { it.isNotEmpty() }
+        val result = client.postgrest.from("hf_user_profiles").update(
+            mapOf(
+                "cert_number" to blank(certNumber),
+                "cert_type" to blank(certType),
+                "cert_expires_on" to blank(certExpiresOn),
+            )
+        ) {
+            filter { eq("id", profileId) }
+            select()
+        }
+        // RLS refuses by matching no rows. A certificate that "saved" and did
+        // not is worse than one that failed loudly: the admin walks away
+        // believing their A&P can sign.
+        if (result.decodeList<kotlinx.serialization.json.JsonObject>().isEmpty()) {
+            throw RuntimeException(
+                "That didn't save — only an admin can set a certificate."
+            )
+        }
+    }
+
     suspend fun updateUserRole(userId: String, newRole: String) {
         client.postgrest.from("hf_user_profiles").update(mapOf("role" to newRole)) {
             filter { eq("id", userId) }

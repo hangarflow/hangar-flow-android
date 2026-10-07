@@ -514,4 +514,13 @@
     <string name="rcv_cancel">Cancel</string>
     <string name="rcv_reject_2">Reject</string>
     <string name="rcv_accept">Accept</string>
+    <string name="users_certificate">CERTIFICATE</string>
+    <string name="users_edit">Edit</string>
+    <string name="users_save">Save</string>
+    <string name="users_saving">Saving…</string>
+    <string name="users_cancel">Cancel</string>
+    <string name="users_cert_number">Certificate number</string>
+    <string name="users_cert_expires">Expires (YYYY-MM-DD, optional)</string>
+    <string name="users_no_cert_cannot_sign">No certificate on file, so this person can\'t sign a logbook entry.</string>
+    <string name="users_cannot_sign_inspection">Can sign maintenance, but not an annual or progressive — that needs an IA or a repair station.</string>
 </resources>
