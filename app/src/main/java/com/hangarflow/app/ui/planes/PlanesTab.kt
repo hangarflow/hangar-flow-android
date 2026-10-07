@@ -83,6 +83,7 @@ fun PlanesTab() {
                     signerName = me?.displayName,
                     signerCertNumber = me?.certNumber,
                     signerCertType = me?.certType,
+                    signerCertWarning = me?.certWarning,
                     onClose = { logbookFor = null },
                 )
             }

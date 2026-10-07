@@ -31,7 +31,15 @@ data class HFUserProfile(
      * typed certificate number is not a signature.
      */
     @SerialName("cert_number") val certNumber: String? = null,
-    @SerialName("cert_type") val certType: String? = null
+    @SerialName("cert_type") val certType: String? = null,
+    /**
+     * When the authorisation lapses. macOS has always edited this and both
+     * Kotlin clients were missing it, so neither could tell a current
+     * certificate from one that expired last year — and an expired
+     * authorisation looks exactly like a valid one until someone checks the
+     * paper.
+     */
+    @SerialName("cert_expires_on") val certExpiresOn: String? = null
 ) {
     /** Signing needs both halves — a number with no kind is not a signature. */
     val canSign: Boolean
@@ -40,4 +48,27 @@ data class HFUserProfile(
     /** An annual or a progressive needs an IA or a repair station. */
     val canSignInspection: Boolean
         get() = canSign && (certType == "A&P/IA" || certType == "Repair Station")
+
+    /**
+     * Nil when there is nothing to worry about; otherwise what to say.
+     *
+     * Deliberately a WARNING and not a block. The certificate on file is a
+     * record of what an admin typed, not the authority itself — refusing a
+     * signature because a date in this app lapsed would stop a mechanic who
+     * renewed last week and simply has not been updated here. The database
+     * decides what may be signed; this tells a human to go and look.
+     */
+    val certWarning: String?
+        get() {
+            val on = certExpiresOn?.takeIf { it.isNotBlank() } ?: return null
+            val exp = runCatching { java.time.LocalDate.parse(on) }.getOrNull() ?: return null
+            val days = java.time.temporal.ChronoUnit.DAYS
+                .between(java.time.LocalDate.now(), exp)
+            return when {
+                days < 0 -> "Authorisation expired ${-days} days ago"
+                days <= 60 -> "Authorisation expires in $days days"
+                else -> null
+            }
+        }
+
 }

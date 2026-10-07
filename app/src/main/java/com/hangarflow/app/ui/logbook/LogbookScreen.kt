@@ -50,6 +50,7 @@ fun LogbookScreen(
     signerName: String?,
     signerCertNumber: String?,
     signerCertType: String?,
+    signerCertWarning: String? = null,
     onClose: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
@@ -122,6 +123,7 @@ fun LogbookScreen(
             canSign = !live.isSigned && !signerCertNumber.isNullOrBlank(),
             signerName = signerName,
             certType = signerCertType,
+            certWarning = signerCertWarning,
             certNumber = signerCertNumber,
             busy = busy,
             onDismiss = { open = null },
@@ -191,6 +193,7 @@ private fun EntrySheet(
     signerName: String?,
     certType: String?,
     certNumber: String?,
+    certWarning: String? = null,
     busy: Boolean,
     onDismiss: () -> Unit,
     onSign: () -> Unit,
@@ -244,6 +247,13 @@ private fun EntrySheet(
                             fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
                             color = HFColors.ink(0.80f),
                         )
+                        // A lapsed authorisation is a WARNING, never a block:
+                        // the date here is what an admin typed, not the
+                        // authority itself.
+                        certWarning?.let {
+                            Text(it, fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
+                                 color = HFColors.StatusOrange)
+                        }
                         if (entry.entryType.needsIA &&
                             certType != "A&P/IA" && certType != "Repair Station"
                         ) {
