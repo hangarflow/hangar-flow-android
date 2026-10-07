@@ -24,6 +24,15 @@ data class HFEquipment(
     val name: String = "",
     @SerialName("equipment_type") val equipmentType: String = "general",
     val location: String = "",
+    /**
+     * Where it LIVES, as a row in hf_shop_locations rather than typed text.
+     *
+     * `location` above is the same thing as free text and is still written, so
+     * a shop that upgrades a phone before a laptop keeps working. This is the
+     * one that stops "BVU", "Boulder" and "boulder city" becoming three
+     * hangars.
+     */
+    @SerialName("home_location_id") val homeLocationId: String? = null,
     val manufacturer: String = "",
     @SerialName("model_number") val modelNumber: String = "",
     @SerialName("serial_number") val serialNumber: String = "",

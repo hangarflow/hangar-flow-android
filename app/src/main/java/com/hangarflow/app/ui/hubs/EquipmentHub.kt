@@ -260,6 +260,19 @@ private fun EquipmentCard(
             )
             DueBadge(severity)
         }
+        // Who has it comes before where it lives. A mechanic hunting a tool
+        // needs the person to go ask; its home shelf only matters once the
+        // tool is actually on it.
+        val custody = SharedStore.state.collectAsState().value.equipmentCustody[eq.id]
+        if (custody?.isOut == true) {
+            Spacer(Modifier.size(6.dp))
+            val stale = com.hangarflow.app.data.cloud.HFCustodyRules.isStale(custody, java.time.Instant.now())
+            Text(
+                com.hangarflow.app.data.cloud.HFCustodyRules.statusLine(custody, java.time.Instant.now()),
+                color = if (stale) HFColors.StatusOrange else HFColors.OnSurface,
+                fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1
+            )
+        }
         Spacer(Modifier.size(6.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (eq.equipmentType.isNotBlank()) {
@@ -327,6 +340,70 @@ private fun InlineTagE(text: String, color: Color) {
 
 // ---------- create/edit sheet ----------
 
+/**
+ * One button, because two is how the record goes stale.
+ *
+ * A "check out" button plus a "check in" button makes the mechanic decide
+ * which verb they are performing while holding a wrench. This reads the
+ * current state and does the only sensible next thing — and when somebody
+ * else has the tool it says so on the button, so taking it is deliberate.
+ */
+@Composable
+private fun CustodyPanel(eq: HFEquipment) {
+    val state by SharedStore.state.collectAsState()
+    val scope = rememberCoroutineScope()
+    var busy by remember(eq.id) { mutableStateOf(false) }
+    var note by remember(eq.id) { mutableStateOf<String?>(null) }
+
+    val meId = state.currentUser?.id ?: ""
+    val custody = state.equipmentCustody[eq.id]
+    val now = java.time.Instant.now()
+    val action = com.hangarflow.app.data.cloud.HFCustodyRules.nextAction(custody, meId)
+    val handoff = com.hangarflow.app.data.cloud.HFCustodyRules.isHandoff(custody, meId)
+    val stale = com.hangarflow.app.data.cloud.HFCustodyRules.isStale(custody, now)
+
+    Column(
+        modifier = Modifier.fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(HFColors.fill(0.04f))
+            .border(1.dp, HFColors.stroke(0.12f), RoundedCornerShape(16.dp))
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            com.hangarflow.app.data.cloud.HFCustodyRules.statusLine(custody, now),
+            color = if (stale) HFColors.StatusOrange else HFColors.OnSurface,
+            fontSize = 15.sp, fontWeight = FontWeight.Bold
+        )
+        if (stale) {
+            // The honest version of the amber: the app does not know, and says
+            // so instead of guessing the tool came back.
+            Text(
+                "Out longer than a shift — nobody has said it came back.",
+                color = HFColors.ink(0.6f), fontSize = 11.sp, fontWeight = FontWeight.Medium
+            )
+        }
+
+        val label = when {
+            handoff -> "Take it from " + (custody?.actorName?.takeIf { it.isNotBlank() } ?: "them")
+            action == com.hangarflow.app.data.cloud.HFCustodyAction.OUT -> "I'm taking it"
+            else -> "Put it back"
+        }
+        SecondaryChip(if (busy) "…" else label) {
+            if (busy) return@SecondaryChip
+            busy = true; note = null
+            scope.launch {
+                note = SharedStore.toggleEquipmentCustody(eq.id)
+                busy = false
+            }
+        }
+
+        note?.let {
+            Text(it, color = HFColors.StatusRed, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EquipmentEditSheet(existing: HFEquipment?, onDismiss: () -> Unit) {
@@ -334,6 +411,7 @@ private fun EquipmentEditSheet(existing: HFEquipment?, onDismiss: () -> Unit) {
     var name by remember { mutableStateOf(existing?.name ?: "") }
     var type by remember { mutableStateOf(existing?.equipmentType?.ifBlank { "General" } ?: "General") }
     var location by remember { mutableStateOf(existing?.location ?: "") }
+    var homeLocationId by remember { mutableStateOf(existing?.homeLocationId) }
     var manufacturer by remember { mutableStateOf(existing?.manufacturer ?: "") }
     var modelNumber by remember { mutableStateOf(existing?.modelNumber ?: "") }
     var serialNumber by remember { mutableStateOf(existing?.serialNumber ?: "") }
@@ -378,7 +456,36 @@ private fun EquipmentEditSheet(existing: HFEquipment?, onDismiss: () -> Unit) {
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                // Free text stays as the fallback: a shop that hasn't defined
+                // its hangars yet must still be able to add a tool. Where the
+                // list exists it is picked from, which is what stops "BVU",
+                // "Boulder" and "boulder city" becoming three hangars.
                 EquipField("Location", location, { location = it }, "Hangar bay", modifier = Modifier.weight(1.4f))
+            }
+            // Pick the hangar from the shop's list when there is one. Typed text
+            // is what turns "BVU", "Boulder" and "boulder city" into three
+            // hangars, so the chips write both the id AND the text — the text
+            // column is what an older client on another device still reads.
+            // The field above stays editable for a shop with no list yet: a
+            // missing list must never block adding a tool.
+            val shopLocations = SharedStore.state.collectAsState().value.shopLocations
+            if (shopLocations.isNotEmpty()) {
+                androidx.compose.foundation.lazy.LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    item {
+                        LocationChip("Unset", homeLocationId == null) {
+                            homeLocationId = null; location = ""
+                        }
+                    }
+                    items(shopLocations.filter { it.isActive }) { loc ->
+                        LocationChip(loc.name, homeLocationId == loc.id) {
+                            homeLocationId = loc.id; location = loc.name
+                        }
+                    }
+                }
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 EquipField("Usage Hours", usageHours, { s -> usageHours = s.filter { it.isDigit() || it == '.' }.take(8) }, "0", KeyboardType.Number, Modifier.weight(1f))
             }
             EquipField("Manufacturer", manufacturer, { manufacturer = it }, "Tronair")
@@ -397,6 +504,7 @@ private fun EquipmentEditSheet(existing: HFEquipment?, onDismiss: () -> Unit) {
                         name = name,
                         equipmentType = type,
                         location = location,
+                        homeLocationId = homeLocationId,
                         manufacturer = manufacturer,
                         modelNumber = modelNumber,
                         serialNumber = serialNumber,
@@ -448,6 +556,9 @@ private fun EquipmentDetailSheet(
                 }
                 SecondaryChip("Edit", onEdit)
             }
+
+            // Where it is, and the single button that changes that.
+            CustodyPanel(equipment)
 
             // Usage hour meter quick-edit.
             UsageHoursRow(equipment)
@@ -785,6 +896,28 @@ private fun ChipPill(label: String, active: Boolean, accent: Color = HFColors.On
             .clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 6.dp)
     ) {
         Text(label, color = fg, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+/** Like [SecondaryChip] but it shows which one is picked. */
+@Composable
+private fun LocationChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier.clip(RoundedCornerShape(10.dp))
+            .background(if (selected) HFColors.fill(0.16f) else HFColors.fill(0.06f))
+            .border(
+                1.dp,
+                if (selected) HFColors.StatusBlue.copy(alpha = 0.55f) else HFColors.stroke(0.16f),
+                RoundedCornerShape(10.dp)
+            )
+            .clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 7.dp)
+    ) {
+        Text(
+            label,
+            color = if (selected) HFColors.OnSurface else HFColors.ink(0.70f),
+            fontSize = 12.sp,
+            fontWeight = FontWeight.SemiBold
+        )
     }
 }
 

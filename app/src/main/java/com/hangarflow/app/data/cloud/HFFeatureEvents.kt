@@ -31,6 +31,7 @@ object HFFeatureEvents {
     private val _partRelease = MutableStateFlow(0L)
     private val _guidedRun = MutableStateFlow(0L)
     private val _troubleshoot = MutableStateFlow(0L)
+    private val _equipmentCustody = MutableStateFlow(0L)
 
     /** Bumps every time another device writes to an aircraft log. */
     val logbook: StateFlow<Long> get() = _logbook
@@ -43,6 +44,15 @@ object HFFeatureEvents {
 
     /** Bumps on a troubleshooting-tree outcome or close-out. */
     val troubleshoot: StateFlow<Long> get() = _troubleshoot
+
+    /**
+     * Bumps when a tool changes hands anywhere in the shop.
+     *
+     * The highest-frequency event of the five and the one that most needs to
+     * be instant: the whole feature is worthless if the mechanic in the other
+     * hangar is looking at who had the wrench an hour ago.
+     */
+    val equipmentCustody: StateFlow<Long> get() = _equipmentCustody
 
     /**
      * Routes one incoming event type.
@@ -58,6 +68,7 @@ object HFFeatureEvents {
             "part_release_changed" -> _partRelease.value += 1
             "guided_run_changed" -> _guidedRun.value += 1
             "troubleshoot_changed" -> _troubleshoot.value += 1
+            "equipment_custody_changed" -> _equipmentCustody.value += 1
             else -> return false
         }
         return true

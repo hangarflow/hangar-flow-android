@@ -600,6 +600,7 @@ class HFCloudSyncService {
         val name: String,
         val equipment_type: String,
         val location: String,
+        val home_location_id: String?,
         val manufacturer: String,
         val model_number: String,
         val serial_number: String,
@@ -619,6 +620,7 @@ class HFCloudSyncService {
     private fun HFEquipment.toRow(rowId: String) = EquipmentRow(
         id = rowId, org_id = orgId, name = name.trim(),
         equipment_type = equipmentType.ifBlank { "general" }, location = location.trim(),
+        home_location_id = homeLocationId,
         manufacturer = manufacturer.trim(), model_number = modelNumber.trim(),
         serial_number = serialNumber.trim(), status = status.ifBlank { "active" },
         photo_paths = photoPaths, doc_paths = docPaths, assigned_owner_id = assignedOwnerId,

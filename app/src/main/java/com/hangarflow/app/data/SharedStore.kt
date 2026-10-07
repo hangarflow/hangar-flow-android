@@ -2107,6 +2107,77 @@ object SharedStore {
     // Org-wide read/write, mirrors the Desktop store ops verbatim.
     // ---------------------------------------------------------------------
 
+    // ---------- Tool custody ----------
+
+    /**
+     * One tap (or one QR scan): take the tool or give it back.
+     *
+     * There is deliberately no separate check-out and check-in. [HFCustodyRules]
+     * decides which it is, including the case that matters most — tapping a
+     * tool somebody else has records a HAND-OFF rather than refusing, because
+     * the person scanning it is holding it.
+     *
+     * Returns null on success, else what to show.
+     */
+    suspend fun toggleEquipmentCustody(
+        equipmentId: String,
+        locationId: String? = null,
+        locationName: String = "",
+        notes: String? = null,
+    ): String? {
+        val orgId = bootstrappedOrgId ?: return "No org loaded."
+        val me = _state.value.currentUser ?: return "Sign in again to move tools."
+        val current = _state.value.equipmentCustody[equipmentId]
+        val action = com.hangarflow.app.data.cloud.HFCustodyRules.nextAction(current, me.id)
+
+        val home = _state.value.equipment.firstOrNull { it.id == equipmentId }
+        val resolvedId = locationId
+            ?: if (action == com.hangarflow.app.data.cloud.HFCustodyAction.IN) home?.homeLocationId else null
+        val resolvedName = locationName.ifBlank {
+            if (action == com.hangarflow.app.data.cloud.HFCustodyAction.IN) (home?.location ?: "") else ""
+        }
+
+        val failure = com.hangarflow.app.data.cloud.EquipmentCustodyCloud.record(
+            orgId = orgId,
+            equipmentId = equipmentId,
+            action = action,
+            actorUserId = me.id,
+            actorName = me.displayName,
+            locationId = resolvedId,
+            locationName = resolvedName,
+            sourceDevice = deviceId,
+            notes = notes,
+        )
+        if (failure != null) return failure
+        refreshEquipmentCustody()
+        return null
+    }
+
+    /**
+     * Re-read custody only.
+     *
+     * What an `equipment_custody_changed` event triggers. One small table
+     * instead of the full snapshot — and this client's snapshot is the slowest
+     * of the four, so it matters most here.
+     */
+    suspend fun refreshEquipmentCustody() {
+        val orgId = bootstrappedOrgId ?: return
+        val fresh = runCatching {
+            com.hangarflow.app.data.cloud.EquipmentCustodyCloud.fetchCurrentCustody(orgId)
+        }.getOrNull() ?: return
+        _state.update { it.copy(equipmentCustody = fresh) }
+    }
+
+    /** Admin-only: add a hangar or bench to the shop's list. */
+    suspend fun addShopLocation(name: String, kind: String = "hangar"): String? {
+        val orgId = bootstrappedOrgId ?: return "No org loaded."
+        val failure = com.hangarflow.app.data.cloud.EquipmentCustodyCloud.createLocation(orgId, name, kind)
+        if (failure != null) return failure
+        val fresh = runCatching { com.hangarflow.app.data.cloud.EquipmentCustodyCloud.fetchLocations(orgId) }.getOrNull()
+        if (fresh != null) _state.update { it.copy(shopLocations = fresh) }
+        return null
+    }
+
     suspend fun saveEquipment(draft: HFEquipment): CreateResult {
         val orgId = bootstrappedOrgId ?: return CreateResult.Error(HFStrings.get(R.string.err_no_org, fallback = "No org loaded."))
         if (draft.name.trim().isBlank()) return CreateResult.Error(HFStrings.get(R.string.err_name_required, fallback = "Name is required."))
@@ -2434,6 +2505,8 @@ object SharedStore {
             val equipmentD = async { runCatching { cloud.fetchEquipment(orgId) }.getOrElse { emptyList() } }
             val equipmentMaintenanceItemsD = async { runCatching { cloud.fetchEquipmentMaintenanceItems(orgId) }.getOrElse { emptyList() } }
             val equipmentServiceLogD = async { runCatching { cloud.fetchEquipmentServiceLog(orgId) }.getOrElse { emptyList() } }
+            val shopLocationsD = async { runCatching { com.hangarflow.app.data.cloud.EquipmentCustodyCloud.fetchLocations(orgId) }.getOrElse { emptyList() } }
+            val equipmentCustodyD = async { runCatching { com.hangarflow.app.data.cloud.EquipmentCustodyCloud.fetchCurrentCustody(orgId) }.getOrElse { emptyMap() } }
             val tasksD = async { runCatching { cloud.fetchTasks(orgId) }.getOrElse { emptyList() } }
             val reimbursementsD = async { runCatching { cloud.fetchReimbursements(orgId) }.getOrElse { emptyList() } }
             val timeOffRequestsD = async { runCatching { cloud.fetchTimeOffRequests(orgId) }.getOrElse { emptyList() } }
@@ -2455,6 +2528,8 @@ object SharedStore {
             val equipment = equipmentD.await()
             val equipmentMaintenanceItems = equipmentMaintenanceItemsD.await()
             val equipmentServiceLog = equipmentServiceLogD.await()
+            val shopLocations = shopLocationsD.await()
+            val equipmentCustody = equipmentCustodyD.await()
             val tasks = tasksD.await()
             val reimbursements = reimbursementsD.await()
             val timeOffRequests = timeOffRequestsD.await()
@@ -2479,6 +2554,8 @@ object SharedStore {
                 equipment = equipment.sortedBy { it.name.lowercase() },
                 equipmentMaintenanceItems = equipmentMaintenanceItems,
                 equipmentServiceLog = equipmentServiceLog,
+                shopLocations = shopLocations,
+                equipmentCustody = equipmentCustody,
                 tasks = tasks.sortedByDescending { it.updatedAt ?: "" },
                 reimbursements = reimbursements.sortedByDescending { it.createdAt ?: "" },
                 timeOffRequests = timeOffRequests.sortedByDescending { it.createdAt ?: "" },
@@ -2524,6 +2601,14 @@ object SharedStore {
                         // later release adds) still owes the eighteen-table
                         // pull — twenty walkthrough steps must not cost twenty
                         // snapshots on every other device in the shop.
+                        // Custody lives in THIS store's state rather than being
+                        // fetched by a screen, so it refreshes here. The counter
+                        // still bumps, for anything watching it directly.
+                        if (ev.eventType == "equipment_custody_changed") {
+                            com.hangarflow.app.data.cloud.HFFeatureEvents.consume(ev.eventType)
+                            refreshEquipmentCustody()
+                            return@collect
+                        }
                         if (com.hangarflow.app.data.cloud.HFFeatureEvents.consume(ev.eventType)) {
                             return@collect
                         }
@@ -2613,6 +2698,14 @@ data class ShopState(
     val equipment: List<com.hangarflow.app.data.model.HFEquipment> = emptyList(),
     val equipmentMaintenanceItems: List<com.hangarflow.app.data.model.HFEquipmentMaintenanceItem> = emptyList(),
     val equipmentServiceLog: List<com.hangarflow.app.data.model.HFEquipmentServiceEntry> = emptyList(),
+    /** The shop's hangars, bays and benches — what a tool's location picks from. */
+    val shopLocations: List<com.hangarflow.app.data.cloud.HFShopLocation> = emptyList(),
+    /**
+     * Who has each tool right now, keyed by equipment id.
+     *
+     * Absent means no custody history, which reads the same as "in the crib".
+     */
+    val equipmentCustody: Map<String, com.hangarflow.app.data.cloud.HFEquipmentCustody> = emptyMap(),
     val tasks: List<HFTask> = emptyList(),
     val reimbursements: List<com.hangarflow.app.data.model.HFReimbursement> = emptyList(),
     val timeOffRequests: List<com.hangarflow.app.data.model.HFTimeOffRequest> = emptyList(),
