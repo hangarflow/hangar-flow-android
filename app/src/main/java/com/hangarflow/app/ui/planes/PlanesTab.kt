@@ -36,18 +36,57 @@ import com.hangarflow.app.data.model.HFPlane
 import com.hangarflow.app.ui.theme.HFColors
 import com.hangarflow.app.R
 import androidx.compose.ui.res.stringResource
+import com.hangarflow.app.auth.AuthManager
+import com.hangarflow.app.ui.logbook.LogbookScreen
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.foundation.clickable
 
 @Composable
 fun PlanesTab() {
     val state by SharedStore.state.collectAsState()
+    val auth by AuthManager.state.collectAsState()
+
+    // The aircraft's permanent record, opened from the aeroplane it belongs to.
+    var logbookFor by remember { mutableStateOf<HFPlane?>(null) }
 
     when {
         state.loading && state.planes.isEmpty() -> LoadingCenter()
         state.planes.isEmpty() -> EmptyPlanes(error = state.error)
-        else -> PlaneList(planes = state.planes, workLogCountByPlane = state.workLogs
-            .groupingBy { it.planeId ?: "" }
-            .eachCount()
+        else -> PlaneList(
+            planes = state.planes,
+            workLogCountByPlane = state.workLogs
+                .groupingBy { it.planeId ?: "" }
+                .eachCount(),
+            onOpenLogbook = { logbookFor = it },
         )
+    }
+
+    logbookFor?.let { plane ->
+        val orgId = auth.orgId
+        val me = state.currentUser
+        if (orgId != null) {
+            androidx.compose.ui.window.Dialog(
+                onDismissRequest = { logbookFor = null },
+                properties = androidx.compose.ui.window.DialogProperties(
+                    usePlatformDefaultWidth = false
+                ),
+            ) {
+                LogbookScreen(
+                    orgId = orgId,
+                    planeId = plane.id,
+                    planeTail = plane.tailNumber,
+                    // The certificate comes from the signer's OWN profile and
+                    // nothing else. There is no field anywhere to type one into.
+                    signerAuthUserId = me?.authUserId,
+                    signerName = me?.displayName,
+                    signerCertNumber = me?.certNumber,
+                    signerCertType = me?.certType,
+                    onClose = { logbookFor = null },
+                )
+            }
+        }
     }
 }
 
@@ -100,7 +139,8 @@ private fun EmptyPlanes(error: String?) {
 @Composable
 private fun PlaneList(
     planes: List<HFPlane>,
-    workLogCountByPlane: Map<String, Int>
+    workLogCountByPlane: Map<String, Int>,
+    onOpenLogbook: (HFPlane) -> Unit = {},
 ) {
     LazyColumn(
         modifier = Modifier
@@ -127,16 +167,18 @@ private fun PlaneList(
             Spacer(Modifier.height(8.dp))
         }
         items(planes, key = { it.id }) { plane ->
-            PlaneCard(
-                plane = plane,
-                workLogCount = workLogCountByPlane[plane.id] ?: 0
-            )
+            PlaneCard(plane = plane, workLogCount = workLogCountByPlane[plane.id] ?: 0
+            , onOpenLogbook = { onOpenLogbook(plane) })
         }
     }
 }
 
 @Composable
-private fun PlaneCard(plane: HFPlane, workLogCount: Int) {
+private fun PlaneCard(
+    plane: HFPlane,
+    workLogCount: Int,
+    onOpenLogbook: (() -> Unit)? = null,
+) {
     val accent = runCatching {
         plane.outlineHex
             ?.removePrefix("#")
@@ -190,5 +232,25 @@ private fun PlaneCard(plane: HFPlane, workLogCount: Int) {
             fontSize = 13.sp,
             fontWeight = FontWeight.SemiBold
         )
+        // Not gated on isAdmin: a logbook is not money, and the people who sign
+        // one are A&Ps rather than administrators.
+        onOpenLogbook?.let { open ->
+            Spacer(Modifier.size(10.dp))
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(HFColors.StatusBlue.copy(alpha = 0.14f))
+                    .clickable { open() }
+                    .padding(horizontal = 9.dp, vertical = 5.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    "Logbook",
+                    color = HFColors.StatusBlue,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+        }
     }
 }

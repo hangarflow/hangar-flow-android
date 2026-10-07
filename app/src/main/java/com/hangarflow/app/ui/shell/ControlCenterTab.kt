@@ -49,6 +49,9 @@ import com.hangarflow.app.ui.hubs.QuickPicScreen
 import com.hangarflow.app.ui.theme.HFColors
 import com.hangarflow.app.R
 import androidx.compose.ui.res.stringResource
+import com.hangarflow.app.data.SharedStore
+import com.hangarflow.app.ui.receiving.ReceivingScreen
+import androidx.compose.material.icons.outlined.FactCheck
 
 /** Control Center tools available on mobile. */
 private enum class CCTool(
@@ -61,7 +64,12 @@ private enum class CCTool(
     QuickPic("QuickPic", "Scan or print QR labels for parts & equipment", Icons.Outlined.QrCodeScanner, HFColors.StatusBlue),
     // Admin-only. RLS on hf_part_movements is admin-only for every verb, so
     // hiding the tile and restricting the data agree.
-    PartsInOut("Parts In & Out", "Receiving, cores due back, out for overhaul", Icons.Outlined.LocalShipping, HFColors.StatusOrange)
+    PartsInOut("Parts In & Out", "Receiving, cores due back, out for overhaul", Icons.Outlined.LocalShipping, HFColors.StatusOrange),
+
+    // 14 CFR 43.13: a mechanic determines a part is acceptable BEFORE it goes
+    // on the aeroplane, and the determination is theirs. The part is in their
+    // hands at the bench, so the accept/reject call belongs on the tablet.
+    Receiving("Receiving", "The paperwork a part arrived on — accept or reject", Icons.Outlined.FactCheck, HFColors.StatusCyan)
 }
 
 /** Tools a tech never sees. RLS enforces the same boundary server-side. */
@@ -92,6 +100,21 @@ fun ControlCenterTab() {
             CCTool.Equipment -> ToolFrame("Equipment", onBack = { active = null }) { EquipmentHub() }
             CCTool.QuickPic -> ToolFrame("QuickPic", onBack = { active = null }) { QuickPicScreen() }
             CCTool.PartsInOut -> ToolFrame("Parts In & Out", onBack = { active = null }) { PartsInOutHub() }
+            CCTool.Receiving -> ToolFrame("Receiving", onBack = { active = null }) {
+                val auth = AuthManager.state.value
+                val me = SharedStore.state.value.currentUser
+                val orgId = auth.orgId
+                if (orgId.isNullOrBlank()) {
+                    Text("No shop.", color = HFColors.OnSurfaceMuted)
+                } else {
+                    ReceivingScreen(
+                        orgId = orgId,
+                        actorId = me?.authUserId,
+                        actorName = me?.displayName,
+                        onClose = { active = null },
+                    )
+                }
+            }
         }
     }
 }

@@ -61,6 +61,14 @@ import androidx.compose.ui.platform.LocalContext
 import kotlin.math.roundToInt
 import com.hangarflow.app.R
 import androidx.compose.ui.res.stringResource
+import com.hangarflow.app.auth.AuthManager
+import com.hangarflow.app.data.cloud.HFTroubleshootRun
+import com.hangarflow.app.data.cloud.TroubleshootCloud
+import com.hangarflow.app.ui.guided.TroubleshootScreen
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 /**
  * Squawks hub. Lists every open squawk with its plane tail, title,
@@ -72,6 +80,14 @@ import androidx.compose.ui.res.stringResource
 fun SquawksHub() {
     var showCreate by remember { mutableStateOf(false) }
     var editingSquawk by remember { mutableStateOf<HFSquawk?>(null) }
+
+    // A squawk is a SYMPTOM, which is exactly what a troubleshooting table is
+    // indexed by — so the complaint, already here in the crew's own words, is
+    // where chasing the fault starts.
+    var troubleshootRun by remember { mutableStateOf<HFTroubleshootRun?>(null) }
+    var troubleshootBusy by remember { mutableStateOf(false) }
+    var troubleshootNote by remember { mutableStateOf<String?>(null) }
+    val tsScope = rememberCoroutineScope()
     // Full-screen photo viewer state.
     var viewingPhotoPaths by remember { mutableStateOf<List<String>?>(null) }
     var viewingPhotoIndex by remember { mutableStateOf(0) }
@@ -88,6 +104,27 @@ fun SquawksHub() {
         CreateSquawkSheet(onDismiss = { showCreate = false })
         return
     }
+    troubleshootRun?.let { r ->
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = { troubleshootRun = null },
+            properties = androidx.compose.ui.window.DialogProperties(
+                usePlatformDefaultWidth = false
+            ),
+        ) {
+            TroubleshootScreen(run = r, onClose = { troubleshootRun = null })
+        }
+    }
+
+    troubleshootNote?.let { msg ->
+        AlertDialog(
+            onDismissRequest = { troubleshootNote = null },
+            confirmButton = {
+                TextButton(onClick = { troubleshootNote = null }) { Text("OK") }
+            },
+            text = { Text(msg) },
+        )
+    }
+
     editingSquawk?.let { sq ->
         // Re-resolve against live state so the sheet reflects the latest
         // corrective-action stamp after a save round-trip.
@@ -99,6 +136,31 @@ fun SquawksHub() {
         SquawksHubContent(
             onOpenCreate = { showCreate = true },
             onOpenEdit = { editingSquawk = it },
+            onTroubleshoot = { sq ->
+                tsScope.launch {
+                    troubleshootBusy = true
+                    val orgId = AuthManager.state.value.orgId
+                    if (orgId.isNullOrBlank()) {
+                        troubleshootBusy = false
+                        troubleshootNote = "No shop."
+                        return@launch
+                    }
+                    // Reuse an open run for this squawk rather than starting a
+                    // second one: what was already ruled out is the whole value
+                    // of the record, and a fresh run would discard it.
+                    val existing = withContext(Dispatchers.IO) {
+                        runCatching { TroubleshootCloud.fetch(orgId) }
+                            .getOrDefault(emptyList())
+                            .firstOrNull { it.squawkId == sq.id && !it.isClosed }
+                    }
+                    troubleshootBusy = false
+                    if (existing != null) troubleshootRun = existing
+                    else troubleshootNote =
+                        "Start the fault chase on the desktop — it reads the manual's " +
+                            "troubleshooting table, and that import lives there. " +
+                            "Once it exists you can work it here."
+                }
+            },
             onOpenPhoto = { paths, index ->
                 viewingPhotoPaths = paths
                 viewingPhotoIndex = index
@@ -112,6 +174,7 @@ fun SquawksHub() {
 private fun SquawksHubContent(
     onOpenCreate: () -> Unit,
     onOpenEdit: (HFSquawk) -> Unit,
+    onTroubleshoot: (HFSquawk) -> Unit = {},
     onOpenPhoto: (paths: List<String>, index: Int) -> Unit
 ) {
     val state by SharedStore.state.collectAsState()
@@ -218,6 +281,7 @@ private fun SquawksHubContent(
                         squawk = squawk,
                         onTapStatus = { statusSheetFor = squawk },
                         onEdit = { onOpenEdit(squawk) },
+                        onTroubleshoot = { onTroubleshoot(squawk) },
                         onDelete = { deleteConfirmFor = squawk },
                         onOpenPhoto = onOpenPhoto
                     )
@@ -420,6 +484,7 @@ private fun SquawkCard(
     squawk: HFSquawk,
     onTapStatus: () -> Unit,
     onEdit: () -> Unit,
+    onTroubleshoot: () -> Unit = {},
     onDelete: () -> Unit,
     onOpenPhoto: (paths: List<String>, index: Int) -> Unit
 ) {
@@ -446,6 +511,18 @@ private fun SquawkCard(
                 modifier = Modifier.weight(1f)
             )
             Spacer(Modifier.width(8.dp))
+            // A squawk is a symptom, and a troubleshooting table is indexed by
+            // symptom. This is the natural place to start chasing it.
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable(onClick = onTroubleshoot)
+                    .padding(horizontal = 6.dp, vertical = 2.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Troubleshoot", color = HFColors.StatusCyan, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            }
+            Spacer(Modifier.width(2.dp))
             // Full edit — title/plane/category/notes/corrective action.
             Box(
                 modifier = Modifier
