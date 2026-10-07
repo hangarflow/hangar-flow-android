@@ -293,7 +293,7 @@ object PartReleaseCloud {
             if (touched.isEmpty())
                 "That release didn't save. You may not have permission to record parts for " +
                     "this shop."
-            else null
+            else { hfAnnounce("part_release_changed"); null }
         } catch (t: Throwable) {
             t.message?.take(240) ?: "Unknown error"
         }
@@ -330,7 +330,7 @@ object PartReleaseCloud {
             ) { select(); filter { eq("id", r.id) } }.decodeList<IdRow>()
             if (touched.isEmpty())
                 "Nothing was accepted — that release is no longer on file. Refresh and check it."
-            else null
+            else { hfAnnounce("part_release_changed"); null }
         } catch (t: Throwable) {
             t.message?.take(240) ?: "Unknown error"
         }
@@ -358,7 +358,7 @@ object PartReleaseCloud {
             ) { select(); filter { eq("id", r.id) } }.decodeList<IdRow>()
             if (touched.isEmpty())
                 "Nothing was rejected — that release is no longer on file. Refresh and check it."
-            else null
+            else { hfAnnounce("part_release_changed"); null }
         } catch (t: Throwable) {
             t.message?.take(240) ?: "Unknown error"
         }
@@ -373,7 +373,7 @@ object PartReleaseCloud {
             }.decodeList<IdRow>()
             if (touched.isEmpty())
                 "That release wasn't deleted — it may already be accepted, or you can't remove it."
-            else null
+            else { hfAnnounce("part_release_changed"); null }
         } catch (t: Throwable) {
             t.message?.take(240) ?: "Unknown error"
         }

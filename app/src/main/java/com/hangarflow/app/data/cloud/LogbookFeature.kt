@@ -1,6 +1,7 @@
 package com.hangarflow.app.data.cloud
 
 import io.github.jan.supabase.postgrest.postgrest
+import kotlinx.coroutines.launch
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -330,7 +331,7 @@ object LogbookCloud {
         ) { select() }.decodeList<IdOnly>()
         if (touched.isEmpty())
             "That entry didn't save. You may not have permission to write to this aircraft's log."
-        else null
+        else { hfAnnounce("logbook_changed"); null }
     } catch (t: Throwable) {
         message(t)
     }
@@ -377,7 +378,7 @@ object LogbookCloud {
             // case, where the row simply was not there.
             if (touched.isEmpty())
                 "Nothing was signed — this entry is no longer in the log. Refresh and check it."
-            else null
+            else { hfAnnounce("logbook_changed"); null }
         } catch (t: Throwable) {
             message(t)
         }
@@ -399,7 +400,7 @@ object LogbookCloud {
             }.decodeList<IdOnly>()
             if (touched.isEmpty())
                 "That entry wasn't voided — it is no longer in the log, or you can't write to it."
-            else null
+            else { hfAnnounce("logbook_changed"); null }
         } catch (t: Throwable) {
             message(t)
         }
@@ -418,7 +419,7 @@ object LogbookCloud {
             }.decodeList<IdOnly>()
             if (touched.isEmpty())
                 "That draft wasn't deleted — only a lead or an admin can remove one."
-            else null
+            else { hfAnnounce("logbook_changed"); null }
         } catch (t: Throwable) {
             message(t)
         }
@@ -441,6 +442,32 @@ object LogbookCloud {
                 "This job still has blockers that must be cleared before anything can be " +
                     "returned to service."
             else -> raw.take(240)
+        }
+    }
+}
+
+/**
+ * Tell the other devices in the shop that something here changed.
+ *
+ * Typed on purpose. The listener routes a known type to ONE store's refresh; an
+ * unknown type falls back to a full snapshot pull — eighteen tables — which is
+ * exactly what this exists to avoid. A mechanic ticking twenty walkthrough
+ * steps should cost twenty small refreshes on the other devices, not twenty
+ * snapshots.
+ *
+ * The org is read here rather than threaded through every call: these stores
+ * work on one shop at a time and plumbing it through a dozen signatures would
+ * add nothing but places to get it wrong.
+ *
+ * Fire-and-forget: a dropped notification costs a stale screen until the next
+ * refresh, while awaiting it would make every save slower for everybody.
+ */
+internal fun hfAnnounce(eventType: String) {
+    val orgId = com.hangarflow.app.auth.AuthManager.state.value.orgId ?: return
+    kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+        runCatching {
+            HFCloudSyncService()
+                .emitOrgEvent(orgId, com.hangarflow.app.data.SharedStore.deviceIdentifier(), eventType)
         }
     }
 }

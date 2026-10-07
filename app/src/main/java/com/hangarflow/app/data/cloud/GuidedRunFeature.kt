@@ -157,7 +157,7 @@ object GuidedRunCloud {
             ) { select(); filter { eq("id", run.id) } }.decodeList<RunIdRow>()
             if (touched.isEmpty())
                 "That step didn't save — this walkthrough is no longer on file. Start it again."
-            else null
+            else { hfAnnounce("guided_run_changed"); null }
         } catch (t: Throwable) {
             t.message?.take(240) ?: "Unknown error"
         }
@@ -171,7 +171,7 @@ object GuidedRunCloud {
             select(); filter { eq("id", run.id) }
         }.decodeList<RunIdRow>()
         if (touched.isEmpty()) "That walkthrough wasn't closed out. Refresh and try again."
-        else null
+        else { hfAnnounce("guided_run_changed"); null }
     } catch (t: Throwable) {
         t.message?.take(240) ?: "Unknown error"
     }
@@ -317,7 +317,7 @@ object TroubleshootCloud {
             if (touched.isEmpty())
                 "That didn't save — this troubleshooting record is no longer on file. " +
                     "Start it again."
-            else null
+            else { hfAnnounce("troubleshoot_changed"); null }
         } catch (t: Throwable) {
             t.message?.take(240) ?: "Unknown error"
         }
@@ -339,7 +339,7 @@ object TroubleshootCloud {
                 ClosePatch(nowIso, why)
             ) { select(); filter { eq("id", run.id) } }.decodeList<RunIdRow>()
             if (touched.isEmpty()) "That didn't save — the record is no longer on file."
-            else null
+            else { hfAnnounce("troubleshoot_changed"); null }
         } catch (t: Throwable) {
             t.message?.take(240) ?: "Unknown error"
         }

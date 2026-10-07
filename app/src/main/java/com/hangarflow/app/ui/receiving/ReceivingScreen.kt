@@ -58,7 +58,11 @@ fun ReceivingScreen(orgId: String, actorId: String?, actorName: String?, onClose
         }
         loading = false
     }
-    LaunchedEffect(orgId) { reload() }
+    // Re-fetch when another device records or accepts a part. The counter only moves on a
+    // realtime event, and only a mounted screen is listening, so an
+    // unopened list costs nothing.
+    val releaseRev by com.hangarflow.app.data.cloud.HFFeatureEvents.partRelease.collectAsState()
+    LaunchedEffect(orgId, releaseRev) { reload() }
 
     Column(Modifier.fillMaxSize().background(HFColors.Background)) {
         Row(

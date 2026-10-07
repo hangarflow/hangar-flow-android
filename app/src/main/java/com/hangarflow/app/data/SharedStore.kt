@@ -2516,8 +2516,17 @@ object SharedStore {
             var retryDelay = 5000L
             while (true) {
                 try {
-                    cloud.orgEventFlow(orgId, ownDevice = deviceId).collect {
+                    cloud.orgEventFlow(orgId, ownDevice = deviceId).collect { ev ->
                         retryDelay = 5000L
+                        // A feature-scoped event touches one thing, so it bumps
+                        // one counter and the open screen refetches. Only an
+                        // unrecognised type (a snapshot push, or anything a
+                        // later release adds) still owes the eighteen-table
+                        // pull — twenty walkthrough steps must not cost twenty
+                        // snapshots on every other device in the shop.
+                        if (com.hangarflow.app.data.cloud.HFFeatureEvents.consume(ev.eventType)) {
+                            return@collect
+                        }
                         pullSnapshot(orgId)
                     }
                 } catch (_: Throwable) {

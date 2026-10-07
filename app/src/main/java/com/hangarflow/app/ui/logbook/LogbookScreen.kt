@@ -67,7 +67,11 @@ fun LogbookScreen(
         loading = false
     }
 
-    LaunchedEffect(planeId) { reload() }
+    // Re-fetch when another device writes to this aircraft's log. The counter only moves on a
+    // realtime event, and only a mounted screen is listening, so an
+    // unopened list costs nothing.
+    val logbookRev by com.hangarflow.app.data.cloud.HFFeatureEvents.logbook.collectAsState()
+    LaunchedEffect(planeId, logbookRev) { reload() }
 
     Column(Modifier.fillMaxSize().background(HFColors.Background)) {
         Row(
