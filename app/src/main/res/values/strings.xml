@@ -474,4 +474,44 @@
     <string name="appearance_system">System</string>
     <string name="appearance_light">Light</string>
     <string name="appearance_dark">Dark</string>
+
+    <!-- Logbook, receiving, walkthrough and fault tree. Added when those
+         screens reached Android; translations land as they are done, and
+         until then Android falls back to these. -->
+    <string name="guided_close">Close</string>
+    <string name="guided_the_manual_s_own_words">THE MANUAL\'S OWN WORDS</string>
+    <string name="guided_this_extract_is_cut_short_open_the_page_befo">This extract is cut short — open the page before you rely on it.</string>
+    <string name="guided_your_manuals_don_t_cover">YOUR MANUALS DON\'T COVER</string>
+    <string name="ts_troubleshoot">Troubleshoot</string>
+    <string name="ts_close">Close</string>
+    <string name="ts_your_manuals_don_t_cover">Your manuals don\'t cover</string>
+    <string name="ts_what_did_you_find_optional">What did you find? (optional)</string>
+    <string name="ts_not_it">Not it</string>
+    <string name="ts_that_was_it">That was it</string>
+    <string name="ts_undo">Undo</string>
+    <string name="ts_fault_found">Fault found</string>
+    <string name="ts_the_repair_itself_is_a_procedure_open_the_wo">The repair itself is a procedure — open the work log for it and use Walk me through it.</string>
+    <string name="ts_for_the_logbook_and_the_next_mechanic">FOR THE LOGBOOK AND THE NEXT MECHANIC</string>
+    <string name="ts_stop_without_finding_it">Stop without finding it</string>
+    <string name="ts_why_are_you_stopping">Why are you stopping?</string>
+    <string name="ts_out_of_time_waiting_on_a_part_needs_the_oem">Out of time, waiting on a part, needs the OEM…</string>
+    <string name="ts_stop_and_record">Stop and record</string>
+    <string name="ts_cancel">Cancel</string>
+    <string name="lb_logbook">Logbook</string>
+    <string name="lb_close">Close</string>
+    <string name="lb_an_entry_records_a_discrepancy_and_what_was">An entry records a discrepancy and what was done about it, and is signed by the person whose certificate covers the work. Entries are written on the desktop.</string>
+    <string name="lb_close_2">Close</string>
+    <string name="lb_not_yet">Not yet</string>
+    <string name="lb_discrepancy">DISCREPANCY</string>
+    <string name="lb_corrective_action">CORRECTIVE ACTION</string>
+    <string name="lb_an_annual_or_progressive_must_be_signed_by_a">An annual or progressive must be signed by an IA or a repair station. You hold %1$s.</string>
+    <string name="lb_you_have_no_certificate_on_file_so_you_can_r">You have no certificate on file, so you can read this draft but not sign it. An admin adds it under Users.</string>
+    <string name="lb_signing_writes_this_into_the_aircraft_s_perm">Signing writes this into the aircraft\'s permanent record. 14 CFR 43.12 makes a false entry a certificate action.</string>
+    <string name="rcv_receiving">Receiving</string>
+    <string name="rcv_close">Close</string>
+    <string name="rcv_why_it_s_going_back">Why it\'s going back</string>
+    <string name="rcv_reject">Reject</string>
+    <string name="rcv_cancel">Cancel</string>
+    <string name="rcv_reject_2">Reject</string>
+    <string name="rcv_accept">Accept</string>
 </resources>

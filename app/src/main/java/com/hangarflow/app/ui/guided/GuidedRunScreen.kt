@@ -40,6 +40,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.Instant
+import androidx.compose.ui.res.stringResource
+import com.hangarflow.app.R
 
 /**
  * The walkthrough on a tablet, which is the device this feature was imagined
@@ -230,7 +232,7 @@ private fun Header(run: HFGuidedRun, onClose: () -> Unit) {
                     fontSize = 12.sp, color = HFColors.OnSurfaceMuted,
                 )
             }
-            TextButton(onClick = onClose) { Text("Close", color = HFColors.OnSurfaceMuted) }
+            TextButton(onClick = onClose) { Text(stringResource(R.string.guided_close), color = HFColors.OnSurfaceMuted) }
         }
         LinearProgressIndicator(
             progress = { run.progress.toFloat() },
@@ -362,13 +364,13 @@ private fun StepCard(
                             .background(HFColors.fill(0.05f)).padding(10.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
-                        Text("THE MANUAL'S OWN WORDS", fontSize = 9.sp,
+                        Text(stringResource(R.string.guided_the_manual_s_own_words), fontSize = 9.sp,
                             fontWeight = FontWeight.Bold, color = HFColors.ink(0.45f))
                         Text(extract, fontSize = 12.sp, color = HFColors.OnSurfaceMuted)
                         if (step.extract_truncated == true) {
                             // Said out loud rather than left to be discovered.
                             Text(
-                                "This extract is cut short — open the page before you rely on it.",
+                                stringResource(R.string.guided_this_extract_is_cut_short_open_the_page_befo),
                                 fontSize = 11.sp, fontWeight = FontWeight.Medium,
                                 color = HFColors.StatusOrange,
                             )
@@ -387,7 +389,7 @@ private fun GapsPanel(gaps: List<String>) {
             .background(HFColors.StatusOrange.copy(alpha = 0.08f)).padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(5.dp),
     ) {
-        Text("YOUR MANUALS DON'T COVER", fontSize = 10.sp, fontWeight = FontWeight.Bold,
+        Text(stringResource(R.string.guided_your_manuals_don_t_cover), fontSize = 10.sp, fontWeight = FontWeight.Bold,
             color = HFColors.StatusOrange)
         gaps.forEach { Text("· $it", fontSize = 12.sp, color = HFColors.OnSurface) }
     }

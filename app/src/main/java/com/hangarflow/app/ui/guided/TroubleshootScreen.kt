@@ -30,6 +30,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.Instant
+import androidx.compose.ui.res.stringResource
+import com.hangarflow.app.R
 
 /**
  * Chasing a fault, on Android.
@@ -91,7 +93,7 @@ fun TroubleshootScreen(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {
-                Text("Troubleshoot", fontSize = 17.sp, fontWeight = FontWeight.Bold,
+                Text(stringResource(R.string.ts_troubleshoot), fontSize = 17.sp, fontWeight = FontWeight.Bold,
                     color = HFColors.OnSurface)
                 Text(live.symptom, fontSize = 12.sp, color = HFColors.OnSurfaceMuted, maxLines = 2)
             }
@@ -99,7 +101,7 @@ fun TroubleshootScreen(
                 "${live.ruledOut}/${live.causes.size}",
                 fontSize = 13.sp, fontWeight = FontWeight.Bold, color = HFColors.StatusCyan,
             )
-            TextButton(onClick = onClose) { Text("Close", color = HFColors.OnSurfaceMuted) }
+            TextButton(onClick = onClose) { Text(stringResource(R.string.ts_close), color = HFColors.OnSurfaceMuted) }
         }
         Divider(color = HFColors.fill(0.10f))
 
@@ -181,7 +183,7 @@ private fun Banner(run: HFTroubleshootRun) {
             }
         }
         if (run.gaps.isNotEmpty()) {
-            Text("Your manuals don't cover", fontSize = 11.sp,
+            Text(stringResource(R.string.ts_your_manuals_don_t_cover), fontSize = 11.sp,
                 fontWeight = FontWeight.Bold, color = HFColors.StatusOrange)
             run.gaps.forEach {
                 Text("· $it", fontSize = 11.sp, color = HFColors.OnSurfaceMuted)
@@ -277,7 +279,7 @@ private fun CauseCard(
             OutlinedTextField(
                 value = draft,
                 onValueChange = onDraft,
-                placeholder = { Text("What did you find? (optional)", fontSize = 12.sp) },
+                placeholder = { Text(stringResource(R.string.ts_what_did_you_find_optional), fontSize = 12.sp) },
                 textStyle = androidx.compose.ui.text.TextStyle(fontSize = 13.sp),
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
@@ -289,7 +291,7 @@ private fun CauseCard(
                         .clickable(enabled = enabled) { onMark(HFCauseOutcome.RULED_OUT) }
                         .padding(vertical = 12.dp),
                     contentAlignment = Alignment.Center,
-                ) { Text("Not it", fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+                ) { Text(stringResource(R.string.ts_not_it), fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
                         color = HFColors.OnSurface) }
                 Box(
                     Modifier.weight(1f).clip(RoundedCornerShape(11.dp))
@@ -297,12 +299,12 @@ private fun CauseCard(
                         .clickable(enabled = enabled) { onMark(HFCauseOutcome.CONFIRMED) }
                         .padding(vertical = 12.dp),
                     contentAlignment = Alignment.Center,
-                ) { Text("That was it", fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+                ) { Text(stringResource(R.string.ts_that_was_it), fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
                         color = HFColors.OnAccent) }
             }
         } else if (state != HFCauseOutcome.UNTESTED && !closed) {
             TextButton(onClick = { onMark(HFCauseOutcome.UNTESTED) }) {
-                Text("Undo", fontSize = 12.sp, color = HFColors.ink(0.55f))
+                Text(stringResource(R.string.ts_undo), fontSize = 12.sp, color = HFColors.ink(0.55f))
             }
         }
     }
@@ -319,14 +321,13 @@ private fun FoundPanel(hit: HFTroubleCause) {
             Icon(Icons.Outlined.CheckCircle, null, tint = HFColors.StatusGreen,
                 modifier = Modifier.size(19.dp))
             Spacer(Modifier.width(8.dp))
-            Text("Fault found", fontSize = 16.sp, fontWeight = FontWeight.Bold,
+            Text(stringResource(R.string.ts_fault_found), fontSize = 16.sp, fontWeight = FontWeight.Bold,
                 color = HFColors.StatusGreen)
         }
         Text(hit.cause, fontSize = 13.sp, fontWeight = FontWeight.Medium,
             color = HFColors.ink(0.85f))
         Text(
-            "The repair itself is a procedure — open the work log for it and use " +
-                "Walk me through it.",
+            stringResource(R.string.ts_the_repair_itself_is_a_procedure_open_the_wo),
             fontSize = 12.sp, color = HFColors.ink(0.60f),
         )
     }
@@ -339,7 +340,7 @@ private fun SummaryPanel(summary: String) {
             .background(HFColors.StatusBlue.copy(alpha = 0.08f)).padding(13.dp),
         verticalArrangement = Arrangement.spacedBy(5.dp),
     ) {
-        Text("FOR THE LOGBOOK AND THE NEXT MECHANIC", fontSize = 10.sp,
+        Text(stringResource(R.string.ts_for_the_logbook_and_the_next_mechanic), fontSize = 10.sp,
             fontWeight = FontWeight.Bold, color = HFColors.ink(0.45f))
         Text(summary, fontSize = 12.sp, color = HFColors.ink(0.85f))
     }
@@ -357,7 +358,7 @@ private fun StopBlock(
 ) {
     if (!stopping) {
         TextButton(onClick = onBegin) {
-            Text("Stop without finding it", fontSize = 12.sp, color = HFColors.ink(0.55f))
+            Text(stringResource(R.string.ts_stop_without_finding_it), fontSize = 12.sp, color = HFColors.ink(0.55f))
         }
         return
     }
@@ -366,13 +367,13 @@ private fun StopBlock(
             .background(HFColors.fill(0.04f)).padding(13.dp),
         verticalArrangement = Arrangement.spacedBy(9.dp),
     ) {
-        Text("Why are you stopping?", fontSize = 12.sp, fontWeight = FontWeight.Bold,
+        Text(stringResource(R.string.ts_why_are_you_stopping), fontSize = 12.sp, fontWeight = FontWeight.Bold,
             color = HFColors.ink(0.60f))
         OutlinedTextField(
             value = reason,
             onValueChange = onReason,
             placeholder = {
-                Text("Out of time, waiting on a part, needs the OEM…", fontSize = 12.sp)
+                Text(stringResource(R.string.ts_out_of_time_waiting_on_a_part_needs_the_oem), fontSize = 12.sp)
             },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
@@ -384,10 +385,10 @@ private fun StopBlock(
                     .clickable(enabled = !busy) { onStop() }
                     .padding(vertical = 12.dp),
                 contentAlignment = Alignment.Center,
-            ) { Text("Stop and record", fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+            ) { Text(stringResource(R.string.ts_stop_and_record), fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
                     color = HFColors.OnAccent) }
             TextButton(onClick = onCancel) {
-                Text("Cancel", color = HFColors.ink(0.60f))
+                Text(stringResource(R.string.ts_cancel), color = HFColors.ink(0.60f))
             }
         }
     }

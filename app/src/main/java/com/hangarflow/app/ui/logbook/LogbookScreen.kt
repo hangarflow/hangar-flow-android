@@ -24,6 +24,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.Instant
+import androidx.compose.ui.res.stringResource
+import com.hangarflow.app.R
 
 /**
  * The aircraft's permanent record, on Android.
@@ -72,11 +74,11 @@ fun LogbookScreen(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {
-                Text("Logbook", fontSize = 17.sp, fontWeight = FontWeight.Bold,
+                Text(stringResource(R.string.lb_logbook), fontSize = 17.sp, fontWeight = FontWeight.Bold,
                     color = HFColors.OnSurface)
                 Text(planeTail.uppercase(), fontSize = 12.sp, color = HFColors.OnSurfaceMuted)
             }
-            TextButton(onClick = onClose) { Text("Close", color = HFColors.OnSurfaceMuted) }
+            TextButton(onClick = onClose) { Text(stringResource(R.string.lb_close), color = HFColors.OnSurfaceMuted) }
         }
         Divider(color = HFColors.fill(0.10f))
 
@@ -98,9 +100,7 @@ fun LogbookScreen(
                     fontSize = 14.sp, color = HFColors.OnSurfaceMuted)
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    "An entry records a discrepancy and what was done about it, and is " +
-                        "signed by the person whose certificate covers the work. " +
-                        "Entries are written on the desktop.",
+                    stringResource(R.string.lb_an_entry_records_a_discrepancy_and_what_was),
                     fontSize = 12.sp, color = HFColors.ink(0.45f),
                 )
             }
@@ -202,10 +202,10 @@ private fun EntrySheet(
                 TextButton(onClick = onSign, enabled = canSign && !busy) {
                     Text(if (busy) "Signing…" else "Sign and return to service")
                 }
-            } else TextButton(onClick = onDismiss) { Text("Close") }
+            } else TextButton(onClick = onDismiss) { Text(stringResource(R.string.lb_close_2)) }
         },
         dismissButton = {
-            if (!entry.isSigned) TextButton(onClick = onDismiss) { Text("Not yet") }
+            if (!entry.isSigned) TextButton(onClick = onDismiss) { Text(stringResource(R.string.lb_not_yet)) }
         },
         title = { Text(if (entry.isSigned) "Logbook entry" else "Draft entry") },
         text = {
@@ -213,11 +213,11 @@ private fun EntrySheet(
                 Text("${entry.typeLabel} · ${entry.logSection.label} · ${entry.entryDate}",
                     fontSize = 12.sp, color = HFColors.OnSurfaceMuted)
                 entry.reportedDiscrepancy?.takeIf { it.isNotBlank() }?.let {
-                    Text("DISCREPANCY", fontSize = 10.sp, fontWeight = FontWeight.Bold,
+                    Text(stringResource(R.string.lb_discrepancy), fontSize = 10.sp, fontWeight = FontWeight.Bold,
                         color = HFColors.ink(0.45f))
                     Text(it, fontSize = 13.sp, color = HFColors.OnSurface)
                 }
-                Text("CORRECTIVE ACTION", fontSize = 10.sp, fontWeight = FontWeight.Bold,
+                Text(stringResource(R.string.lb_corrective_action), fontSize = 10.sp, fontWeight = FontWeight.Bold,
                     color = HFColors.ink(0.45f))
                 Text(entry.body, fontSize = 13.sp, color = HFColors.OnSurface)
 
@@ -248,23 +248,21 @@ private fun EntrySheet(
                             certType != "A&P/IA" && certType != "Repair Station"
                         ) {
                             Text(
-                                "An annual or progressive must be signed by an IA or a " +
-                                    "repair station. You hold ${certType ?: "no certificate"}.",
+                                stringResource(R.string.lb_an_annual_or_progressive_must_be_signed_by_a,
+                                    certType ?: "no certificate"),
                                 fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
                                 color = HFColors.StatusRed,
                             )
                         }
                     } else {
                         Text(
-                            "You have no certificate on file, so you can read this draft but " +
-                                "not sign it. An admin adds it under Users.",
+                            stringResource(R.string.lb_you_have_no_certificate_on_file_so_you_can_r),
                             fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
                             color = HFColors.StatusOrange,
                         )
                     }
                     Text(
-                        "Signing writes this into the aircraft's permanent record. " +
-                            "14 CFR 43.12 makes a false entry a certificate action.",
+                        stringResource(R.string.lb_signing_writes_this_into_the_aircraft_s_perm),
                         fontSize = 10.sp, color = HFColors.ink(0.45f),
                     )
                 }

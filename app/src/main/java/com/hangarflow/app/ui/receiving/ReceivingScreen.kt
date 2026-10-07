@@ -22,6 +22,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.Instant
+import androidx.compose.ui.res.stringResource
+import com.hangarflow.app.R
 
 /**
  * Receiving inspection, on Android.
@@ -64,14 +66,14 @@ fun ReceivingScreen(orgId: String, actorId: String?, actorName: String?, onClose
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {
-                Text("Receiving", fontSize = 17.sp, fontWeight = FontWeight.Bold,
+                Text(stringResource(R.string.rcv_receiving), fontSize = 17.sp, fontWeight = FontWeight.Bold,
                     color = HFColors.OnSurface)
                 Text(
                     "${releases.count { it.isPending }} awaiting inspection",
                     fontSize = 12.sp, color = HFColors.OnSurfaceMuted,
                 )
             }
-            TextButton(onClick = onClose) { Text("Close", color = HFColors.OnSurfaceMuted) }
+            TextButton(onClick = onClose) { Text(stringResource(R.string.rcv_close), color = HFColors.OnSurfaceMuted) }
         }
         Divider(color = HFColors.fill(0.10f))
 
@@ -128,7 +130,7 @@ fun ReceivingScreen(orgId: String, actorId: String?, actorName: String?, onClose
                     OutlinedTextField(
                         value = rejectReason,
                         onValueChange = { rejectReason = it },
-                        placeholder = { Text("Why it's going back", fontSize = 12.sp) },
+                        placeholder = { Text(stringResource(R.string.rcv_why_it_s_going_back), fontSize = 12.sp) },
                         singleLine = true,
                     )
                 }
@@ -149,10 +151,10 @@ fun ReceivingScreen(orgId: String, actorId: String?, actorName: String?, onClose
                             if (msg == null) { rejecting = null; reload() }
                         }
                     },
-                ) { Text("Reject") }
+                ) { Text(stringResource(R.string.rcv_reject)) }
             },
             dismissButton = {
-                TextButton(onClick = { rejecting = null }) { Text("Cancel") }
+                TextButton(onClick = { rejecting = null }) { Text(stringResource(R.string.rcv_cancel)) }
             },
         )
     }
@@ -218,7 +220,7 @@ private fun ReleaseCard(
                         .clickable(enabled = enabled) { onReject() }
                         .padding(vertical = 12.dp),
                     contentAlignment = Alignment.Center,
-                ) { Text("Reject", fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+                ) { Text(stringResource(R.string.rcv_reject_2), fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
                         color = HFColors.OnSurface) }
                 Box(
                     Modifier.weight(1f).clip(RoundedCornerShape(11.dp))
@@ -233,7 +235,7 @@ private fun ReleaseCard(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        "Accept", fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+                        stringResource(R.string.rcv_accept), fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
                         color = if (r.isOutOfLife) HFColors.ink(0.40f) else HFColors.OnAccent,
                     )
                 }
