@@ -488,20 +488,27 @@ private fun CalendarGrid(
     eventDays: Set<LocalDate>,
     onSelect: (LocalDate) -> Unit
 ) {
-    // Weekday header (Sun-first, single-letter, matching iOS calendar)
-    Row(modifier = Modifier.fillMaxWidth()) {
-        listOf("S", "M", "T", "W", "T", "F", "S").forEach { dayLabel ->
+    // Weekday header on its own raised rail, so it reads as the grid's chrome
+    // rather than as a row of data. Three letters rather than one: "S M T W T
+    // F S" has two S columns and two T columns, and a mechanic checking which
+    // Thursday a plane is due should not have to count across.
+    Row(
+        modifier = Modifier.fillMaxWidth()
+            .background(HFColors.fill(0.06f))
+            .padding(vertical = 7.dp)
+    ) {
+        listOf("SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT").forEach { dayLabel ->
             Text(
                 dayLabel,
                 color = HFColors.ink(0.45f),
-                fontSize = 10.sp,
+                fontSize = 9.sp,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.weight(1f)
             )
         }
     }
-    Spacer(Modifier.height(4.dp))
+    Box(Modifier.fillMaxWidth().height(1.dp).background(HFColors.stroke(0.10f)))
 
     val firstOfMonth = month.atDay(1)
     // Sunday-leading offset: DayOfWeek.SUNDAY = 7 (ISO), so we compute
@@ -510,64 +517,82 @@ private fun CalendarGrid(
     val daysInMonth = month.lengthOfMonth()
     val totalCells = ((leadingBlanks + daysInMonth + 6) / 7) * 7
 
-    // 6 rows max, 7 cols. Build a flat list and chunk into rows of 7.
-    val cells: List<LocalDate?> = (0 until totalCells).map { idx ->
+    // Days either side of the month are SHOWN, dimmed, rather than left blank.
+    // An empty corner reads as missing data; a greyed 28 reads as last month,
+    // which is what it is, and it is what gives the grid its shape.
+    val cells: List<Pair<LocalDate, Boolean>> = (0 until totalCells).map { idx ->
         val dayOfMonth = idx - leadingBlanks + 1
-        if (dayOfMonth in 1..daysInMonth) month.atDay(dayOfMonth) else null
+        when {
+            dayOfMonth in 1..daysInMonth -> month.atDay(dayOfMonth) to true
+            dayOfMonth < 1 -> month.atDay(1).minusDays((1 - dayOfMonth).toLong()) to false
+            else -> month.atEndOfMonth().plusDays((dayOfMonth - daysInMonth).toLong()) to false
+        }
     }
-    cells.chunked(7).forEach { row ->
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            row.forEach { date ->
-                Box(
-                    modifier = Modifier.weight(1f).height(52.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (date != null) {
-                        DayCell(
-                            date = date,
-                            isToday = date == today,
-                            isSelected = date == selectedDay,
-                            hasEvents = date in eventDays,
-                            onClick = { onSelect(date) }
-                        )
-                    }
+    val rows = cells.chunked(7)
+    rows.forEachIndexed { rowIdx, row ->
+        Row(modifier = Modifier.fillMaxWidth().height(52.dp)) {
+            row.forEachIndexed { colIdx, (date, inMonth) ->
+                DayCell(
+                    date = date,
+                    inMonth = inMonth,
+                    isToday = inMonth && date == today,
+                    isSelected = inMonth && date == selectedDay,
+                    hasEvents = inMonth && date in eventDays,
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                    onClick = { if (inMonth) onSelect(date) }
+                )
+                if (colIdx < 6) {
+                    Box(Modifier.width(1.dp).fillMaxHeight().background(HFColors.stroke(0.08f)))
                 }
             }
+        }
+        if (rowIdx < rows.size - 1) {
+            Box(Modifier.fillMaxWidth().height(1.dp).background(HFColors.stroke(0.08f)))
         }
     }
 }
 
 @Composable
-private fun DayCell(date: LocalDate, isToday: Boolean, isSelected: Boolean, hasEvents: Boolean, onClick: () -> Unit) {
-    val bg = when {
-        isSelected -> HFColors.fill(0.12f)
-        else -> HFColors.fill(0.03f)
-    }
-    val border = when {
-        isSelected -> HFColors.stroke(0.30f)
-        isToday -> HFColors.StatusBlue.copy(alpha = 0.45f)
-        else -> HFColors.stroke(0.06f)
-    }
+private fun DayCell(
+    date: LocalDate,
+    inMonth: Boolean,
+    isToday: Boolean,
+    isSelected: Boolean,
+    hasEvents: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .clip(RoundedCornerShape(8.dp))
-            .background(bg)
-            .border(1.dp, border, RoundedCornerShape(8.dp))
-            .clickable { onClick() }
+        modifier = modifier
+            .background(if (isSelected) HFColors.fill(0.10f) else androidx.compose.ui.graphics.Color.Transparent)
+            .clickable(enabled = inMonth) { onClick() }
             .padding(4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text(
-            date.dayOfMonth.toString(),
-            color = if (isToday) HFColors.StatusBlue else HFColors.OnSurface,
-            fontSize = 11.sp,
-            fontWeight = if (isToday) FontWeight.Bold else FontWeight.SemiBold
-        )
+        // Today is a filled disc with the number knocked out of it — the one
+        // piece of solid colour in the grid, so the eye finds it without
+        // reading a digit.
+        if (isToday) {
+            Box(
+                Modifier.size(22.dp).clip(CircleShape).background(HFColors.StatusBlue),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    date.dayOfMonth.toString(),
+                    color = HFColors.OnAccent,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        } else {
+            Text(
+                date.dayOfMonth.toString(),
+                color = if (inMonth) HFColors.OnSurface else HFColors.ink(0.28f),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
         Spacer(Modifier.height(2.dp))
         Box(modifier = Modifier.height(6.dp), contentAlignment = Alignment.Center) {
             if (hasEvents) {
