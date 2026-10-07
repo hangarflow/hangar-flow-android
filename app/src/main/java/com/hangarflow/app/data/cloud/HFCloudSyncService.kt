@@ -1445,18 +1445,12 @@ class HFCloudSyncService {
             )
     }
 
-    suspend fun cleanupOldEvents(orgId: String) {
-        // Delete events older than 7 days to prevent unbounded growth
-        val cutoff = java.time.Instant.now().minus(7, java.time.temporal.ChronoUnit.DAYS).toString()
-        runCatching {
-            client.postgrest.from("hf_org_events").delete {
-                filter {
-                    eq("org_id", orgId)
-                    lt("created_at", cutoff)
-                }
-            }
-        }
-    }
+    // Retention for hf_org_events lives in the `hf-prune-org-events` cron job,
+    // not here. The client call this replaced had never deleted a row: it
+    // filtered on `created_at` (the column is `event_at`) and the table has no
+    // DELETE policy, so RLS matched nothing either way — silently, which is
+    // how it survived. A table nobody can prune should not pretend a client
+    // prunes it.
 
     /**
      * Emits one value for every INSERT on `hf_org_events` filtered to the

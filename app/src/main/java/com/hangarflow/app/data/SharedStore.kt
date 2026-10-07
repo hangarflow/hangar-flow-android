@@ -128,16 +128,16 @@ object SharedStore {
             pullSnapshot(orgId)
             // Housekeeping: prune org events older than 7 days to
             // prevent unbounded table growth in production.
-            runCatching { cleanupOldOrgEvents(orgId) }
         }
         startRealtime(orgId)
     }
 
-    private suspend fun cleanupOldOrgEvents(orgId: String) {
-        runCatching {
-            cloud.cleanupOldEvents(orgId)
-        }
-    }
+    // Retention for hf_org_events lives in the `hf-prune-org-events` cron job,
+    // not here. The client call this replaced had never deleted a row: it
+    // filtered on `created_at` (the column is `event_at`) and the table has no
+    // DELETE policy, so RLS matched nothing either way — silently, which is
+    // how it survived. A table nobody can prune should not pretend a client
+    // prunes it.
 
     /** Manual "pull to refresh" hook — also used by the Mac refresh button. */
     fun refresh() {
