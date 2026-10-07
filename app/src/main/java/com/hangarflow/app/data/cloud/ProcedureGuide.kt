@@ -178,10 +178,26 @@ object GuidedRunStarter {
             ?.let { "Steps removed before you saw them: ${it.joinToString("; ")}." }
 
         if (steps.isEmpty()) {
-            return null to if (a.empty_library == true)
-                "That manual isn't in your library yet, so there's nothing to walk through. " +
-                    "Import the AMM for this aircraft and try again."
-            else "Your manuals don't have enough on this task to build a walkthrough."
+            return null to when {
+                a.empty_library == true ->
+                    "That manual isn't in your library yet, so there's nothing to walk through. " +
+                        "Import the AMM for this aircraft and try again."
+
+                // The grounding gates removed EVERY step. "Not enough on this
+                // task" is then a false explanation: the manuals had plenty,
+                // the generated steps failed to cite it. That distinction is
+                // the difference between "import the AMM" (already done) and
+                // "the citations didn't line up", and the reason was already
+                // computed and then thrown away — which sent a real user
+                // hunting a manual that was sitting right there with 9,097
+                // indexed sections.
+                removedNote != null ->
+                    "A walkthrough was drafted for this task but nothing survived " +
+                        "the manual check, so there is nothing to show. $removedNote"
+
+                else ->
+                    "Your manuals don't have enough on this task to build a walkthrough."
+            }
         }
 
         return try {
