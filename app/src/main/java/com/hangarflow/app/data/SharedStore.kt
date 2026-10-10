@@ -1287,8 +1287,22 @@ object SharedStore {
         val orgId = bootstrappedOrgId ?: return
         val me = _state.value.currentUser
         scope.launch {
-            runCatching {
-                cloud.insertAuditEvent(orgId, entityType, entityId, action, me?.id, actorName ?: me?.displayName ?: "", summary)
+            // Still fire-and-forget with respect to the CALLER — a squawk must
+            // not fail to save because its log line was refused. But the
+            // outcome is no longer dropped: a missing paper trail is a thing a
+            // shop reports and nobody could previously answer.
+            val wrote = runCatching {
+                cloud.insertAuditEvent(
+                    orgId, entityType, entityId, action, me?.id,
+                    actorName ?: me?.displayName ?: "", summary,
+                )
+            }
+            val ok = wrote.getOrNull() == true
+            if (!ok) {
+                System.err.println(
+                    "HF audit row refused: $entityType $action" +
+                        (wrote.exceptionOrNull()?.message?.let { " — $it" } ?: "")
+                )
             }
         }
     }

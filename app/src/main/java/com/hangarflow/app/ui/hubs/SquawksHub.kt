@@ -64,6 +64,7 @@ import androidx.compose.ui.res.stringResource
 import com.hangarflow.app.auth.AuthManager
 import com.hangarflow.app.data.cloud.HFTroubleshootRun
 import com.hangarflow.app.data.cloud.TroubleshootCloud
+import com.hangarflow.app.data.cloud.TroubleshootStarter
 import com.hangarflow.app.ui.guided.TroubleshootScreen
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
@@ -153,12 +154,40 @@ fun SquawksHub() {
                             .getOrDefault(emptyList())
                             .firstOrNull { it.squawkId == sq.id && !it.isClosed }
                     }
+                    if (existing != null) {
+                        troubleshootBusy = false
+                        troubleshootRun = existing
+                        return@launch
+                    }
+
+                    // This used to send the mechanic to the desktop, and the
+                    // desktop had no way to start one either — Kotlin could
+                    // fetch, answer and close a tree but never create one, so
+                    // `hf_troubleshoot_runs` was empty in every shop and this
+                    // screen rendered something nothing could produce.
+                    val me = SharedStore.state.value.currentUser
+                    val (runId, err) = withContext(Dispatchers.IO) {
+                        TroubleshootStarter.start(
+                            orgId = orgId,
+                            symptom = sq.title,
+                            squawkId = sq.id,
+                            workLogId = null,
+                            planeId = sq.planeId,
+                            actorId = me?.authUserId,
+                            actorName = me?.displayName,
+                        )
+                    }
+                    // Re-read rather than trusting the insert's echo: the tree
+                    // a mechanic works from should be the row the database
+                    // actually holds.
+                    val fetched = if (runId == null) null else withContext(Dispatchers.IO) {
+                        runCatching { TroubleshootCloud.fetch(orgId) }
+                            .getOrDefault(emptyList())
+                            .firstOrNull { it.id == runId }
+                    }
                     troubleshootBusy = false
-                    if (existing != null) troubleshootRun = existing
-                    else troubleshootNote =
-                        "Start the fault chase on the desktop — it reads the manual's " +
-                            "troubleshooting table, and that import lives there. " +
-                            "Once it exists you can work it here."
+                    troubleshootNote = err
+                    troubleshootRun = fetched
                 }
             },
             onOpenPhoto = { paths, index ->

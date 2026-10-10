@@ -248,6 +248,22 @@ private fun WorkLogsContent() {
                                     return@launch
                                 }
                                 val me = SharedStore.state.value.currentUser
+
+                                // Reuse before generating. A frozen deck is the
+                                // same answer for anyone on this task, so a
+                                // second press should OPEN it, not pay for it
+                                // twice and leave two decks on one job.
+                                val existing = withContext(Dispatchers.IO) {
+                                    runCatching {
+                                        GuidedRunCloud.openRunFor(orgId, log.id.toString())
+                                    }.getOrNull()
+                                }
+                                if (existing != null) {
+                                    guidedBusy = false
+                                    guidedRun = existing
+                                    return@launch
+                                }
+
                                 val (runId, err) = withContext(Dispatchers.IO) {
                                     GuidedRunStarter.start(
                                         orgId = orgId, workLogId = log.id.toString(),

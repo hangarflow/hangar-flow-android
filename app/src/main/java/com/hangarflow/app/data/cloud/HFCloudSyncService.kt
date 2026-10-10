@@ -30,6 +30,29 @@ import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onStart
 
 /**
+ * Rows a write actually touched.
+ *
+ * RLS refuses by matching ZERO ROWS rather than raising, so a write that
+ * returns nothing is indistinguishable from one that worked — unless the
+ * count is read back. This is the smallest shape that reads it.
+ */
+@kotlinx.serialization.Serializable
+private data class HFTouchedRow(val id: String)
+
+/**
+ * A write that changed nothing.
+ *
+ * Zero rows cannot separate "the policy refused you" from "the row is already
+ * gone", and the message does not pretend otherwise — to the person looking at
+ * the screen both mean the same thing: it is not yours to change, and what
+ * you are seeing is stale.
+ */
+class HFWriteRefused(what: String) : Exception(
+    "That $what didn't save — it's no longer there, or you don't have " +
+        "permission to change it. Refresh and check."
+)
+
+/**
  * Kotlin port of iOS `HFCloudSyncService`. Owns the Postgrest calls that
  * read and write shop data. Each screen observes the `SharedStore` rather
  * than calling this directly — this service is the pipe, not the source
@@ -238,13 +261,22 @@ class HFCloudSyncService {
         val action: String, val actor_user_id: String?, val actor_name: String, val summary: String
     )
 
+    @kotlinx.serialization.Serializable
+    private data class AuditAck(val id: String)
+
+    /** Append one audit event. Returns false when the row did not land. */
     suspend fun insertAuditEvent(
         orgId: String, entityType: String, entityId: String?, action: String,
         actorUserId: String?, actorName: String, summary: String
-    ) {
-        client.postgrest.from("hf_audit_log").insert(
+    ): Boolean {
+        // `select()` and a row count. RLS refuses by returning NO ROWS instead
+        // of raising, so discarding the result — as this did — could not tell a
+        // refused audit row from a written one. A paper trail that fails
+        // quietly is worse than none, because it reads as complete.
+        val ack = client.postgrest.from("hf_audit_log").insert(
             NewAuditRow(orgId, entityType, entityId, action, actorUserId, actorName, summary)
-        )
+        ) { select() }.decodeList<AuditAck>()
+        return ack.isNotEmpty()
     }
 
     suspend fun fetchAuditLog(orgId: String, limit: Int = 300): List<com.hangarflow.app.data.model.HFAuditEvent> =
@@ -277,9 +309,11 @@ class HFCloudSyncService {
     }
 
     suspend fun updateTaskStatus(taskId: String, status: String) {
-        client.postgrest.from("hf_tasks").update(mapOf("status" to status)) {
+        val touched = client.postgrest.from("hf_tasks").update(mapOf("status" to status)) {
+            select()
             filter { eq("id", taskId) }
-        }
+        }.decodeList<HFTouchedRow>()
+        if (touched.isEmpty()) throw HFWriteRefused("task status")
     }
 
     suspend fun deleteTask(id: String) {
@@ -366,9 +400,11 @@ class HFCloudSyncService {
             updated_by_user_name = updatedByUserName.trim(),
             photo_paths = photoPaths
         )
-        client.postgrest.from("hf_part_locations").update(row) {
+        val touched = client.postgrest.from("hf_part_locations").update(row) {
+            select()
             filter { eq("id", id) }
-        }
+        }.decodeList<HFTouchedRow>()
+        if (touched.isEmpty()) throw HFWriteRefused("part location")
     }
 
     suspend fun deletePartLocation(id: String) {
@@ -458,9 +494,11 @@ class HFCloudSyncService {
             shippedAt?.let { put("shipped_at", it) }
             receivedAt?.let { put("received_at", it) }
         }
-        client.postgrest.from("hf_part_movements").update(patch) {
+        val touched = client.postgrest.from("hf_part_movements").update(patch) {
+            select()
             filter { eq("id", movementId) }
-        }
+        }.decodeList<HFTouchedRow>()
+        if (touched.isEmpty()) throw HFWriteRefused("part movement status")
     }
 
     /**
@@ -736,15 +774,19 @@ class HFCloudSyncService {
 
     /** Flip a part request through its lifecycle: requested → ordered → received → installed. */
     suspend fun updatePartRequestStatus(id: String, status: String) {
-        client.postgrest.from("hf_part_requests").update(mapOf("status" to status)) {
+        val touched = client.postgrest.from("hf_part_requests").update(mapOf("status" to status)) {
+            select()
             filter { eq("id", id) }
-        }
+        }.decodeList<HFTouchedRow>()
+        if (touched.isEmpty()) throw HFWriteRefused("part request status")
     }
 
     suspend fun updateSquawkStatus(id: String, status: String) {
-        client.postgrest.from("hf_squawks").update(mapOf("status" to status)) {
+        val touched = client.postgrest.from("hf_squawks").update(mapOf("status" to status)) {
+            select()
             filter { eq("id", id) }
-        }
+        }.decodeList<HFTouchedRow>()
+        if (touched.isEmpty()) throw HFWriteRefused("squawk status")
     }
 
     @kotlinx.serialization.Serializable
@@ -877,12 +919,14 @@ class HFCloudSyncService {
     /** Persist the checklist_state JSONB on a work-log. The blob is
      *  shape `[{ "ref_id": "...", "done": true, "by": "...", "at": "..." }]`. */
     suspend fun updateWorkLogChecklistState(workLogId: String, stateJson: String) {
-        client.postgrest.from("hf_work_logs")
+        val touched = client.postgrest.from("hf_work_logs")
             .update(
                 mapOf("checklist_state" to kotlinx.serialization.json.Json.parseToJsonElement(stateJson))
             ) {
+                select()
                 filter { eq("id", workLogId) }
-            }
+            }.decodeList<HFTouchedRow>()
+        if (touched.isEmpty()) throw HFWriteRefused("work log checklist state")
     }
 
     suspend fun searchManualReferences(
@@ -1103,10 +1147,12 @@ class HFCloudSyncService {
             @kotlinx.serialization.SerialName("updated_at") val updatedAt: String
         )
         val now = java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC).toString()
-        client.postgrest.from("hf_reimbursements")
+        val touched = client.postgrest.from("hf_reimbursements")
             .update(StatusPatch(status, decidedByUserId, decidedByName, now, now)) {
+                select()
                 filter { eq("id", reimbursementId) }
-            }
+            }.decodeList<HFTouchedRow>()
+        if (touched.isEmpty()) throw HFWriteRefused("reimbursement status")
     }
 
     // ── Time-entry corrections ──
@@ -1141,10 +1187,12 @@ class HFCloudSyncService {
             @kotlinx.serialization.SerialName("updated_at") val updatedAt: String
         )
         val now = java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC).toString()
-        client.postgrest.from("hf_time_entry_corrections")
+        val touched = client.postgrest.from("hf_time_entry_corrections")
             .update(StatusPatch(status, decidedByUserId, decidedByName, now, now)) {
+                select()
                 filter { eq("id", correctionId) }
-            }
+            }.decodeList<HFTouchedRow>()
+        if (touched.isEmpty()) throw HFWriteRefused("time entry correction status")
     }
 
     /** Targeted UPDATE for admin time-off approve/deny (direct update keyed
@@ -1161,10 +1209,12 @@ class HFCloudSyncService {
             @kotlinx.serialization.SerialName("decided_at") val decidedAt: String,
             @kotlinx.serialization.SerialName("updated_at") val updatedAt: String
         )
-        client.postgrest.from("hf_time_off_requests")
+        val touched = client.postgrest.from("hf_time_off_requests")
             .update(DecisionPatch(status, decidedByUserId, decidedByName, decidedAt, decidedAt)) {
+                select()
                 filter { eq("id", requestId) }
-            }
+            }.decodeList<HFTouchedRow>()
+        if (touched.isEmpty()) throw HFWriteRefused("decide time off request row")
     }
 
     /** Admin reject/restore of a time entry. */
@@ -1182,10 +1232,12 @@ class HFCloudSyncService {
             @kotlinx.serialization.SerialName("updated_at") val updatedAt: String
         )
         val now = java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC).toString()
-        client.postgrest.from("hf_time_entries")
+        val touched = client.postgrest.from("hf_time_entries")
             .update(ApprovalPatch(status, decidedByUserId, decidedByName, now, rejectionReason, now)) {
+                select()
                 filter { eq("id", timeEntryId) }
-            }
+            }.decodeList<HFTouchedRow>()
+        if (touched.isEmpty()) throw HFWriteRefused("time entry approval")
     }
 
     /**
@@ -1369,9 +1421,11 @@ class HFCloudSyncService {
         planeId: String,
         items: List<com.hangarflow.app.data.model.HFScheduledMaintItem>
     ) {
-        client.postgrest.from("hf_aircraft").update(SchedMaintPatch(items)) {
+        val touched = client.postgrest.from("hf_aircraft").update(SchedMaintPatch(items)) {
+            select()
             filter { eq("id", planeId) }
-        }
+        }.decodeList<HFTouchedRow>()
+        if (touched.isEmpty()) throw HFWriteRefused("plane scheduled maintenance")
     }
 
     /**
@@ -1381,11 +1435,13 @@ class HFCloudSyncService {
      * check here — Supabase will 403 if the caller isn't in the org.
      */
     suspend fun updateWorkLogStatus(id: String, status: String) {
-        client.postgrest
+        val touched = client.postgrest
             .from("hf_work_logs")
             .update(mapOf("status" to status)) {
+                select()
                 filter { eq("id", id) }
-            }
+            }.decodeList<HFTouchedRow>()
+        if (touched.isEmpty()) throw HFWriteRefused("work log status")
     }
 
     @kotlinx.serialization.Serializable
@@ -1396,11 +1452,13 @@ class HFCloudSyncService {
         val payload = WorkLogPinUpdate(
             pinned_at = if (pinned) java.time.Instant.now().toString() else null
         )
-        client.postgrest
+        val touched = client.postgrest
             .from("hf_work_logs")
             .update(payload) {
+                select()
                 filter { eq("id", id) }
-            }
+            }.decodeList<HFTouchedRow>()
+        if (touched.isEmpty()) throw HFWriteRefused("work log pinned")
     }
 
     @kotlinx.serialization.Serializable
@@ -1415,14 +1473,16 @@ class HFCloudSyncService {
         assignedUserId: String?,
         assignedUserName: String?
     ) {
-        client.postgrest.from("hf_work_logs").update(
+        val touched = client.postgrest.from("hf_work_logs").update(
             WorkLogAssigneeUpdate(
                 assigned_user_id = assignedUserId,
                 assigned_user_name = assignedUserName
             )
         ) {
+            select()
             filter { eq("id", id) }
-        }
+        }.decodeList<HFTouchedRow>()
+        if (touched.isEmpty()) throw HFWriteRefused("work log assignee")
     }
 
     /**
@@ -2016,15 +2076,19 @@ class HFCloudSyncService {
     }
 
     suspend fun updateUserRole(userId: String, newRole: String) {
-        client.postgrest.from("hf_user_profiles").update(mapOf("role" to newRole)) {
+        val touched = client.postgrest.from("hf_user_profiles").update(mapOf("role" to newRole)) {
+            select()
             filter { eq("id", userId) }
-        }
+        }.decodeList<HFTouchedRow>()
+        if (touched.isEmpty()) throw HFWriteRefused("user role")
     }
 
     suspend fun updateOrgName(orgId: String, name: String) {
-        client.postgrest.from("organizations").update(mapOf("name" to name.trim())) {
+        val touched = client.postgrest.from("organizations").update(mapOf("name" to name.trim())) {
+            select()
             filter { eq("id", orgId) }
-        }
+        }.decodeList<HFTouchedRow>()
+        if (touched.isEmpty()) throw HFWriteRefused("org name")
     }
 
     @kotlinx.serialization.Serializable
@@ -2082,9 +2146,11 @@ class HFCloudSyncService {
 
     /** Archive / unarchive a plane (hides from active list, keeps all data). */
     suspend fun setPlaneArchived(planeId: String, archived: Boolean) {
-        client.postgrest.from("hf_aircraft").update(IsArchivedRow(archived)) {
+        val touched = client.postgrest.from("hf_aircraft").update(IsArchivedRow(archived)) {
+            select()
             filter { eq("id", planeId) }
-        }
+        }.decodeList<HFTouchedRow>()
+        if (touched.isEmpty()) throw HFWriteRefused("plane archived")
     }
 
     @kotlinx.serialization.Serializable

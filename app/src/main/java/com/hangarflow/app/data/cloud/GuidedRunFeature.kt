@@ -130,6 +130,24 @@ object GuidedRunCloud {
             filter { eq("org_id", orgId) }
         }.decodeList<GuidedRunRow>().filter { it.isLive }.map { it.toModel() }
 
+    /**
+     * The deck already frozen for this task, if there is one.
+     *
+     * Prefers a deck still in progress, then the most recent finished one —
+     * the same order Apple's `openRun(forWorkLog:)` uses, so a mechanic who
+     * walks a task on the iPad and finishes it on the shop PC sees one deck
+     * rather than two.
+     *
+     * This is what keeps the feature cheap. A frozen deck is the SAME answer
+     * for every mechanic on that task, so regenerating it buys nothing and
+     * bills again.
+     */
+    suspend fun openRunFor(orgId: String, workLogId: String): HFGuidedRun? {
+        val mine = fetch(orgId).filter { it.workLogId == workLogId }
+        return mine.firstOrNull { it.completedAt.isNullOrBlank() }
+            ?: mine.maxByOrNull { it.startedAt ?: "" }
+    }
+
     @Serializable
     private data class DonePatch(
         val done_steps: List<Int>,

@@ -137,21 +137,8 @@ fun FindPartsHub(restrictToPlaneTail: String? = null) {
         delay(450)
         isSearching = true
 
-        // Structured AI part finder (plane-scoped) — the primary result.
-        run {
-            val plane = shopState.planes.firstOrNull { it.tailNumber.equals(restrictedTail, ignoreCase = true) }
-            aiLoading = true
-            runCatching { cloud.aiPartsFind(query, plane?.id, restrictedTail, plane?.aircraftType) }
-                .onSuccess { aiFindResults = it.parts; aiFindNote = it.note; aiFindRan = true }
-                // hfSafeMessage, not it.message: that scrubs request dumps and
-                // presigned URLs, and reports a plan or AI-quota refusal in
-                // words the tech can act on.
-                .onFailure {
-                    aiError = com.hangarflow.app.util.hfSafeMessage(it) ?: "AI find failed"
-                    aiFindRan = true
-                }
-            aiLoading = false
-        }
+        // CHEAP FIRST. The manual search is a database query; it runs on the
+        // short debounce so the tech sees something immediately.
         val raw = runCatching {
             cloud.searchManualReferences(orgId, query, restrictToPlaneTail = restrictedTail)
         }.getOrElse { emptyList() }
@@ -167,6 +154,31 @@ fun FindPartsHub(restrictToPlaneTail: String? = null) {
                 if (key in seen) false else { seen += key; true }
             }
         isSearching = false
+
+        // EXPENSIVE SECOND. The model waits for the typing to actually STOP,
+        // and ignores fragments. A 450ms debounce is shorter than an ordinary
+        // pause mid-phrase: one "steering actuator" search fired FOUR
+        // parts-find calls in 5.8 seconds — all four billed, three discarded.
+        // Cancelling the coroutine does not stop the edge function once the
+        // request is away, so a wasted call is a paid call.
+        delay(900)
+        if (query.trim().length < 4) return@LaunchedEffect
+
+        // Structured AI part finder (plane-scoped) — the primary result.
+        run {
+            val plane = shopState.planes.firstOrNull { it.tailNumber.equals(restrictedTail, ignoreCase = true) }
+            aiLoading = true
+            runCatching { cloud.aiPartsFind(query, plane?.id, restrictedTail, plane?.aircraftType) }
+                .onSuccess { aiFindResults = it.parts; aiFindNote = it.note; aiFindRan = true }
+                // hfSafeMessage, not it.message: that scrubs request dumps and
+                // presigned URLs, and reports a plan or AI-quota refusal in
+                // words the tech can act on.
+                .onFailure {
+                    aiError = com.hangarflow.app.util.hfSafeMessage(it) ?: "AI find failed"
+                    aiFindRan = true
+                }
+            aiLoading = false
+        }
     }
 
     // Resolve an AI reference to one of the raw manual hits (fetched in the
