@@ -33,6 +33,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import com.hangarflow.app.data.model.accountId
 import kotlinx.coroutines.launch
 import com.hangarflow.app.data.cloud.HFCloudSyncService
 import androidx.compose.ui.Alignment
@@ -279,7 +280,7 @@ private fun TimeCardHubContent(onRequestTimeOff: () -> Unit = {}) {
         ReimbursementSection(
             reimbursements = shopState.reimbursements,
             isAdmin = isAdmin,
-            myUserId = me?.id
+            myUserId = me?.accountId
         )
 
         if (isAdmin && anomalyFlags.isNotEmpty()) {

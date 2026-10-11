@@ -805,7 +805,11 @@ class HFCloudSyncService {
         val quantity: Int,
         val need_by_date: String?,
         val assigned_tech_user_id: String?,
-        val manual_reference_id: String?
+        val manual_reference_id: String?,
+        // Which IPC row the part number was read off. Apple has written this
+        // since 2026-10-08; this client was dropping it, so every part
+        // request ordered here had null provenance.
+        val ipc_part_index_id: String?
     )
 
     /**
@@ -827,6 +831,7 @@ class HFCloudSyncService {
         needByDate: String? = null,
         assignedTechUserId: String? = null,
         manualReferenceId: String? = null,
+        ipcPartIndexId: String? = null,
         notes: String = ""
     ) {
         val row = NewPartRequestRow(
@@ -844,7 +849,8 @@ class HFCloudSyncService {
             quantity = quantity.coerceAtLeast(1),
             need_by_date = needByDate,
             assigned_tech_user_id = assignedTechUserId,
-            manual_reference_id = manualReferenceId
+            manual_reference_id = manualReferenceId,
+            ipc_part_index_id = ipcPartIndexId
         )
         client.postgrest.from("hf_part_requests").insert(row)
     }
@@ -1805,6 +1811,11 @@ class HFCloudSyncService {
         val reference: AIPartReference? = null,
         @kotlinx.serialization.SerialName("in_stock") val inStock: Boolean = false,
         val note: String = "",
+        // Provenance, straight from `parts-find`: the procedure to verify
+        // against and the IPC row the number came off. Both were in the JSON
+        // and silently dropped by ignoreUnknownKeys.
+        @kotlinx.serialization.SerialName("reference_id") val referenceId: String? = null,
+        @kotlinx.serialization.SerialName("ipc_part_index_id") val ipcPartIndexId: String? = null,
     )
     @kotlinx.serialization.Serializable
     data class AIPartsFindRequest(

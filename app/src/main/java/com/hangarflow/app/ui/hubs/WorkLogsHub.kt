@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.hangarflow.app.data.SharedStore
 import com.hangarflow.app.data.model.HFStatusFilter
+import com.hangarflow.app.data.model.accountId
 import com.hangarflow.app.ui.common.HFPullToRefreshHost
 import com.hangarflow.app.data.model.HFWorkCategory
 import com.hangarflow.app.data.model.HFWorkLog
@@ -711,7 +712,7 @@ private fun WorkLogsHubContent(onOpenWorkLog: (HFWorkLog) -> Unit) {
                         onPick = { user ->
                             SharedStore.updateWorkLogAssignee(
                                 workLogId = log.id,
-                                assignedUserId = user?.id,
+                                assignedUserId = user?.accountId,
                                 assignedUserName = user?.displayName
                             )
                             statusSheetForLog = null

@@ -43,6 +43,7 @@ import com.hangarflow.app.data.cloud.ManualCache
 import com.hangarflow.app.data.model.HFPlane
 import com.hangarflow.app.data.model.HFUserProfile
 import com.hangarflow.app.ui.theme.HFColors
+import com.hangarflow.app.util.hfSafeMessage
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
@@ -86,6 +87,8 @@ fun FindPartsHub(restrictToPlaneTail: String? = null) {
     var aiFindNote by remember { mutableStateOf("") }
     var aiFindRan by remember { mutableStateOf(false) }
     var orderedFindIds by remember { mutableStateOf(setOf<String>()) }
+    // A failed "order this part" used to vanish into runCatching { }.
+    var orderError by remember { mutableStateOf<String?>(null) }
 
     // PDF state — same model as Desktop FindPartsScreen. We only swap the
     // file when it actually changes so navigating between sections in the
@@ -342,23 +345,54 @@ fun FindPartsHub(restrictToPlaneTail: String? = null) {
                     ran = aiFindRan,
                     results = aiFindResults,
                     note = aiFindNote,
-                    orderedIds = orderedFindIds,
+                    orderError = orderError,
+                    // Reads the queue, not just this sitting. The local set
+                    // died when the hub closed, so a tech who ordered a part,
+                    // left, and searched again was offered it afresh.
+                    isOrdered = { part ->
+                        val key = (part.partNumber ?: "") + "·" + part.partName
+                        if (orderedFindIds.contains(key)) true
+                        else {
+                            val pn = part.partNumber?.trim()?.lowercase().orEmpty()
+                            pn.isNotEmpty() && shopState.partRequests.any {
+                                it.status != "installed" &&
+                                    it.requestedPart.trim().lowercase() == pn
+                            }
+                        }
+                    },
                     onVerify = { ref -> matchingHit(ref)?.let { selectedHit = it } },
                     onOrder = { part ->
                         val key = (part.partNumber ?: "") + "·" + part.partName
-                        orderedFindIds = orderedFindIds + key
                         val oid = orgId ?: return@StructuredPartsFinder
                         val plane = shopState.planes.firstOrNull { it.tailNumber.equals(restrictedTail, ignoreCase = true) }
+                        orderError = null
                         scope.launch {
-                            runCatching {
+                            val r = runCatching {
                                 cloud.createPartRequest(
                                     orgId = oid, squawkId = null, planeId = plane?.id,
                                     planeTailNumber = restrictedTail, title = part.partName,
                                     requestedPart = part.partNumber ?: part.partName, urgency = "normal",
-                                    requestedBy = shopState.currentUser?.displayName, notes = part.note
+                                    requestedBy = shopState.currentUser?.displayName,
+                                    // Provenance: the procedure to verify
+                                    // against and the IPC row the number came
+                                    // off. Neither was being sent.
+                                    manualReferenceId = part.referenceId,
+                                    ipcPartIndexId = part.ipcPartIndexId,
+                                    notes = part.note
                                 )
                                 cloud.emitOrgEvent(oid, SharedStore.deviceIdentifier(), "part_request_created")
                                 SharedStore.refresh()
+                            }
+                            // The card flips only if the row actually landed.
+                            // It used to flip before the write even started,
+                            // and the failure was discarded — so a refused
+                            // insert read as "ordered" and the part was never
+                            // on anyone's queue.
+                            if (r.isSuccess) {
+                                orderedFindIds = orderedFindIds + key
+                            } else {
+                                orderError = hfSafeMessage(r.exceptionOrNull())
+                                    ?: "Couldn't add that part to Order Parts."
                             }
                         }
                     }
@@ -907,11 +941,16 @@ private fun StructuredPartsFinder(
     ran: Boolean,
     results: List<HFCloudSyncService.AIPartCandidate>,
     note: String,
-    orderedIds: Set<String>,
+    orderError: String?,
+    isOrdered: (HFCloudSyncService.AIPartCandidate) -> Boolean,
     onVerify: (HFCloudSyncService.AIPartReference) -> Unit,
     onOrder: (HFCloudSyncService.AIPartCandidate) -> Unit,
 ) {
     Column {
+        orderError?.let {
+            Text(it, color = HFColors.StatusRed, fontSize = 12.sp)
+            Spacer(Modifier.height(8.dp))
+        }
         when {
             loading -> Row(verticalAlignment = Alignment.CenterVertically) {
                 CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 2.dp, color = HFColors.StatusCyan)
@@ -925,8 +964,7 @@ private fun StructuredPartsFinder(
             )
             ran -> {
                 results.forEach { part ->
-                    val key = (part.partNumber ?: "") + "·" + part.partName
-                    StructuredPartCard(part, orderedIds.contains(key), onVerify = onVerify) { onOrder(part) }
+                    StructuredPartCard(part, isOrdered(part), onVerify = onVerify) { onOrder(part) }
                     Spacer(Modifier.height(10.dp))
                 }
                 Text(

@@ -5,6 +5,7 @@ import android.os.Build
 import android.util.Log
 import com.hangarflow.app.data.SharedStore
 import com.hangarflow.app.data.cloud.SupabaseClientProvider
+import com.hangarflow.app.data.model.accountId
 import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -126,7 +127,7 @@ object HFCrashReporter {
 
                 val row = CrashRow(
                     org_id = orgId,
-                    user_id = me?.id,
+                    user_id = me?.accountId,
                     actor_name = me?.displayName ?: "",
                     screen = crash.screen,
                     action = "${crash.type}: ${crash.message}".take(180),

@@ -57,6 +57,7 @@ import com.hangarflow.app.auth.AuthManager
 import com.hangarflow.app.data.SharedStore
 import com.hangarflow.app.data.cloud.HFCloudSyncService
 import com.hangarflow.app.data.model.HFPlane
+import com.hangarflow.app.data.model.accountId
 import com.hangarflow.app.ui.theme.HFColors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -144,7 +145,7 @@ fun CreateSquawkSheet(onDismiss: () -> Unit) {
                     planeTailNumber = plane.tailNumber,
                     title = title.trim(),
                     notes = notes.trim(),
-                    reportedByUserId = shopState.currentUser?.id,
+                    reportedByUserId = shopState.currentUser?.accountId,
                     reportedByUserName = shopState.currentUser?.displayName,
                     photoPaths = uploadedPaths,
                     sourceDevice = SharedStore.deviceIdentifier(),

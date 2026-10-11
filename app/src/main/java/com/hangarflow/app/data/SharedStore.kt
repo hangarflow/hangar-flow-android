@@ -20,6 +20,7 @@ import com.hangarflow.app.data.model.HFEmployeePay
 import com.hangarflow.app.data.model.HFTimeEntry
 import com.hangarflow.app.data.model.HFUserProfile
 import com.hangarflow.app.data.model.HFWorkLog
+import com.hangarflow.app.data.model.accountId
 import io.github.jan.supabase.auth.auth
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -357,7 +358,7 @@ object SharedStore {
             details = squawk.notes,
             category = squawk.category,
             status = "open",
-            assignedUserId = me?.id,
+            assignedUserId = me?.accountId,
             assignedUserName = me?.displayName,
             linkedSquawkId = squawk.id,
             isFromSquawk = true,
@@ -555,7 +556,7 @@ object SharedStore {
         val caChanged = ca != existing.correctiveAction.trim()
         val correctedById = when {
             ca.isBlank() -> null
-            caChanged -> me?.id
+            caChanged -> me?.accountId
             else -> existing.correctedByUserId
         }
         val correctedByName = when {
@@ -651,7 +652,7 @@ object SharedStore {
         return try {
             cloud.createTimeSegment(
                 orgId = orgId,
-                userId = me?.authUserId ?: me?.id,
+                userId = me?.authUserId ?: me?.accountId,
                 userName = me?.displayName ?: "",
                 startedAtIso = startedAtIso, endedAtIso = endedAtIso,
                 planeId = planeId, planeTailNumber = planeTailNumber,
@@ -674,7 +675,7 @@ object SharedStore {
         if (ids.isEmpty()) return true
         val me = _state.value.currentUser
         return try {
-            cloud.decideTimeEntries(ids, approve, me?.authUserId ?: me?.id, me?.displayName, reason)
+            cloud.decideTimeEntries(ids, approve, me?.authUserId ?: me?.accountId, me?.displayName, reason)
             runCatching { cloud.fetchTimeEntries(orgId) }
                 .onSuccess { rows -> _state.update { it.copy(timeEntries = rows) } }
             true
@@ -745,7 +746,7 @@ object SharedStore {
                 if (minutes > 0) {
                     timeEntryService.createTimeEntry(
                         orgId = orgId,
-                        userId = me?.id,
+                        userId = me?.accountId,
                         userName = me?.displayName?.ifBlank { "Tech" } ?: "Tech",
                         planeId = workLog.planeId,
                         planeTailNumber = workLog.planeTailNumber.ifBlank { null },
@@ -789,7 +790,9 @@ object SharedStore {
         val me = _state.value.currentUser
         val userName = me?.displayName?.takeIf { it.isNotBlank() } ?: "Tech"
         val shift = ActiveShift(
-            userId = me?.id,
+            // Account id, so a clock-out resolved from the LOCAL shift writes
+            // the same id the cloud shift would.
+            userId = me?.accountId,
             userName = userName,
             startedAt = Instant.now()
         )
@@ -1086,7 +1089,7 @@ object SharedStore {
                 shippedAt = null, receivedAt = nowIso,
                 coreDueBackBy = null, coreDepositCents = null,
                 condition = condition, status = "received", notes = notes,
-                byUserId = me?.id, byUserName = me?.displayName
+                byUserId = me?.accountId, byUserName = me?.displayName
             )
 
             if (coreOwed || (coreDepositCents != null && coreDepositCents > 0)) {
@@ -1116,7 +1119,7 @@ object SharedStore {
                     notes = if (coreDepositCents == null || coreDepositCents <= 0)
                         "Core owed back — no deposit charged. Vendor may invoice the full core value if it isn't returned."
                     else "Opened automatically when the replacement was received.",
-                    byUserId = me?.id, byUserName = me?.displayName
+                    byUserId = me?.accountId, byUserName = me?.displayName
                 )
             }
             refreshPartMovements(orgId)
@@ -1175,7 +1178,7 @@ object SharedStore {
                     stockStatus = "ok",
                     planeIds = emptyList(),
                     notes = if (m.vendorName.isBlank()) "" else "Received from ${m.vendorName}.",
-                    updatedByUserId = me?.id,
+                    updatedByUserId = me?.accountId,
                     updatedByUserName = me?.displayName ?: ""
                 )
             }
@@ -1293,7 +1296,7 @@ object SharedStore {
             // shop reports and nobody could previously answer.
             val wrote = runCatching {
                 cloud.insertAuditEvent(
-                    orgId, entityType, entityId, action, me?.id,
+                    orgId, entityType, entityId, action, me?.accountId,
                     actorName ?: me?.displayName ?: "", summary,
                 )
             }
@@ -1331,14 +1334,14 @@ object SharedStore {
         _state.update { st ->
             st.copy(timeOffRequests = st.timeOffRequests.map {
                 if (it.id == requestId) it.copy(
-                    status = status, decidedByUserId = me?.id,
+                    status = status, decidedByUserId = me?.accountId,
                     decidedByName = me?.displayName, decidedAt = nowIso
                 ) else it
             })
         }
         scope.launch {
             runCatching {
-                cloud.decideTimeOffRequestRow(requestId, status, me?.id, me?.displayName, nowIso)
+                cloud.decideTimeOffRequestRow(requestId, status, me?.accountId, me?.displayName, nowIso)
                 cloud.emitOrgEvent(orgId, deviceId, "time_off_decided")
             }.onFailure { t -> _state.update { it.copy(error = t.message) } }
             logAudit("time_off", requestId, status, "Time-off request $status")
@@ -1355,7 +1358,7 @@ object SharedStore {
         _state.update { st ->
             st.copy(reimbursements = st.reimbursements.map {
                 if (it.id == reimbursementId) it.copy(
-                    status = status, decidedByUserId = me?.id,
+                    status = status, decidedByUserId = me?.accountId,
                     decidedByName = me?.displayName, decidedAt = nowIso
                 ) else it
             })
@@ -1380,7 +1383,7 @@ object SharedStore {
         _state.update { st ->
             st.copy(timeEntries = st.timeEntries.map {
                 if (it.id == timeEntryId) it.copy(
-                    approvalStatus = status, decidedByUserId = me?.id,
+                    approvalStatus = status, decidedByUserId = me?.accountId,
                     decidedByName = me?.displayName, decidedAt = nowIso,
                     rejectionReason = if (reject) reason else null
                 ) else it
@@ -1389,7 +1392,7 @@ object SharedStore {
         scope.launch {
             runCatching {
                 cloud.updateTimeEntryApproval(
-                    timeEntryId, status, me?.id, me?.displayName,
+                    timeEntryId, status, me?.accountId, me?.displayName,
                     if (reject) reason else null
                 )
                 cloud.emitOrgEvent(orgId, deviceId, "time_entry_decided")
@@ -1493,7 +1496,7 @@ object SharedStore {
             planeTailNumber = planeTailNumber,
             colorHex = colorHex,
             eventKind = eventKind,
-            createdByUserId = authUserId ?: me?.id,
+            createdByUserId = authUserId ?: me?.accountId,
             createdByUserName = me?.displayName ?: "Teammate",
             visibility = if (visibility in setOf("public", "admin_only", "personal")) visibility else "public",
             remindAt = remindAt,
@@ -1672,7 +1675,7 @@ object SharedStore {
         return try {
             val wlId = cloud.createWorkLog(
                 orgId, planeId, planeTailNumber, title, category, details,
-                me?.id, me?.displayName,
+                me?.accountId, me?.displayName,
                 workOrderId = openJobForPlane(planeId)?.id
             )
             cloud.emitOrgEvent(orgId, deviceId, "work_log_created")
@@ -1731,7 +1734,7 @@ object SharedStore {
                     stockStatus = stockStatus,
                     planeIds = planeIds,
                     notes = notes,
-                    updatedByUserId = me?.id,
+                    updatedByUserId = me?.accountId,
                     updatedByUserName = me?.displayName ?: "Tech",
                     photoPaths = photoPaths
                 )
@@ -1746,7 +1749,7 @@ object SharedStore {
                     stockStatus = stockStatus,
                     planeIds = planeIds,
                     notes = notes,
-                    updatedByUserId = me?.id,
+                    updatedByUserId = me?.accountId,
                     updatedByUserName = me?.displayName ?: "Tech",
                     photoPaths = photoPaths
                 )
@@ -2035,7 +2038,7 @@ object SharedStore {
             valid.forEach { d ->
                 val wlId = cloud.createWorkLog(
                     orgId, d.planeId, d.planeTailNumber, d.title, d.category, d.details,
-                    me?.id, me?.displayName,
+                    me?.accountId, me?.displayName,
                     workOrderId = openJobForPlane(d.planeId)?.id
                 )
                 logAudit("work_log", wlId, "created", "Added work log \"${d.title.trim()}\" to ${d.planeTailNumber.uppercase()}")
@@ -2204,7 +2207,7 @@ object SharedStore {
             // Photos/docs are added/removed on their own paths — preserve them.
             photoPaths = if (isNew) draft.photoPaths else (existing?.photoPaths ?: draft.photoPaths),
             docPaths = if (isNew) draft.docPaths else (existing?.docPaths ?: draft.docPaths),
-            updatedByUserId = me?.id,
+            updatedByUserId = me?.accountId,
             updatedByUserName = me?.displayName ?: "Tech"
         )
         return try {
@@ -2336,7 +2339,7 @@ object SharedStore {
             equipmentId = equipmentId,
             maintenanceItemId = maintenanceItemId,
             performedAt = performedAt,
-            performedByUserId = me?.id,
+            performedByUserId = me?.accountId,
             performedByUserName = me?.displayName ?: "Tech",
             hoursAtService = hoursAtService,
             notes = notes.trim(),

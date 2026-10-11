@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import com.hangarflow.app.data.SharedStore
 import com.hangarflow.app.data.model.HFPlane
 import com.hangarflow.app.data.model.HFScheduledMaintItem
+import com.hangarflow.app.data.model.accountId
 import com.hangarflow.app.ui.theme.HFColors
 import java.util.UUID
 import java.time.DayOfWeek
@@ -239,7 +240,7 @@ private fun ScheduleHubContent(
         TimeOffSection(
             requests = shopState.timeOffRequests,
             isAdmin = isAdmin,
-            myUserId = shopState.currentUser?.id
+            myUserId = shopState.currentUser?.accountId
         )
 
         Spacer(Modifier.height(24.dp))

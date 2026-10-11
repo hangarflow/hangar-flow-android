@@ -72,3 +72,20 @@ data class HFUserProfile(
         }
 
 }
+
+/**
+ * The id every `*_user_id` column in the schema points at.
+ *
+ * A person has two ids: this profile's `id`, and `authUserId` — the Supabase
+ * auth account. Every foreign key in the database references `auth.users`,
+ * so the account id is the one that belongs in a `user_id` column. Writing
+ * the profile id produces a row that matches no user: the app can't tell it
+ * belongs to that person, and the record reads as unattributed.
+ *
+ * `id` remains the fallback for the handful of profiles that were created
+ * with no auth link — a wrong-but-present id beats a null on an audit trail.
+ *
+ * Use this for anything written to the DATABASE. Comparing one profile to
+ * another in the UI should still use `id`.
+ */
+val HFUserProfile.accountId: String get() = authUserId ?: id

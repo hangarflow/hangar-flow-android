@@ -5,6 +5,7 @@ import android.os.SystemClock
 import android.util.Log
 import com.hangarflow.app.data.SharedStore
 import com.hangarflow.app.data.cloud.SupabaseClientProvider
+import com.hangarflow.app.data.model.accountId
 import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -118,7 +119,7 @@ object HFPerfMonitor {
         val me = SharedStore.state.value.currentUser
         val row = PerfRow(
             org_id = orgId,
-            user_id = me?.id,
+            user_id = me?.accountId,
             actor_name = me?.displayName ?: "",
             kind = e.kind,
             screen = e.screen,
