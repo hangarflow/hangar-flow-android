@@ -110,7 +110,6 @@ fun ClockOutSheet(onDismiss: () -> Unit) {
     val prefilled = workedToday.isNotEmpty()
     // What each aircraft's hours were against, keyed by tail. Null = plane
     // level only, which is the right answer for towing or cleaning.
-    val jobFor = remember { mutableStateMapOf<String, SharedStore.JobChoice?>() }
     val planeCandidates = remember(workedToday, shopState.planes) {
         if (workedToday.isNotEmpty()) workedToday
         else shopState.planes
@@ -132,6 +131,25 @@ fun ClockOutSheet(onDismiss: () -> Unit) {
             if (prefilled && planeCandidates.isNotEmpty() && shiftMinutes > 0) {
                 val each = shiftMinutes.toDouble() / planeCandidates.size / 60.0
                 planeCandidates.forEach { put(it.planeTailNumber, "%.1f".format(each)) }
+            }
+        }
+    }
+
+    val jobFor = remember(planeCandidates) {
+        mutableStateMapOf<String, SharedStore.JobChoice?>().apply {
+            // Pre-select the job where there is only one it could be.
+            //
+            // The picker is optional and across 995 time entries not one
+            // carried an answer, so labour could only ever be attributed to
+            // an aircraft, never the job it was spent on. Mandatory would
+            // teach techs to pick anything to get past it, and a wrong
+            // attribution reads as fact where a blank reads as unknown.
+            //
+            // One open job is an answer, not a guess. Two or more stays blank
+            // for a human. Matches macOS, iOS and Windows.
+            planeCandidates.forEach { c ->
+                val opts = SharedStore.jobOptionsFor(c.planeId)
+                if (opts.size == 1) put(c.planeTailNumber, opts[0])
             }
         }
     }
