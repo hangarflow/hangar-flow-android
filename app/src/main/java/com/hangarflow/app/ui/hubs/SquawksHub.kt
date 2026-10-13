@@ -277,7 +277,14 @@ private fun SquawksHubContent(
         val pendingForOwner = remember(squawks) {
             squawks.filter { it.ownerDecision == null && it.planeTailNumber.isNotBlank() }
         }
-        if (authState.isAdmin && pendingForOwner.isNotEmpty()) {
+        // Offered whenever the shop HAS squawks, not only when some are
+        // unanswered. A list is not sent once and never again: squawks get
+        // reworded, techs add more, and owners ask to see it twice. The dialog
+        // falls back to the whole list per tail when nothing is pending.
+        val anyForOwner = remember(squawks) {
+            squawks.filter { it.planeTailNumber.isNotBlank() }
+        }
+        if (authState.isAdmin && anyForOwner.isNotEmpty()) {
             Spacer(Modifier.size(10.dp))
             Row(
                 modifier = Modifier
@@ -305,6 +312,7 @@ private fun SquawksHubContent(
         if (sendingApproval) {
             SendForApprovalDialog(
                 candidates = pendingForOwner,
+                fallback = anyForOwner,
                 onDismiss = { sendingApproval = false }
             )
         }
@@ -997,12 +1005,21 @@ private fun statusPresentation(raw: String): Pair<String, Color> = when (raw) {
 @Composable
 private fun SendForApprovalDialog(
     candidates: List<HFSquawk>,
+    /// Used for any tail with nothing pending -- a re-send covers the whole
+    /// list so the owner can revisit answers they already gave.
+    fallback: List<HFSquawk> = emptyList(),
     onDismiss: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    // Tails that actually have something awaiting a decision, most first.
-    val byTail = remember(candidates) {
-        candidates.groupBy { it.planeTailNumber }.toList().sortedByDescending { it.second.size }
+    // Every tail the shop could send, with its pending items where there are
+    // any and its whole list where there are none.
+    val byTail = remember(candidates, fallback) {
+        val pending = candidates.groupBy { it.planeTailNumber }
+        val all = fallback.groupBy { it.planeTailNumber }
+        (pending.keys + all.keys).map { tail ->
+            tail to (pending[tail]?.takeIf { it.isNotEmpty() } ?: all[tail].orEmpty())
+        }.filter { it.second.isNotEmpty() }
+            .sortedByDescending { it.second.size }
     }
     var tail by remember { mutableStateOf(byTail.firstOrNull()?.first ?: "") }
     val forTail = remember(byTail, tail) { byTail.firstOrNull { it.first == tail }?.second ?: emptyList() }
@@ -1078,8 +1095,12 @@ private fun SendForApprovalDialog(
                             }
                         }
                     }
+                    // A re-send is every item already answered. Calling those
+                    // "awaiting a decision" is the opposite of the truth.
+                    val resend = forTail.isNotEmpty() && forTail.all { it.ownerDecision != null }
                     Text(
-                        stringResource(R.string.sq_send_awaiting, tail, forTail.size),
+                        if (resend) stringResource(R.string.sq_send_resend, tail, forTail.size)
+                        else stringResource(R.string.sq_send_awaiting, tail, forTail.size),
                         color = HFColors.OnSurfaceMuted, fontSize = 12.sp
                     )
                     OutlinedTextField(

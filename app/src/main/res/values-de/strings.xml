@@ -450,4 +450,5 @@
 
     <string name="sq_copy">Kopieren</string>
     <string name="sq_copied">Kopiert</string>
+    <string name="sq_send_resend">%1$s — alle %2$d erneut zur Ansicht gesendet</string>
 </resources>

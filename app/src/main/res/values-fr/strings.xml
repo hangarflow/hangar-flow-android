@@ -450,4 +450,5 @@
 
     <string name="sq_copy">Copier</string>
     <string name="sq_copied">Copie</string>
+    <string name="sq_send_resend">%1$s — renvoi des %2$d pour un second avis</string>
 </resources>

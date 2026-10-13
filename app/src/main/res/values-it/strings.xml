@@ -450,4 +450,5 @@
 
     <string name="sq_copy">Copia</string>
     <string name="sq_copied">Copiato</string>
+    <string name="sq_send_resend">%1$s — reinvio di tutti i %2$d per un nuovo esame</string>
 </resources>

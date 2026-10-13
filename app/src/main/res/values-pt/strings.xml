@@ -450,4 +450,5 @@
 
     <string name="sq_copy">Copiar</string>
     <string name="sq_copied">Copiado</string>
+    <string name="sq_send_resend">%1$s — reenviando os %2$d para nova análise</string>
 </resources>
