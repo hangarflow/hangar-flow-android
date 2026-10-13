@@ -547,7 +547,7 @@
     <string name="sq_change">Change</string>
     <string name="sq_clear">Clear</string>
     <string name="sq_record_failed">Couldn\'t save that.</string>
-    <string name="sq_ch_link">approved on the link themselves</string>
+    <string name="sq_ch_link">answered on the link themselves</string>
     <string name="sq_ch_email">recorded from an email</string>
     <string name="sq_ch_phone">recorded from a phone call</string>
     <string name="sq_ch_text">recorded from a text message</string>

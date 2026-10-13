@@ -433,7 +433,7 @@
     <string name="sq_change">修改</string>
     <string name="sq_clear">清除</string>
     <string name="sq_record_failed">保存失败。</string>
-    <string name="sq_ch_link">机主本人通过链接批准</string>
+    <string name="sq_ch_link">通过链接自行答复</string>
     <string name="sq_ch_email">根据邮件记录</string>
     <string name="sq_ch_phone">根据电话记录</string>
     <string name="sq_ch_text">根据短信记录</string>

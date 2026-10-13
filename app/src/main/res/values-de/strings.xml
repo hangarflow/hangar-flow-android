@@ -433,7 +433,7 @@
     <string name="sq_change">Ändern</string>
     <string name="sq_clear">Löschen</string>
     <string name="sq_record_failed">Speichern fehlgeschlagen.</string>
-    <string name="sq_ch_link">vom Eigentümer selbst über den Link</string>
+    <string name="sq_ch_link">hat über den Link geantwortet</string>
     <string name="sq_ch_email">aus einer E-Mail erfasst</string>
     <string name="sq_ch_phone">aus einem Anruf erfasst</string>
     <string name="sq_ch_text">aus einer SMS erfasst</string>

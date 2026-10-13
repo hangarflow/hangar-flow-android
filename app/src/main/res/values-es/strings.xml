@@ -433,7 +433,7 @@
     <string name="sq_change">Cambiar</string>
     <string name="sq_clear">Borrar</string>
     <string name="sq_record_failed">No se pudo guardar.</string>
-    <string name="sq_ch_link">aprobado por el propietario en el enlace</string>
+    <string name="sq_ch_link">respondió en el enlace</string>
     <string name="sq_ch_email">registrado de un correo</string>
     <string name="sq_ch_phone">registrado de una llamada</string>
     <string name="sq_ch_text">registrado de un mensaje</string>
