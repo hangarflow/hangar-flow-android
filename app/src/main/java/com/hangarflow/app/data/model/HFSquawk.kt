@@ -23,6 +23,16 @@ data class HFSquawk(
     @SerialName("corrected_by_user_id") val correctedByUserId: String? = null,
     @SerialName("corrected_by_user_name") val correctedByUserName: String = "",
     @SerialName("corrected_at") val correctedAt: String? = null,
+    /** The aircraft owner's authorisation, from the approval link the shop
+     *  sends them: "approved", "denied", or null when they have not been
+     *  asked. Reversible by the owner or an admin — owners change their
+     *  minds, and the shop should not have to raise a duplicate squawk to
+     *  record that. The reason is shown verbatim: "not this visit" and "that
+     *  was done at the last annual" need completely different responses. */
+    @SerialName("owner_decision") val ownerDecision: String? = null,
+    @SerialName("owner_decision_reason") val ownerDecisionReason: String? = null,
+    @SerialName("owner_decided_at") val ownerDecidedAt: String? = null,
+    @SerialName("owner_decided_by") val ownerDecidedBy: String? = null,
     /** Work log created alongside this squawk (Apple pairs them at
      *  report time). The server keeps the two statuses in step, so
      *  resolving one resolves the other. This client doesn't create

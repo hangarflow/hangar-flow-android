@@ -598,6 +598,41 @@ private fun SquawkCard(
             )
         }
 
+        // ── What the aircraft owner said ──
+        //
+        // Without this the approval loop is one-directional: an owner could
+        // decline work and nobody in the shop would see it unless they
+        // queried the database. The reason is shown verbatim — "not this
+        // visit" and "that was done at the last annual" need completely
+        // different responses from the shop.
+        squawk.ownerDecision?.let { decision ->
+            val approved = decision == "approved"
+            val tint = if (approved) HFColors.StatusGreen else HFColors.StatusRed
+            Spacer(Modifier.size(10.dp))
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(tint.copy(alpha = 0.10f))
+                    .border(1.dp, tint.copy(alpha = 0.35f), RoundedCornerShape(10.dp))
+                    .padding(10.dp)
+            ) {
+                Text(
+                    if (approved) "OWNER APPROVED THIS WORK" else "OWNER DECLINED THIS WORK",
+                    color = tint, fontSize = 9.sp,
+                    fontWeight = FontWeight.Bold, letterSpacing = 1.sp
+                )
+                if (!squawk.ownerDecisionReason.isNullOrBlank()) {
+                    Spacer(Modifier.size(4.dp))
+                    Text(squawk.ownerDecisionReason, color = HFColors.ink(0.80f), fontSize = 13.sp)
+                }
+                if (!squawk.ownerDecidedBy.isNullOrBlank()) {
+                    Spacer(Modifier.size(2.dp))
+                    Text(squawk.ownerDecidedBy, color = HFColors.ink(0.45f), fontSize = 10.sp)
+                }
+            }
+        }
+
         // ── Corrective action — what was done to fix it ──
         if (squawk.correctiveAction.isNotBlank()) {
             Spacer(Modifier.size(10.dp))
