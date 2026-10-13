@@ -2256,4 +2256,69 @@ class HFCloudSyncService {
             .firstOrNull()
             ?.exportBusinessName
 
+
+    // ---- Owner approval -------------------------------------------------
+    //
+    // Send a squawk list to the aircraft owner for authorisation. The TOKEN
+    // IS MADE SERVER-SIDE by the edge function: a client choosing its own
+    // token could choose a predictable one, and that token is the only thing
+    // protecting a customer's aircraft data.
+
+    @kotlinx.serialization.Serializable
+    private data class ApprovalSendBody(
+        val plane_id: String?,
+        val squawk_ids: List<String>,
+        val to_email: String,
+        val expires_days: Int
+    )
+
+    @kotlinx.serialization.Serializable
+    data class ApprovalSendResult(
+        val url: String = "",
+        val squawks: Int = 0,
+        val tail: String = "",
+        val emailed: Boolean = false,
+        val email_error: String? = null,
+        val error: String? = null,
+        // The gateway in front of the function (expired JWT, missing header)
+        // answers {"message": prose} instead of {"error": code}.
+        val message: String? = null
+    )
+
+    /** The function's refusal codes, in words a shop can act on. */
+    private fun approvalErrorText(code: String?): String? = when (code) {
+        null -> null
+        "lead_or_admin_only" -> "Only an admin or lead tech can send a list to an owner."
+        "no_org" -> "Your account isn't attached to a shop."
+        "bad_email" -> "That email address doesn't look right."
+        "no_squawks", "no_matching_squawks" -> "Nothing to send — every item has a decision already."
+        "too_many_squawks" -> "Too many items for one link. Send them in smaller batches."
+        "multiple_aircraft" -> "One link covers one aircraft. Pick a single tail."
+        "could_not_create_link" -> "The link couldn't be created. Try again."
+        "invalid_token", "missing_token" -> "Your session expired. Sign in again."
+        else -> code
+    }
+
+    suspend fun sendSquawkApproval(
+        planeId: String?, squawkIds: List<String>, toEmail: String, expiresDays: Int = 30
+    ): ApprovalSendResult {
+        val resp = client.functions.invoke(
+            function = "squawk-approval-send",
+            body = ApprovalSendBody(planeId, squawkIds, toEmail, expiresDays)
+        )
+        val text = resp.bodyAsText()
+        val out = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+            .decodeFromString(ApprovalSendResult.serializer(), text)
+        // A refusal comes back as {"error":"..."} with a 4xx, and EVERY field
+        // on this result has a default — so a decoded error object is
+        // indistinguishable from a successful send with a blank link. Without
+        // this check the shop sees "Sent." and no owner ever gets a thing.
+        if (resp.status.value !in 200..299 || out.url.isBlank()) {
+            throw IllegalStateException(
+                approvalErrorText(out.error ?: out.message) ?: "Couldn't send (${resp.status.value})."
+            )
+        }
+        return out
+    }
+
 }

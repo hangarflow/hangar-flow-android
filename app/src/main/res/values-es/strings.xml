@@ -409,4 +409,16 @@
     <string name="appearance_system">Sistema</string>
     <string name="appearance_light">Claro</string>
     <string name="appearance_dark">Oscuro</string>
+
+    <!-- Owner approval -->
+    <string name="sq_send_owner">Enviar al propietario</string>
+    <string name="sq_send_action">Enviar</string>
+    <string name="sq_send_sent">Enviado.</string>
+    <string name="sq_send_link_hint">Enlace: guárdalo por si necesitas reenviarlo a mano:</string>
+    <string name="sq_send_owner_email">Correo del propietario</string>
+    <string name="sq_send_days">%1$d días</string>
+    <string name="sq_send_awaiting">%1$s — %2$d pendientes de decisión</string>
+    <string name="sq_send_no_prices">No se muestran precios al propietario. Aprueba o rechaza cada elemento y puede cambiar de opinión después.</string>
+    <string name="sq_send_mail_failed">Se creó el enlace pero el correo no se envió. Cópialo abajo.</string>
+    <string name="sq_send_failed">No se pudo enviar.</string>
 </resources>

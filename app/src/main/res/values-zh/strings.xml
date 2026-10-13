@@ -409,4 +409,16 @@
     <string name="appearance_system">系统</string>
     <string name="appearance_light">浅色</string>
     <string name="appearance_dark">深色</string>
+
+    <!-- Owner approval -->
+    <string name="sq_send_owner">发送给机主</string>
+    <string name="sq_send_action">发送</string>
+    <string name="sq_send_sent">已发送。</string>
+    <string name="sq_send_link_hint">链接 — 如需手动重发请保存：</string>
+    <string name="sq_send_owner_email">机主邮箱</string>
+    <string name="sq_send_days">%1$d 天</string>
+    <string name="sq_send_awaiting">%1$s — %2$d 项等待决定</string>
+    <string name="sq_send_no_prices">机主看不到任何价格。他们可以逐项批准或拒绝，之后也可以更改。</string>
+    <string name="sq_send_mail_failed">链接已创建，但邮件未发送。请复制下方链接。</string>
+    <string name="sq_send_failed">发送失败。</string>
 </resources>

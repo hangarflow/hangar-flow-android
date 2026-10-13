@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Send
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -67,6 +68,8 @@ import com.hangarflow.app.data.cloud.TroubleshootCloud
 import com.hangarflow.app.data.cloud.TroubleshootStarter
 import com.hangarflow.app.ui.guided.TroubleshootScreen
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.TextButton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -253,6 +256,54 @@ private fun SquawksHubContent(
                 color = HFColors.BrandInk,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold
+            )
+        }
+
+        // Send a list to the aircraft owner for authorisation.
+        //
+        // ADMIN ONLY on a phone. The desktop lets a lead tech send; here it
+        // is admins only. Choosing which items go in front of a customer and
+        // typing their address is desk work, and the narrower rule is the
+        // safer default on the device most likely to be sitting unlocked on
+        // a bench. The button is not the gate — the edge function checks the
+        // role and RLS backs it up — but offering an action that will be
+        // refused is the bug we keep finding.
+        val authState = AuthManager.state.collectAsState().value
+        var sendingApproval by remember { mutableStateOf(false) }
+        // Only items the owner has not already ruled on. Re-sending a list
+        // including decisions they already made reads as "we ignored you".
+        val pendingForOwner = remember(squawks) {
+            squawks.filter { it.ownerDecision == null && it.planeTailNumber.isNotBlank() }
+        }
+        if (authState.isAdmin && pendingForOwner.isNotEmpty()) {
+            Spacer(Modifier.size(10.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(HFColors.StatusOrange.copy(alpha = 0.14f))
+                    .clickable { sendingApproval = true }
+                    .padding(vertical = 12.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    Icons.Outlined.Send, null,
+                    tint = HFColors.StatusOrange, modifier = Modifier.size(16.dp)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    stringResource(R.string.sq_send_owner),
+                    color = HFColors.StatusOrange,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+        if (sendingApproval) {
+            SendForApprovalDialog(
+                candidates = pendingForOwner,
+                onDismiss = { sendingApproval = false }
             )
         }
 
@@ -863,4 +914,145 @@ private fun statusPresentation(raw: String): Pair<String, Color> = when (raw) {
     "deferred" -> "Deferred" to HFColors.ink(0.5f)
     "convertedToTask" -> "Converted" to HFColors.StatusPurple
     else -> raw.replaceFirstChar { it.titlecase() } to HFColors.ink(0.6f)
+}
+
+/// Send a squawk list to the aircraft owner for authorisation.
+///
+/// The owner has no account and never gets one — they receive a link. The
+/// token is made server-side by `squawk-approval-send`; a client that chose
+/// its own could choose a predictable one, and that token is the only thing
+/// protecting a customer's aircraft data.
+///
+/// ONE LINK COVERS ONE AIRCRAFT, so this picks a tail first. The phone has
+/// no plane filter above the list the way the desktop does, and mixing tails
+/// would let an owner authorise work on an aeroplane that is not theirs —
+/// the function refuses it, and asking here is kinder than being refused.
+@Composable
+private fun SendForApprovalDialog(
+    candidates: List<HFSquawk>,
+    onDismiss: () -> Unit
+) {
+    val scope = rememberCoroutineScope()
+    // Tails that actually have something awaiting a decision, most first.
+    val byTail = remember(candidates) {
+        candidates.groupBy { it.planeTailNumber }.toList().sortedByDescending { it.second.size }
+    }
+    var tail by remember { mutableStateOf(byTail.firstOrNull()?.first ?: "") }
+    val forTail = remember(byTail, tail) { byTail.firstOrNull { it.first == tail }?.second ?: emptyList() }
+
+    var email by remember { mutableStateOf("") }
+    var days by remember { mutableStateOf(30) }
+    var sending by remember { mutableStateOf(false) }
+    var sentUrl by remember { mutableStateOf<String?>(null) }
+    var note by remember { mutableStateOf<String?>(null) }
+    var error by remember { mutableStateOf<String?>(null) }
+    // Resolved up here: stringResource is @Composable and these are read
+    // from inside a coroutine.
+    val mailFailedText = stringResource(R.string.sq_send_mail_failed)
+    val sendFailedText = stringResource(R.string.sq_send_failed)
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.sq_send_owner), color = HFColors.OnSurface) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                if (sentUrl != null) {
+                    Text(
+                        stringResource(R.string.sq_send_sent),
+                        color = HFColors.StatusGreen, fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    note?.let { Text(it, color = HFColors.StatusOrange, fontSize = 12.sp) }
+                    Text(
+                        stringResource(R.string.sq_send_link_hint),
+                        color = HFColors.OnSurfaceMuted, fontSize = 12.sp
+                    )
+                    OutlinedTextField(
+                        value = sentUrl!!, onValueChange = {}, readOnly = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 11.sp)
+                    )
+                } else {
+                    if (byTail.size > 1) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            byTail.forEach { (t, list) ->
+                                FilterChip(
+                                    selected = t == tail,
+                                    onClick = { tail = t },
+                                    label = { Text("$t (${list.size})") }
+                                )
+                            }
+                        }
+                    }
+                    Text(
+                        stringResource(R.string.sq_send_awaiting, tail, forTail.size),
+                        color = HFColors.OnSurfaceMuted, fontSize = 12.sp
+                    )
+                    OutlinedTextField(
+                        value = email, onValueChange = { email = it },
+                        label = { Text(stringResource(R.string.sq_send_owner_email)) },
+                        singleLine = true, modifier = Modifier.fillMaxWidth()
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf(7, 30, 90).forEach { d ->
+                            FilterChip(
+                                selected = days == d, onClick = { days = d },
+                                label = { Text(stringResource(R.string.sq_send_days, d)) }
+                            )
+                        }
+                    }
+                    Text(
+                        stringResource(R.string.sq_send_no_prices),
+                        color = HFColors.OnSurfaceFaint, fontSize = 11.sp
+                    )
+                    error?.let { Text(it, color = HFColors.StatusRed, fontSize = 12.sp) }
+                }
+            }
+        },
+        confirmButton = {
+            if (sentUrl != null) {
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_done)) }
+            } else {
+                Button(
+                    enabled = !sending && forTail.isNotEmpty() && email.contains("@"),
+                    onClick = {
+                        sending = true; error = null
+                        scope.launch {
+                            val r = runCatching {
+                                withContext(Dispatchers.IO) {
+                                    SharedStore.sendSquawkApproval(
+                                        planeId = forTail.firstOrNull()?.planeId,
+                                        squawkIds = forTail.map { it.id },
+                                        toEmail = email.trim(),
+                                        expiresDays = days
+                                    )
+                                }
+                            }
+                            r.onSuccess { out ->
+                                sentUrl = out.url
+                                // The link EXISTS even if the mail failed —
+                                // say which happened rather than let the shop
+                                // believe an owner was emailed.
+                                if (!out.emailed) {
+                                    note = out.email_error ?: mailFailedText
+                                }
+                            }.onFailure {
+                                error = it.message ?: sendFailedText
+                            }
+                            sending = false
+                        }
+                    }
+                ) { Text(if (sending) "…" else stringResource(R.string.sq_send_action)) }
+            }
+        },
+        dismissButton = {
+            if (sentUrl == null) {
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+            }
+        },
+        containerColor = HFColors.Surface
+    )
 }

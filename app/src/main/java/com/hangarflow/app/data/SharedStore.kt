@@ -2644,6 +2644,16 @@ object SharedStore {
             }
         }
     }
+
+    /// Send a squawk list to the aircraft owner for authorisation.
+    ///
+    /// Thin pass-through: the edge function makes the token, filters the
+    /// squawks against the org and sends the mail. Nothing here decides who
+    /// may do it — the function checks the role and RLS backs it up.
+    suspend fun sendSquawkApproval(
+        planeId: String?, squawkIds: List<String>, toEmail: String, expiresDays: Int
+    ) = cloud.sendSquawkApproval(planeId, squawkIds, toEmail, expiresDays)
+
 }
 
 /**

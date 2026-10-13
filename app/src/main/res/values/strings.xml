@@ -523,4 +523,16 @@
     <string name="users_cert_expires">Expires (YYYY-MM-DD, optional)</string>
     <string name="users_no_cert_cannot_sign">No certificate on file, so this person can\'t sign a logbook entry.</string>
     <string name="users_cannot_sign_inspection">Can sign maintenance, but not an annual or progressive — that needs an IA or a repair station.</string>
+
+    <!-- Owner approval -->
+    <string name="sq_send_owner">Send to owner</string>
+    <string name="sq_send_action">Send</string>
+    <string name="sq_send_sent">Sent.</string>
+    <string name="sq_send_link_hint">Link — keep this if you need to resend by hand:</string>
+    <string name="sq_send_owner_email">Owner\'s email</string>
+    <string name="sq_send_days">%1$d days</string>
+    <string name="sq_send_awaiting">%1$s — %2$d awaiting a decision</string>
+    <string name="sq_send_no_prices">No prices are shown to the owner. They approve or decline each item and can change their mind later.</string>
+    <string name="sq_send_mail_failed">The link was created but the email did not send. Copy it below.</string>
+    <string name="sq_send_failed">Couldn\'t send.</string>
 </resources>
