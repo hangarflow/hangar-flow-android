@@ -444,4 +444,10 @@
     <string name="sq_ch_text_short">Mensagem</string>
     <string name="sq_ch_pdf_short">PDF devolvido</string>
     <string name="sq_ch_in_person_short">Pessoalmente</string>
+
+    <string name="sq_owner_list">Enviar ao proprietário / PDF</string>
+    <string name="sq_download_pdf">PDF</string>
+
+    <string name="sq_copy">Copiar</string>
+    <string name="sq_copied">Copiado</string>
 </resources>

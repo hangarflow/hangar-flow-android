@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import com.hangarflow.app.data.PdfExporter
 import com.hangarflow.app.data.SharedStore
 import com.hangarflow.app.data.cloud.HFCloudSyncService
 import com.hangarflow.app.data.model.HFSquawk
@@ -294,7 +295,7 @@ private fun SquawksHubContent(
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    stringResource(R.string.sq_send_owner),
+                    stringResource(R.string.sq_owner_list),
                     color = HFColors.StatusOrange,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold
@@ -1009,9 +1010,15 @@ private fun SendForApprovalDialog(
     var email by remember { mutableStateOf("") }
     var days by remember { mutableStateOf(30) }
     var sending by remember { mutableStateOf(false) }
+    var exporting by remember { mutableStateOf(false) }
     var sentUrl by remember { mutableStateOf<String?>(null) }
     var note by remember { mutableStateOf<String?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
+    // stringResource is @Composable; these are read from inside coroutines.
+    val failedText = stringResource(R.string.sq_send_failed)
+    var copied by remember { mutableStateOf(false) }
+    val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
     // Resolved up here: stringResource is @Composable and these are read
     // from inside a coroutine.
     val mailFailedText = stringResource(R.string.sq_send_mail_failed)
@@ -1029,10 +1036,28 @@ private fun SendForApprovalDialog(
                         fontWeight = FontWeight.SemiBold
                     )
                     note?.let { Text(it, color = HFColors.StatusOrange, fontSize = 12.sp) }
-                    Text(
-                        stringResource(R.string.sq_send_link_hint),
-                        color = HFColors.OnSurfaceMuted, fontSize = 12.sp
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            stringResource(R.string.sq_send_link_hint),
+                            color = HFColors.OnSurfaceMuted, fontSize = 12.sp,
+                            modifier = Modifier.weight(1f)
+                        )
+                        // Selecting a wrapped URL by hand on a tablet is fiddly
+                        // and half a link is worse than none. One tap instead.
+                        TextButton(onClick = {
+                            clipboard.setText(androidx.compose.ui.text.AnnotatedString(sentUrl!!))
+                            copied = true
+                        }) {
+                            Text(
+                                stringResource(if (copied) R.string.sq_copied else R.string.sq_copy),
+                                color = if (copied) HFColors.StatusGreen else HFColors.StatusBlue,
+                                fontSize = 12.sp, fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
                     OutlinedTextField(
                         value = sentUrl!!, onValueChange = {}, readOnly = true,
                         modifier = Modifier.fillMaxWidth(),
@@ -1082,6 +1107,25 @@ private fun SendForApprovalDialog(
             if (sentUrl != null) {
                 TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_done)) }
             } else {
+                // The PDF needs no address — the shop carries it to the owner
+                // themselves. It sits beside Send because these are the two
+                // ways one list reaches one owner, not two features.
+                TextButton(
+                    enabled = !exporting && !sending && forTail.isNotEmpty(),
+                    onClick = {
+                        exporting = true; error = null
+                        scope.launch {
+                            val r = runCatching {
+                                withContext(Dispatchers.IO) {
+                                    exportSquawkPdfForTail(context, forTail, days)
+                                }
+                            }
+                            exporting = false
+                            r.onFailure { error = it.message ?: failedText }
+                                .onSuccess { onDismiss() }
+                        }
+                    }
+                ) { Text(stringResource(R.string.sq_download_pdf)) }
                 Button(
                     enabled = !sending && forTail.isNotEmpty() && email.contains("@"),
                     onClick = {
@@ -1267,4 +1311,52 @@ private fun RecordOwnerDecisionDialog(
             }
         }
     )
+}
+
+/// Build the owner's squawk PDF for one tail and hand it to the share sheet.
+///
+/// Mirrors what the plane screen used to do, which is where this lived before.
+/// It moved here because "email it" and "print it" are the two halves of one
+/// decision and belong on the same screen.
+///
+/// Mints a FRESH approval link, like the emailed route: techs keep adding
+/// squawks, and a reused link would show the owner a list that no longer
+/// matches the sheet in their hand. Only undecided items go in its scope.
+private suspend fun exportSquawkPdfForTail(
+    context: android.content.Context,
+    squawks: List<HFSquawk>,
+    expiresDays: Int
+) {
+    val plane = SharedStore.state.value.planes.firstOrNull {
+        it.tailNumber.equals(squawks.firstOrNull()?.planeTailNumber ?: "", ignoreCase = true)
+    } ?: return
+    val orgId = AuthManager.state.value.orgId
+    val cloud = HFCloudSyncService()
+    val name = orgId?.let { runCatching { cloud.fetchOrgExportBusinessName(it) }.getOrNull() }
+    val logo = orgId?.let { runCatching { cloud.fetchOrgLogoBytes(it) }.getOrNull() }
+
+    // Everything on this tail goes on the sheet; only the undecided items go
+    // in the link. An owner reading a list wants the whole picture, including
+    // what they already ruled on.
+    val all = SharedStore.state.value.squawks.filter {
+        it.planeTailNumber.equals(plane.tailNumber, ignoreCase = true)
+    }
+    val undecided = all.filter { it.ownerDecision == null }
+    var url: String? = null
+    if (undecided.isNotEmpty()) {
+        runCatching {
+            SharedStore.sendSquawkApproval(
+                planeId = plane.id, squawkIds = undecided.map { it.id },
+                toEmail = "", expiresDays = expiresDays, deliver = false
+            )
+        }.onSuccess { url = it.url.takeIf { u -> u.isNotBlank() } }
+    }
+    withContext(Dispatchers.Main) {
+        PdfExporter.exportSquawks(
+            context, plane, all, name,
+            logoBytes = logo,
+            approvalUrl = url,
+            approvalExpiryLabel = url?.let { "Link expires in $expiresDays days." }
+        )
+    }
 }

@@ -444,4 +444,10 @@
     <string name="sq_ch_text_short">短信</string>
     <string name="sq_ch_pdf_short">寄回 PDF</string>
     <string name="sq_ch_in_person_short">当面</string>
+
+    <string name="sq_owner_list">发送给机主 / PDF</string>
+    <string name="sq_download_pdf">PDF</string>
+
+    <string name="sq_copy">复制</string>
+    <string name="sq_copied">已复制</string>
 </resources>

@@ -341,12 +341,12 @@ private fun CategoryGrid(
                             .clickable(onClick = onExportWorkLogs)
                             .padding(horizontal = 12.dp, vertical = 6.dp)
                     ) { Text(stringResource(R.string.pd_export_logs), color = HFColors.StatusBlue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold) }
-                    Box(
-                        modifier = Modifier.clip(RoundedCornerShape(8.dp))
-                            .background(HFColors.StatusBlue.copy(alpha = 0.12f))
-                            .clickable(onClick = onExportSquawks)
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
-                    ) { Text(stringResource(R.string.pd_export_squawks), color = HFColors.StatusBlue, fontSize = 12.sp, fontWeight = FontWeight.SemiBold) }
+                    // "Export Squawks PDF" used to be here. It now lives in
+                    // Squawks, inside the same dialog as "Send to owner" —
+                    // the two ways a list reaches the owner belong together,
+                    // and the plane screen is for the aircraft, not for its
+                    // paperwork. "Export Logs PDF" stays: work logs ARE the
+                    // plane's record.
                 }
             }
         }
