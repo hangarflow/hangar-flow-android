@@ -421,4 +421,27 @@
     <string name="sq_send_no_prices">Al proprietario non vengono mostrati prezzi. Approva o rifiuta ogni voce e può cambiare idea in seguito.</string>
     <string name="sq_send_mail_failed">Il link è stato creato ma l\'e-mail non è partita. Copialo qui sotto.</string>
     <string name="sq_send_failed">Invio non riuscito.</string>
+
+    <!-- Owner decision recorded by hand -->
+    <string name="sq_record_answer">Registra la risposta del proprietario</string>
+    <string name="sq_record_answer_sub">Ha telefonato, scritto o rimandato il foglio</string>
+    <string name="sq_how_received">Come è arrivata?</string>
+    <string name="sq_why_declined">Perché ha rifiutato? (obbligatorio)</string>
+    <string name="sq_note_optional">Nota (facoltativa)</string>
+    <string name="sq_approved">Approvato</string>
+    <string name="sq_declined">Rifiutato</string>
+    <string name="sq_change">Modifica</string>
+    <string name="sq_clear">Cancella</string>
+    <string name="sq_record_failed">Impossibile salvare.</string>
+    <string name="sq_ch_link">approvato dal proprietario sul link</string>
+    <string name="sq_ch_email">registrato da un\'e-mail</string>
+    <string name="sq_ch_phone">registrato da una telefonata</string>
+    <string name="sq_ch_text">registrato da un messaggio</string>
+    <string name="sq_ch_pdf">registrato da un PDF restituito</string>
+    <string name="sq_ch_in_person">registrato di persona</string>
+    <string name="sq_ch_phone_short">Telefonata</string>
+    <string name="sq_ch_email_short">E-mail</string>
+    <string name="sq_ch_text_short">Messaggio</string>
+    <string name="sq_ch_pdf_short">PDF restituito</string>
+    <string name="sq_ch_in_person_short">Di persona</string>
 </resources>

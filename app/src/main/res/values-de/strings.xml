@@ -421,4 +421,27 @@
     <string name="sq_send_no_prices">Dem Eigentümer werden keine Preise angezeigt. Er genehmigt oder lehnt jeden Punkt ab und kann es später ändern.</string>
     <string name="sq_send_mail_failed">Der Link wurde erstellt, die E-Mail wurde jedoch nicht versendet. Unten kopieren.</string>
     <string name="sq_send_failed">Senden fehlgeschlagen.</string>
+
+    <!-- Owner decision recorded by hand -->
+    <string name="sq_record_answer">Antwort des Eigentümers erfassen</string>
+    <string name="sq_record_answer_sub">Er hat angerufen, gemailt oder das Blatt zurückgeschickt</string>
+    <string name="sq_how_received">Wie kam das herein?</string>
+    <string name="sq_why_declined">Warum abgelehnt? (erforderlich)</string>
+    <string name="sq_note_optional">Notiz (optional)</string>
+    <string name="sq_approved">Genehmigt</string>
+    <string name="sq_declined">Abgelehnt</string>
+    <string name="sq_change">Ändern</string>
+    <string name="sq_clear">Löschen</string>
+    <string name="sq_record_failed">Speichern fehlgeschlagen.</string>
+    <string name="sq_ch_link">vom Eigentümer selbst über den Link</string>
+    <string name="sq_ch_email">aus einer E-Mail erfasst</string>
+    <string name="sq_ch_phone">aus einem Anruf erfasst</string>
+    <string name="sq_ch_text">aus einer SMS erfasst</string>
+    <string name="sq_ch_pdf">aus einem zurückgesandten PDF erfasst</string>
+    <string name="sq_ch_in_person">persönlich erfasst</string>
+    <string name="sq_ch_phone_short">Anruf</string>
+    <string name="sq_ch_email_short">E-Mail</string>
+    <string name="sq_ch_text_short">SMS</string>
+    <string name="sq_ch_pdf_short">PDF zurück</string>
+    <string name="sq_ch_in_person_short">Persönlich</string>
 </resources>

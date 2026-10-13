@@ -2269,7 +2269,8 @@ class HFCloudSyncService {
         val plane_id: String?,
         val squawk_ids: List<String>,
         val to_email: String,
-        val expires_days: Int
+        val expires_days: Int,
+        val deliver: Boolean = true
     )
 
     @kotlinx.serialization.Serializable
@@ -2300,11 +2301,13 @@ class HFCloudSyncService {
     }
 
     suspend fun sendSquawkApproval(
-        planeId: String?, squawkIds: List<String>, toEmail: String, expiresDays: Int = 30
+        planeId: String?, squawkIds: List<String>, toEmail: String, expiresDays: Int = 30,
+        /** false mints the link WITHOUT emailing it -- for printing on the PDF. */
+        deliver: Boolean = true
     ): ApprovalSendResult {
         val resp = client.functions.invoke(
             function = "squawk-approval-send",
-            body = ApprovalSendBody(planeId, squawkIds, toEmail, expiresDays)
+            body = ApprovalSendBody(planeId, squawkIds, toEmail, expiresDays, deliver)
         )
         val text = resp.bodyAsText()
         val out = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
@@ -2320,5 +2323,70 @@ class HFCloudSyncService {
         }
         return out
     }
+
+
+    // ---- Owner decision, recorded by hand -------------------------------
+
+    @kotlinx.serialization.Serializable
+    private data class OwnerDecisionRow(
+        val owner_decision: String?,
+        val owner_decision_reason: String?,
+        val owner_decided_at: String?,
+        val owner_decided_by: String?,
+        val owner_decision_channel: String?
+    )
+
+    @kotlinx.serialization.Serializable
+    private data class SquawkIdAck(val id: String)
+
+    /**
+     * Record what the owner said, when they said it to a person rather than
+     * to the approval page.
+     *
+     * `channel` is not decoration. The moment an admin can enter a decision on
+     * the owner's behalf, "the owner approved this" stops being self-evident
+     * -- the channel plus the actor's name is the only evidence the
+     * conversation happened. The database refuses a decision without one.
+     *
+     * Returns false when nothing was written. RLS refuses by matching zero
+     * rows rather than raising, so without reading back, a refused write and a
+     * successful one are indistinguishable -- and the shop would carry on
+     * believing the owner authorised work they never saw.
+     */
+    suspend fun setOwnerDecision(
+        squawkId: String, decision: String?, reason: String?,
+        channel: String?, actorName: String
+    ): Boolean {
+        val now = java.time.Instant.now().toString()
+        return client.postgrest.from("hf_squawks").update(
+            OwnerDecisionRow(
+                owner_decision = decision,
+                owner_decision_reason = reason?.takeIf { it.isNotBlank() },
+                owner_decided_at = if (decision == null) null else now,
+                owner_decided_by = if (decision == null) null else actorName,
+                owner_decision_channel = if (decision == null) null else channel
+            )
+        ) {
+            select()
+            filter { eq("id", squawkId) }
+        }.decodeList<SquawkIdAck>().isNotEmpty()
+    }
+
+    /**
+     * The shop's logo bytes for a PDF header, or null when they have not
+     * uploaded one. The bucket is private, so this downloads through the
+     * authenticated client. Failure is null, never an exception: a missing
+     * logo must not stop a shop producing a squawk list.
+     */
+    suspend fun fetchOrgLogoBytes(orgId: String): ByteArray? = runCatching {
+        @kotlinx.serialization.Serializable
+        data class Row(@kotlinx.serialization.SerialName("logo_path") val logoPath: String? = null)
+        val path = client.postgrest.from("organizations")
+            .select { filter { eq("id", orgId) } }
+            .decodeList<Row>()
+            .firstOrNull()?.logoPath?.takeIf { it.isNotBlank() }
+            ?: return@runCatching null
+        client.storage.from("org-logos").downloadAuthenticated(path)
+    }.getOrNull()
 
 }

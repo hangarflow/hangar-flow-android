@@ -535,4 +535,27 @@
     <string name="sq_send_no_prices">No prices are shown to the owner. They approve or decline each item and can change their mind later.</string>
     <string name="sq_send_mail_failed">The link was created but the email did not send. Copy it below.</string>
     <string name="sq_send_failed">Couldn\'t send.</string>
+
+    <!-- Owner decision recorded by hand -->
+    <string name="sq_record_answer">Record the owner\'s answer</string>
+    <string name="sq_record_answer_sub">They called, emailed, or sent the sheet back</string>
+    <string name="sq_how_received">How did this come in?</string>
+    <string name="sq_why_declined">Why did they decline? (required)</string>
+    <string name="sq_note_optional">Note (optional)</string>
+    <string name="sq_approved">Approved</string>
+    <string name="sq_declined">Declined</string>
+    <string name="sq_change">Change</string>
+    <string name="sq_clear">Clear</string>
+    <string name="sq_record_failed">Couldn\'t save that.</string>
+    <string name="sq_ch_link">approved on the link themselves</string>
+    <string name="sq_ch_email">recorded from an email</string>
+    <string name="sq_ch_phone">recorded from a phone call</string>
+    <string name="sq_ch_text">recorded from a text message</string>
+    <string name="sq_ch_pdf">recorded from a returned PDF</string>
+    <string name="sq_ch_in_person">recorded in person</string>
+    <string name="sq_ch_phone_short">Phone call</string>
+    <string name="sq_ch_email_short">Email</string>
+    <string name="sq_ch_text_short">Text</string>
+    <string name="sq_ch_pdf_short">Returned PDF</string>
+    <string name="sq_ch_in_person_short">In person</string>
 </resources>

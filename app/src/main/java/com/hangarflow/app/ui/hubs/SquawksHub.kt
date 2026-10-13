@@ -219,6 +219,7 @@ private fun SquawksHubContent(
     var search by remember { mutableStateOf("") }
     var statusSheetFor by remember { mutableStateOf<HFSquawk?>(null) }
     var deleteConfirmFor by remember { mutableStateOf<HFSquawk?>(null) }
+    var recordDecisionFor by remember { mutableStateOf<HFSquawk?>(null) }
     val deleteScope = rememberCoroutineScope()
     val sheetState = rememberModalBottomSheetState()
 
@@ -363,11 +364,20 @@ private fun SquawksHubContent(
                         onEdit = { onOpenEdit(squawk) },
                         onTroubleshoot = { onTroubleshoot(squawk) },
                         onDelete = { deleteConfirmFor = squawk },
+                        onRecordDecision = { recordDecisionFor = squawk },
                         onOpenPhoto = onOpenPhoto
                     )
                 }
             }
         }
+    }
+
+    recordDecisionFor?.let { squawk ->
+        // Re-resolve against live state so a second open shows the answer the
+        // first one saved rather than a stale copy.
+        val live = SharedStore.state.collectAsState().value.squawks
+            .firstOrNull { it.id == squawk.id } ?: squawk
+        RecordOwnerDecisionDialog(squawk = live, onDismiss = { recordDecisionFor = null })
     }
 
     statusSheetFor?.let { squawk ->
@@ -566,6 +576,7 @@ private fun SquawkCard(
     onEdit: () -> Unit,
     onTroubleshoot: () -> Unit = {},
     onDelete: () -> Unit,
+    onRecordDecision: () -> Unit = {},
     onOpenPhoto: (paths: List<String>, index: Int) -> Unit
 ) {
     val (statusLabel, statusColor) = statusPresentation(squawk.status)
@@ -679,7 +690,62 @@ private fun SquawkCard(
                 }
                 if (!squawk.ownerDecidedBy.isNullOrBlank()) {
                     Spacer(Modifier.size(2.dp))
-                    Text(squawk.ownerDecidedBy, color = HFColors.ink(0.45f), fontSize = 10.sp)
+                    // Who, and how it got here. "Owner approved this" means one
+                    // thing when the owner clicked it and another when someone
+                    // in the shop typed it in; the record should not make those
+                    // look the same.
+                    val how = when (squawk.ownerDecisionChannel) {
+                        "link" -> stringResource(R.string.sq_ch_link)
+                        "email" -> stringResource(R.string.sq_ch_email)
+                        "phone" -> stringResource(R.string.sq_ch_phone)
+                        "text" -> stringResource(R.string.sq_ch_text)
+                        "pdf" -> stringResource(R.string.sq_ch_pdf)
+                        "in_person" -> stringResource(R.string.sq_ch_in_person)
+                        else -> null
+                    }
+                    Text(
+                        squawk.ownerDecidedBy + (how?.let { " - $it" } ?: ""),
+                        color = HFColors.ink(0.45f), fontSize = 10.sp
+                    )
+                }
+                if (AuthManager.state.collectAsState().value.isAdmin) {
+                    Spacer(Modifier.size(6.dp))
+                    Text(
+                        stringResource(R.string.sq_change),
+                        color = HFColors.ink(0.55f), fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.clickable { onRecordDecision() }
+                    )
+                }
+            }
+        }
+
+        // Recording the owner's answer by hand. ADMIN ONLY -- this is someone
+        // in the shop asserting what a customer said, which is a different
+        // thing from forwarding them a link, and the audit row it writes
+        // carries that person's name.
+        if (squawk.ownerDecision == null && AuthManager.state.collectAsState().value.isAdmin) {
+            Spacer(Modifier.size(10.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(HFColors.StatusOrange.copy(alpha = 0.10f))
+                    .border(1.dp, HFColors.StatusOrange.copy(alpha = 0.30f), RoundedCornerShape(10.dp))
+                    .clickable { onRecordDecision() }
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        stringResource(R.string.sq_record_answer),
+                        color = HFColors.StatusOrange, fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        stringResource(R.string.sq_record_answer_sub),
+                        color = HFColors.ink(0.50f), fontSize = 11.sp
+                    )
                 }
             }
         }
@@ -1054,5 +1120,151 @@ private fun SendForApprovalDialog(
             }
         },
         containerColor = HFColors.Surface
+    )
+}
+
+/// Record what the owner said, when they said it to a person rather than to
+/// the approval page.
+///
+/// THE CHANNEL IS REQUIRED. An admin recording a decision is asserting what a
+/// customer told them, and "the owner approved this" is worth nothing without
+/// something to point at -- a phone call on Tuesday, a reply to an email, a
+/// sheet that came back in the post. The database enforces it too, so a client
+/// that forgot would be refused rather than quietly storing a decision with no
+/// provenance.
+///
+/// A decline must say why. The shop needs the reason more than the answer:
+/// "not this visit" and "that was done at the last annual" lead to completely
+/// different next steps.
+@Composable
+private fun RecordOwnerDecisionDialog(
+    squawk: HFSquawk,
+    onDismiss: () -> Unit
+) {
+    val scope = rememberCoroutineScope()
+    var decision by remember { mutableStateOf(squawk.ownerDecision ?: "approved") }
+    var channel by remember {
+        mutableStateOf(squawk.ownerDecisionChannel?.takeIf { it != "link" } ?: "phone")
+    }
+    var reason by remember { mutableStateOf(squawk.ownerDecisionReason ?: "") }
+    var saving by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+
+    val channels = listOf(
+        "phone" to stringResource(R.string.sq_ch_phone_short),
+        "email" to stringResource(R.string.sq_ch_email_short),
+        "text" to stringResource(R.string.sq_ch_text_short),
+        "pdf" to stringResource(R.string.sq_ch_pdf_short),
+        "in_person" to stringResource(R.string.sq_ch_in_person_short),
+    )
+    val failedText = stringResource(R.string.sq_record_failed)
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = HFColors.Surface,
+        title = { Text(stringResource(R.string.sq_record_answer), color = HFColors.OnSurface) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(squawk.title, color = HFColors.OnSurfaceMuted, fontSize = 12.sp)
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(
+                        "approved" to stringResource(R.string.sq_approved),
+                        "denied" to stringResource(R.string.sq_declined)
+                    ).forEach { (v, label) ->
+                        val on = decision == v
+                        val tint = if (v == "approved") HFColors.StatusGreen else HFColors.StatusRed
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(if (on) tint.copy(alpha = 0.18f) else HFColors.fill(0.06f))
+                                .border(
+                                    1.dp,
+                                    if (on) tint.copy(alpha = 0.55f) else HFColors.stroke(0.12f),
+                                    RoundedCornerShape(10.dp)
+                                )
+                                .clickable { decision = v }
+                                .padding(vertical = 10.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(label, color = if (on) tint else HFColors.OnSurfaceMuted,
+                                 fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+                }
+
+                Text(stringResource(R.string.sq_how_received),
+                     color = HFColors.OnSurfaceMuted, fontSize = 11.sp)
+                Row(
+                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    channels.forEach { (v, label) ->
+                        FilterChip(
+                            selected = channel == v,
+                            onClick = { channel = v },
+                            label = { Text(label) }
+                        )
+                    }
+                }
+
+                OutlinedTextField(
+                    value = reason, onValueChange = { reason = it },
+                    label = {
+                        Text(
+                            if (decision == "denied") stringResource(R.string.sq_why_declined)
+                            else stringResource(R.string.sq_note_optional)
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth(), minLines = 2
+                )
+
+                error?.let { Text(it, color = HFColors.StatusRed, fontSize = 12.sp) }
+            }
+        },
+        confirmButton = {
+            Button(
+                enabled = !saving && (decision != "denied" || reason.isNotBlank()),
+                onClick = {
+                    saving = true; error = null
+                    scope.launch {
+                        val r = withContext(Dispatchers.IO) {
+                            SharedStore.setOwnerDecision(
+                                squawkId = squawk.id, decision = decision,
+                                reason = reason.trim().takeIf { it.isNotBlank() },
+                                channel = channel, squawkTitle = squawk.title,
+                                planeTail = squawk.planeTailNumber
+                            )
+                        }
+                        saving = false
+                        if (r is SharedStore.CreateResult.Error) error = r.message ?: failedText
+                        else onDismiss()
+                    }
+                }
+            ) { Text(stringResource(R.string.action_save)) }
+        },
+        dismissButton = {
+            Row {
+                if (squawk.ownerDecision != null) {
+                    TextButton(onClick = {
+                        saving = true; error = null
+                        scope.launch {
+                            val r = withContext(Dispatchers.IO) {
+                                SharedStore.setOwnerDecision(
+                                    squawkId = squawk.id, decision = null, reason = null,
+                                    channel = null, squawkTitle = squawk.title,
+                                    planeTail = squawk.planeTailNumber
+                                )
+                            }
+                            saving = false
+                            if (r is SharedStore.CreateResult.Error) error = r.message ?: failedText
+                            else onDismiss()
+                        }
+                    }) { Text(stringResource(R.string.sq_clear)) }
+                }
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+            }
+        }
     )
 }

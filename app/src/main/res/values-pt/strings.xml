@@ -421,4 +421,27 @@
     <string name="sq_send_no_prices">Nenhum preço é mostrado ao proprietário. Ele aprova ou recusa cada item e pode mudar de ideia depois.</string>
     <string name="sq_send_mail_failed">O link foi criado, mas o e-mail não foi enviado. Copie-o abaixo.</string>
     <string name="sq_send_failed">Não foi possível enviar.</string>
+
+    <!-- Owner decision recorded by hand -->
+    <string name="sq_record_answer">Registar a resposta do proprietário</string>
+    <string name="sq_record_answer_sub">Ligou, enviou e-mail ou devolveu a folha</string>
+    <string name="sq_how_received">Como chegou isto?</string>
+    <string name="sq_why_declined">Porque recusou? (obrigatório)</string>
+    <string name="sq_note_optional">Nota (opcional)</string>
+    <string name="sq_approved">Aprovado</string>
+    <string name="sq_declined">Recusado</string>
+    <string name="sq_change">Alterar</string>
+    <string name="sq_clear">Limpar</string>
+    <string name="sq_record_failed">Não foi possível guardar.</string>
+    <string name="sq_ch_link">aprovado pelo proprietário no link</string>
+    <string name="sq_ch_email">registado de um e-mail</string>
+    <string name="sq_ch_phone">registado de uma chamada</string>
+    <string name="sq_ch_text">registado de uma mensagem</string>
+    <string name="sq_ch_pdf">registado de um PDF devolvido</string>
+    <string name="sq_ch_in_person">registado pessoalmente</string>
+    <string name="sq_ch_phone_short">Chamada</string>
+    <string name="sq_ch_email_short">E-mail</string>
+    <string name="sq_ch_text_short">Mensagem</string>
+    <string name="sq_ch_pdf_short">PDF devolvido</string>
+    <string name="sq_ch_in_person_short">Pessoalmente</string>
 </resources>

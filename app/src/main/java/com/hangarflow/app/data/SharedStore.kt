@@ -2645,14 +2645,81 @@ object SharedStore {
         }
     }
 
+    /// Record what the owner said, when they said it to a person.
+    ///
+    /// The owner is not a Hangar Flow user and never will be, so most answers
+    /// arrive as a phone call, a reply to an email, or a marked-up PDF. This
+    /// is how those reach the record.
+    ///
+    /// Writes TWO things, and the second is the point: the decision on the
+    /// squawk, and an append-only audit row naming who entered it and how they
+    /// heard it. The squawk row only ever holds the LATEST answer -- an owner
+    /// who declines and then approves erases the decline and its reason -- so
+    /// without the audit row there is nothing to show for it but a tick box
+    /// somebody in the shop filled in.
+    suspend fun setOwnerDecision(
+        squawkId: String,
+        decision: String?,
+        reason: String?,
+        channel: String?,
+        squawkTitle: String,
+        planeTail: String
+    ): CreateResult {
+        val me = _state.value.currentUser
+        val actor = me?.displayName?.takeIf { it.isNotBlank() } ?: "Admin"
+        return try {
+            val wrote = cloud.setOwnerDecision(squawkId, decision, reason, channel, actor)
+            if (!wrote) return CreateResult.Error("Couldn't save that - the change was refused.")
+
+            val now = java.time.Instant.now().toString()
+            _state.update { current ->
+                current.copy(squawks = current.squawks.map {
+                    if (it.id != squawkId) it else it.copy(
+                        ownerDecision = decision,
+                        ownerDecisionReason = reason?.takeIf { r -> r.isNotBlank() },
+                        ownerDecidedAt = if (decision == null) null else now,
+                        ownerDecidedBy = if (decision == null) null else actor,
+                        ownerDecisionChannel = if (decision == null) null else channel
+                    )
+                })
+            }
+
+            val how = when (channel) {
+                "email" -> "by email"; "phone" -> "by phone"; "text" -> "by text"
+                "pdf" -> "on a returned PDF"; "in_person" -> "in person"
+                else -> null
+            }
+            val where = planeTail.takeIf { it.isNotBlank() }?.let { " ($it)" } ?: ""
+            when (decision) {
+                "approved" -> logAudit("squawk", squawkId, "owner_approved",
+                    "Owner approved \"$squawkTitle\"$where" + (how?.let { ", recorded $it" } ?: ""))
+                "denied" -> logAudit("squawk", squawkId, "owner_declined",
+                    "Owner declined \"$squawkTitle\"$where" + (how?.let { ", recorded $it" } ?: "") +
+                        (reason?.takeIf { it.isNotBlank() }?.let { " - $it" } ?: ""))
+                else -> logAudit("squawk", squawkId, "owner_decision_cleared",
+                    "Cleared the owner's decision on \"$squawkTitle\"$where")
+            }
+            CreateResult.Success
+        } catch (t: Throwable) {
+            CreateResult.Error(t.message ?: "Couldn't save that.")
+        }
+    }
+
+    /// The shop logo bytes for a PDF header, or null when none is uploaded.
+    suspend fun fetchOrgLogoBytes(): ByteArray? {
+        val orgId = com.hangarflow.app.auth.AuthManager.state.value.orgId ?: return null
+        return cloud.fetchOrgLogoBytes(orgId)
+    }
+
     /// Send a squawk list to the aircraft owner for authorisation.
     ///
     /// Thin pass-through: the edge function makes the token, filters the
     /// squawks against the org and sends the mail. Nothing here decides who
     /// may do it — the function checks the role and RLS backs it up.
     suspend fun sendSquawkApproval(
-        planeId: String?, squawkIds: List<String>, toEmail: String, expiresDays: Int
-    ) = cloud.sendSquawkApproval(planeId, squawkIds, toEmail, expiresDays)
+        planeId: String?, squawkIds: List<String>, toEmail: String, expiresDays: Int,
+        deliver: Boolean = true
+    ) = cloud.sendSquawkApproval(planeId, squawkIds, toEmail, expiresDays, deliver)
 
 }
 

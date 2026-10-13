@@ -33,6 +33,12 @@ data class HFSquawk(
     @SerialName("owner_decision_reason") val ownerDecisionReason: String? = null,
     @SerialName("owner_decided_at") val ownerDecidedAt: String? = null,
     @SerialName("owner_decided_by") val ownerDecidedBy: String? = null,
+    /** How the answer reached the shop: "link" when the owner clicked it
+     *  themselves, or email/phone/text/pdf/in_person when an admin recorded
+     *  what they were told. The moment a decision can be entered on the
+     *  owner's behalf, this is the only evidence it happened — which is why
+     *  the database refuses a decision without one. */
+    @SerialName("owner_decision_channel") val ownerDecisionChannel: String? = null,
     /** Work log created alongside this squawk (Apple pairs them at
      *  report time). The server keeps the two statuses in step, so
      *  resolving one resolves the other. This client doesn't create

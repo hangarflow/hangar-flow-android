@@ -421,4 +421,27 @@
     <string name="sq_send_no_prices">机主看不到任何价格。他们可以逐项批准或拒绝，之后也可以更改。</string>
     <string name="sq_send_mail_failed">链接已创建，但邮件未发送。请复制下方链接。</string>
     <string name="sq_send_failed">发送失败。</string>
+
+    <!-- Owner decision recorded by hand -->
+    <string name="sq_record_answer">记录机主的答复</string>
+    <string name="sq_record_answer_sub">他们来电、发邮件或寄回了单子</string>
+    <string name="sq_how_received">答复是怎么收到的？</string>
+    <string name="sq_why_declined">为什么拒绝？（必填）</string>
+    <string name="sq_note_optional">备注（选填）</string>
+    <string name="sq_approved">已批准</string>
+    <string name="sq_declined">已拒绝</string>
+    <string name="sq_change">修改</string>
+    <string name="sq_clear">清除</string>
+    <string name="sq_record_failed">保存失败。</string>
+    <string name="sq_ch_link">机主本人通过链接批准</string>
+    <string name="sq_ch_email">根据邮件记录</string>
+    <string name="sq_ch_phone">根据电话记录</string>
+    <string name="sq_ch_text">根据短信记录</string>
+    <string name="sq_ch_pdf">根据寄回的 PDF 记录</string>
+    <string name="sq_ch_in_person">当面记录</string>
+    <string name="sq_ch_phone_short">电话</string>
+    <string name="sq_ch_email_short">邮件</string>
+    <string name="sq_ch_text_short">短信</string>
+    <string name="sq_ch_pdf_short">寄回 PDF</string>
+    <string name="sq_ch_in_person_short">当面</string>
 </resources>

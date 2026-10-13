@@ -148,7 +148,37 @@ fun PlaneDetailView(
         onExportSquawks = {
             scope.launch {
                 val name = orgId?.let { runCatching { cloud.fetchOrgExportBusinessName(it) }.getOrNull() }
-                PdfExporter.exportSquawks(context, plane, planeSquawks, name)
+                val logo = runCatching { SharedStore.fetchOrgLogoBytes() }.getOrNull()
+
+                // The sheet carries a QR and a link to the same approval page
+                // the email sends. A PDF on its own is a dead end -- the owner
+                // ticks a box and the server never hears about it -- so the
+                // paper route and the live route ship as one artifact.
+                //
+                // A FRESH link every time, deliberately: techs keep adding
+                // squawks, and a reused link would show the owner a list that
+                // no longer matches the sheet in their hand.
+                val canSend = com.hangarflow.app.auth.AuthManager.state.value
+                    .let { it.isAdmin || it.isLeadTech }
+                val undecided = planeSquawks.filter { it.ownerDecision == null }
+                var url: String? = null
+                if (canSend && undecided.isNotEmpty()) {
+                    runCatching {
+                        SharedStore.sendSquawkApproval(
+                            planeId = plane.id,
+                            squawkIds = undecided.map { it.id },
+                            toEmail = "",
+                            expiresDays = 30,
+                            deliver = false
+                        )
+                    }.onSuccess { url = it.url.takeIf { u -> u.isNotBlank() } }
+                }
+                PdfExporter.exportSquawks(
+                    context, plane, planeSquawks, name,
+                    logoBytes = logo,
+                    approvalUrl = url,
+                    approvalExpiryLabel = url?.let { "Link expires in 30 days." }
+                )
             }
         },
         onSelectCategory = { selectedCategory = it }
