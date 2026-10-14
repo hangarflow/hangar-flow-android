@@ -112,7 +112,8 @@ fun HubSheetHost(
                             orgId = org,
                             actorId = me?.authUserId,
                             actorName = me?.displayName,
-                            onClose = onDismiss
+                            onClose = onDismiss,
+                            chromeless = true,
                         )
                     }
                 }
@@ -145,7 +146,7 @@ private val HomeDestination.title: String
         HomeDestination.Review -> "Needs Review"
         HomeDestination.Schedule -> "Schedule"
         HomeDestination.ActivityLog -> "Activity Log"
-        HomeDestination.PartsInOut -> "Parts In & Out"
+        HomeDestination.PartsInOut -> "Cores & Returns"
         HomeDestination.Equipment -> "Equipment"
         HomeDestination.QuickPic -> "QuickPic"
         HomeDestination.Payroll -> "Payroll"
@@ -168,11 +169,11 @@ private val HomeDestination.subtitle: String
         HomeDestination.Review -> "Imported rows awaiting approval."
         HomeDestination.Schedule -> "Plane drop-offs, RTS deadlines, time-off."
         HomeDestination.ActivityLog -> "Who added, imported, or changed what."
-        HomeDestination.PartsInOut -> "Receiving, cores due back, and units out for overhaul."
+        HomeDestination.PartsInOut -> "Cores owed back to vendors, and units out for overhaul."
         HomeDestination.Equipment -> "Shop gear — maintenance & calibration due."
         HomeDestination.QuickPic -> "Scan or print QR labels for parts & gear."
         HomeDestination.Payroll -> "Approve hours, set rates, and see what is owed."
-        HomeDestination.Receiving -> "Parts that just arrived - inspect and accept before fitting"
+        HomeDestination.Receiving -> "Parts that just arrived — inspect and accept before fitting"
     }
 
 private val HomeDestination.phaseMessage: String

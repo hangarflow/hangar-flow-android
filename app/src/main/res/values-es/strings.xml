@@ -297,7 +297,7 @@
     <string name="mh_no_manuals_caps">AÚN NO HAY MANUALES</string>
     <string name="mh_plane_manuals_caps">MANUALES DEL AVIÓN</string>
     <string name="mh_purge">Purgar</string>
-    <string name="pio_receive">Recibir</string>
+    <string name="pio_receive">Registrar envío</string>
     <string name="pd_back_to_planes">Volver a aviones</string>
     <string name="pd_attach_manual">Adjuntar manual</string>
     <string name="pd_export_logs">Exportar registros PDF</string>

@@ -297,7 +297,7 @@
     <string name="mh_no_manuals_caps">NOCH KEINE HANDBÜCHER</string>
     <string name="mh_plane_manuals_caps">FLUGZEUGHANDBÜCHER</string>
     <string name="mh_purge">Bereinigen</string>
-    <string name="pio_receive">Annehmen</string>
+    <string name="pio_receive">Lieferung erfassen</string>
     <string name="pd_back_to_planes">Zurück zu Flugzeugen</string>
     <string name="pd_attach_manual">Handbuch anhängen</string>
     <string name="pd_export_logs">Protokolle als PDF exportieren</string>

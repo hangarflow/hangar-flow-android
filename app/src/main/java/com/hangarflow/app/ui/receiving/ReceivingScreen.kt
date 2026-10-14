@@ -43,7 +43,18 @@ import com.hangarflow.app.R
  * photographed certificate stays on the desktop for now.
  */
 @Composable
-fun ReceivingScreen(orgId: String, actorId: String?, actorName: String?, onClose: () -> Unit) {
+fun ReceivingScreen(
+    orgId: String,
+    actorId: String?,
+    actorName: String?,
+    onClose: () -> Unit,
+    /**
+     * Opened from a home card the sheet already has a title and a close
+     * button, so drawing our own stacked two headers on top of each other.
+     * Caught on the tablet, not in review.
+     */
+    chromeless: Boolean = false,
+) {
     val scope = rememberCoroutineScope()
     var releases by remember { mutableStateOf<List<HFPartRelease>>(emptyList()) }
     var loading by remember { mutableStateOf(true) }
@@ -65,21 +76,23 @@ fun ReceivingScreen(orgId: String, actorId: String?, actorName: String?, onClose
     LaunchedEffect(orgId, releaseRev) { reload() }
 
     Column(Modifier.fillMaxSize().background(HFColors.Background)) {
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text(stringResource(R.string.rcv_receiving), fontSize = 17.sp, fontWeight = FontWeight.Bold,
-                    color = HFColors.OnSurface)
-                Text(
-                    "${releases.count { it.isPending }} awaiting inspection",
-                    fontSize = 12.sp, color = HFColors.OnSurfaceMuted,
-                )
+        if (!chromeless) {
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(stringResource(R.string.rcv_receiving), fontSize = 17.sp, fontWeight = FontWeight.Bold,
+                        color = HFColors.OnSurface)
+                    Text(
+                        "${releases.count { it.isPending }} awaiting inspection",
+                        fontSize = 12.sp, color = HFColors.OnSurfaceMuted,
+                    )
+                }
+                TextButton(onClick = onClose) { Text(stringResource(R.string.rcv_close), color = HFColors.OnSurfaceMuted) }
             }
-            TextButton(onClick = onClose) { Text(stringResource(R.string.rcv_close), color = HFColors.OnSurfaceMuted) }
+            Divider(color = HFColors.fill(0.10f))
         }
-        Divider(color = HFColors.fill(0.10f))
 
         note?.let {
             Text(it, fontSize = 12.sp, color = HFColors.StatusOrange,

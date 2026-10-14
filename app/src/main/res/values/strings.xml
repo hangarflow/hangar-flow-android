@@ -352,7 +352,7 @@
     <string name="mh_no_manuals_caps">NO MANUALS YET</string>
     <string name="mh_plane_manuals_caps">PLANE MANUALS</string>
     <string name="mh_purge">Purge</string>
-    <string name="pio_receive">Receive</string>
+    <string name="pio_receive">Log shipment</string>
 
     <!-- Plane detail, create squawk, clock out, settings tab, time off, AI navigator -->
     <string name="pd_back_to_planes">Back to Planes</string>

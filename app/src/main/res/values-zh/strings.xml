@@ -297,7 +297,7 @@
     <string name="mh_no_manuals_caps">暂无手册</string>
     <string name="mh_plane_manuals_caps">飞机手册</string>
     <string name="mh_purge">清除</string>
-    <string name="pio_receive">收货</string>
+    <string name="pio_receive">登记到货</string>
     <string name="pd_back_to_planes">返回飞机列表</string>
     <string name="pd_attach_manual">附加手册</string>
     <string name="pd_export_logs">导出记录 PDF</string>

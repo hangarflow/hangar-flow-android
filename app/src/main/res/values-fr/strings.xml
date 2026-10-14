@@ -297,7 +297,7 @@
     <string name="mh_no_manuals_caps">AUCUN MANUEL</string>
     <string name="mh_plane_manuals_caps">MANUELS DE L\'AVION</string>
     <string name="mh_purge">Purger</string>
-    <string name="pio_receive">Réceptionner</string>
+    <string name="pio_receive">Enregistrer l\'envoi</string>
     <string name="pd_back_to_planes">Retour aux avions</string>
     <string name="pd_attach_manual">Joindre un manuel</string>
     <string name="pd_export_logs">Exporter les journaux PDF</string>
