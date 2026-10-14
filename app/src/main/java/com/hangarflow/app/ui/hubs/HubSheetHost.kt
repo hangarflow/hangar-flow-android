@@ -99,7 +99,6 @@ fun HubSheetHost(
                 HomeDestination.PartsInOut -> PartsInOutHub()
                 HomeDestination.Equipment -> EquipmentHub()
                 HomeDestination.QuickPic -> QuickPicScreen()
-                HomeDestination.Payroll -> "Approve hours, set rates, and see what is owed."
                 else -> Column(
                     modifier = Modifier
                         .padding(horizontal = 16.dp)

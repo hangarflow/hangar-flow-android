@@ -151,9 +151,15 @@ private fun PartsInOutContent() {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 MiniStat("Coming In", "${inbound.size}", HFColors.StatusBlue, Modifier.weight(1f))
                 MiniStat("Cores Owed", "${outstandingCores.size}", HFColors.StatusOrange, Modifier.weight(1f))
+                // A COUNT, NOT DOLLARS. Money belongs on the desktops only,
+                // and this is a tablet that lives in a hangar -- iOS fixed the
+                // same tile for the same reason ("it used to read $4,200 of
+                // the shop's money on a phone"). The signal a lead needs on
+                // the floor is that cores are at risk, which a count carries
+                // perfectly well; the amount is on Windows and macOS.
                 MiniStat(
                     "At Risk",
-                    if (atRisk > 0) money(atRisk) else "—",
+                    "${outstandingCores.count { (it.coreDepositCents ?: 0) > 0 }}",
                     if (overdue.isNotEmpty()) HFColors.StatusRed else HFColors.StatusGreen,
                     Modifier.weight(1f)
                 )
@@ -173,7 +179,9 @@ private fun PartsInOutContent() {
                     Text(
                         "${outstandingCores.size} ${if (outstandingCores.size == 1) "core" else "cores"} " +
                             "still owed back" +
-                            if (atRisk > 0) " · ${money(atRisk)} at risk" else "",
+                            // No dollar figure on a hangar tablet; see the
+                            // At Risk tile above.
+                            if (atRisk > 0) " · deposits at risk" else "",
                         color = accent, fontSize = 14.sp, fontWeight = FontWeight.Bold
                     )
                     Spacer(Modifier.height(3.dp))
@@ -560,7 +568,8 @@ private fun MovementCard(m: HFPartMovement, today: LocalDate, onTap: () -> Unit)
                 m.description.takeIf { it.isNotBlank() && m.partNumber.isNotBlank() },
                 m.kindLabel,
                 m.vendorName.takeIf { it.isNotBlank() },
-                m.coreDepositCents?.takeIf { it > 0 }?.let { "${money(it)} deposit" }
+                // "has a deposit", not how much. Same rule as the tile.
+                m.coreDepositCents?.takeIf { it > 0 }?.let { "deposit held" }
             )
             Row {
                 m.planeTailNumber?.takeIf { it.isNotBlank() }?.let {
@@ -626,4 +635,3 @@ private fun MiniStat(label: String, value: String, accent: Color, modifier: Modi
     }
 }
 
-internal fun money(cents: Long): String = HFNum.money(cents)

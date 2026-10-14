@@ -147,7 +147,10 @@ private fun HomeHubContent(onOpenHub: (HomeDestination) -> Unit, onOpenNavigator
     val context = LocalContext.current
     // Lead techs see the same cards as admins (incl. Users) — they manage
     // the roster too. Owner-only powers are gated inside each hub.
-    val defaultCards = cardsForRole(authState.isAdmin || authState.isLeadTech)
+    val defaultCards = cardsForRole(
+        isAdmin = authState.isAdmin,
+        isLeadTech = authState.isLeadTech
+    )
     val savedOrder = remember { HomeCardPreferences.loadOrder(context) }
     val orderedIds = remember(defaultCards, savedOrder) {
         HomeCardPreferences.applyOrder(defaultCards.map { it.id }, savedOrder).toMutableList()
@@ -539,7 +542,23 @@ private data class HomeCard(
     val destination: HomeDestination
 )
 
-private fun cardsForRole(isAdmin: Boolean): List<HomeCard> {
+/**
+ * The home grid, by role.
+ *
+ * TAKES BOTH ROLES ON PURPOSE. This used to be `cardsForRole(isAdmin: Boolean)`
+ * called as `cardsForRole(isAdmin || isLeadTech)` -- so inside, a parameter
+ * named `isAdmin` was true for lead techs, and the admin block handed them the
+ * Users, Payroll and Parts In & Out cards. Payroll then told them "admin only"
+ * to their face and Parts In & Out opened the vendor-money screen with every
+ * figure dashed out, because RLS on hf_part_movements is admin-only for every
+ * verb. No data leaked; it just offered three doors that were not theirs.
+ *
+ * Users stays open to leads (the shop's call, 2026-09-21: lead techs can
+ * manage the roster, and RLS lets them touch every role except admin).
+ * Payroll and Parts In & Out are admin, matching the Control Center's
+ * ADMIN_ONLY_TOOLS and the guard inside PayrollHub.
+ */
+private fun cardsForRole(isAdmin: Boolean, isLeadTech: Boolean): List<HomeCard> {
     // Default tech grid — exactly the 6 cards the iPad shows, in the
     // same order: Time Card, Planes, Squawks, Find Parts, Work Logs,
     // Manuals. Long-press any card on the home to drag-rearrange.
@@ -643,17 +662,21 @@ private fun cardsForRole(isAdmin: Boolean): List<HomeCard> {
             destination = HomeDestination.ActivityLog
         )
     )
-    // Admins get a Users card on top of the tech grid so they can manage
-    // the roster (invite is handled separately by the Admin FAB).
+    // Lead techs and admins both manage the roster (invite is handled
+    // separately by the Admin FAB), so Users is shared between them.
+    val usersCard = HomeCard(
+        id = "users",
+        title = R.string.card_users_t,
+        subtitle = R.string.card_users_s,
+        icon = Icons.Outlined.PeopleAlt,
+        accent = HFColors.StatusBlue.copy(alpha = 0.50f),
+        destination = HomeDestination.Users
+    )
+
     if (isAdmin) {
-        return tech + HomeCard(
-            id = "users",
-            title = R.string.card_users_t,
-            subtitle = R.string.card_users_s,
-            icon = Icons.Outlined.PeopleAlt,
-            accent = HFColors.StatusBlue.copy(alpha = 0.50f),
-            destination = HomeDestination.Users
-        ) + HomeCard(
+        return tech + usersCard + HomeCard(
+            // Admin only: PayrollHub refuses anyone else on arrival, so
+            // offering the card to a lead just sent them to a dead end.
             id = "payroll",
             title = R.string.card_payroll_t,
             subtitle = R.string.card_payroll_s,
@@ -661,9 +684,10 @@ private fun cardsForRole(isAdmin: Boolean): List<HomeCard> {
             accent = HFColors.StatusGreen.copy(alpha = 0.50f),
             destination = HomeDestination.Payroll
         ) + HomeCard(
-            // Admin-only by the shop's call. RLS on hf_part_movements is
-            // admin-only for every verb too, so a tech's session reads nothing
-            // even if this card were somehow reachable.
+            // Admin-only by the shop's call: it is the vendor-money side of
+            // the parts room. RLS on hf_part_movements is admin-only for
+            // every verb, so a lead who reached it saw a money screen with
+            // every figure dashed out -- which is how this was found.
             id = "partsinout",
             title = R.string.card_partsinout_t,
             subtitle = R.string.card_partsinout_s,
@@ -672,6 +696,9 @@ private fun cardsForRole(isAdmin: Boolean): List<HomeCard> {
             destination = HomeDestination.PartsInOut
         )
     }
+
+    if (isLeadTech) return tech + usersCard
+
     return tech
 }
 
