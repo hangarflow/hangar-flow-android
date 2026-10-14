@@ -696,7 +696,7 @@ private fun openAssignedCount(
 private fun todayMinutes(
     state: com.hangarflow.app.data.ShopState,
     me: HFUserProfile?,
-    isAdmin: Boolean
+    @Suppress("UNUSED_PARAMETER") isAdmin: Boolean
 ): Int {
     val today = LocalDate.now(ZoneId.systemDefault())
     return state.timeEntries
@@ -707,8 +707,24 @@ private fun todayMinutes(
             date == today
         }
         .filter { entry ->
-            if (isAdmin || me == null) true
-            else entry.userName.equals(me.displayName, ignoreCase = true)
+            // Shop-wide ONLY when the device isn't claimed by anyone. The
+            // tile is labelled "your hours" the moment there is a profile,
+            // and an admin's own hours are still their own — this used to
+            // read `isAdmin || me == null`, so every admin saw the whole
+            // shop's hours under a "your hours" label (iOS, from the same
+            // org, correctly showed 0h 0m). Mirrors openAssignedCount
+            // above: this screen is the tech-floor view regardless of role.
+            if (me == null) true
+            else {
+                val uid = entry.userId
+                // Prefer the id, the way iOS does — matching EITHER id that
+                // means me, because rows carry the auth uid while the
+                // profile also has its own row id. Name stays as the
+                // fallback for rows written before user_id was recorded,
+                // rather than silently dropping that history.
+                if (!uid.isNullOrBlank()) uid == me.authUserId || uid == me.id
+                else entry.userName.equals(me.displayName, ignoreCase = true)
+            }
         }
         .sumOf { it.minutesWorked }
 }

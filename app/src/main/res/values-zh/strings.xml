@@ -61,8 +61,8 @@
     <string name="login_password">密码</string>
     <string name="login_show">显示</string>
     <string name="login_hide">隐藏</string>
-    <string name="login_no_account">还没有账户？</string>
-    <string name="login_create_at">前往 hangarflow.com 创建</string>
+    <string name="login_no_account">需要访问权限？</string>
+    <string name="login_create_at">请联系您的管理员。</string>
     <string name="card_timecard_t">工时卡</string>
     <string name="card_timecard_s">清晰查看工时、小时数与近期活动</string>
     <string name="card_tasks_t">分派任务 / 进度</string>

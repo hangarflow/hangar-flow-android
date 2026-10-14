@@ -96,8 +96,8 @@
     <string name="login_password">Password</string>
     <string name="login_show">Show</string>
     <string name="login_hide">Hide</string>
-    <string name="login_no_account">Don\'t have an account?</string>
-    <string name="login_create_at">Create one at hangarflow.com</string>
+    <string name="login_no_account">Need access?</string>
+    <string name="login_create_at">Contact your administrator.</string>
 
     <!-- Home cards + tabs -->
     <string name="card_timecard_t">Time Card</string>

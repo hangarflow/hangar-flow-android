@@ -61,8 +61,8 @@
     <string name="login_password">Mot de passe</string>
     <string name="login_show">Afficher</string>
     <string name="login_hide">Masquer</string>
-    <string name="login_no_account">Vous n\'avez pas de compte ?</string>
-    <string name="login_create_at">Créez-en un sur hangarflow.com</string>
+    <string name="login_no_account">Besoin d\'un accès ?</string>
+    <string name="login_create_at">Contactez votre administrateur.</string>
     <string name="card_timecard_t">Feuille d\'heures</string>
     <string name="card_timecard_s">Vue claire du temps, des heures et de l\'activité récente</string>
     <string name="card_tasks_t">Tâches assignées / Progression</string>
