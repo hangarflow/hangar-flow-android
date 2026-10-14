@@ -33,6 +33,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.automirrored.outlined.ListAlt
+import androidx.compose.material.icons.outlined.FactCheck
 import androidx.compose.material.icons.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material.icons.outlined.LocalShipping
@@ -526,7 +527,7 @@ private fun CustomizeHomeSheet(
 }
 
 enum class HomeDestination {
-    Planes, WorkLogs, Tasks, Squawks, PartsToOrder, PartLocations, PartsInOut, TimeCard, Manuals, FindParts, Settings, Users, Review, Schedule, ActivityLog, Equipment, QuickPic, Payroll
+    Planes, WorkLogs, Tasks, Squawks, PartsToOrder, PartLocations, PartsInOut, TimeCard, Manuals, FindParts, Settings, Users, Review, Schedule, ActivityLog, Equipment, QuickPic, Payroll, Receiving
 }
 
 private data class HomeCard(
@@ -630,6 +631,33 @@ private fun cardsForRole(isAdmin: Boolean, isLeadTech: Boolean): List<HomeCard> 
             destination = HomeDestination.PartLocations
         ),
         HomeCard(
+            // Receiving is the OTHER half of the parts room and the one that
+            // confused everybody: it is what just ARRIVED, inspected and
+            // accepted under 14 CFR 43.13 before it goes on an aeroplane.
+            // Cores & Returns, below, is what the shop owes back. The two used
+            // to describe each other.
+            id = "receiving",
+            title = R.string.card_receiving_t,
+            subtitle = R.string.card_receiving_s,
+            icon = Icons.Outlined.FactCheck,
+            accent = HFColors.StatusCyan.copy(alpha = 0.50f),
+            destination = HomeDestination.Receiving
+        ),
+        HomeCard(
+            // Open to everyone since 2026-10-14: a non-admin reads
+            // hf_part_movements_floor, which has no cost columns, so this
+            // shows WHICH cores are owed back and WHEN, never what they cost.
+            // Sits next to Part Inventory on purpose -- a part's life runs
+            // Find -> Inventory -> Receiving -> Cores & Returns, and the grid
+            // should read in that order rather than scattering the four.
+            id = "partsinout",
+            title = R.string.card_partsinout_t,
+            subtitle = R.string.card_partsinout_s,
+            icon = Icons.Outlined.LocalShipping,
+            accent = HFColors.StatusOrange.copy(alpha = 0.50f),
+            destination = HomeDestination.PartsInOut
+        ),
+        HomeCard(
             id = "equipment",
             title = R.string.card_equipment_t,
             subtitle = R.string.card_equipment_s,
@@ -683,17 +711,6 @@ private fun cardsForRole(isAdmin: Boolean, isLeadTech: Boolean): List<HomeCard> 
             icon = Icons.Outlined.Timer,
             accent = HFColors.StatusGreen.copy(alpha = 0.50f),
             destination = HomeDestination.Payroll
-        ) + HomeCard(
-            // Admin-only by the shop's call: it is the vendor-money side of
-            // the parts room. RLS on hf_part_movements is admin-only for
-            // every verb, so a lead who reached it saw a money screen with
-            // every figure dashed out -- which is how this was found.
-            id = "partsinout",
-            title = R.string.card_partsinout_t,
-            subtitle = R.string.card_partsinout_s,
-            icon = Icons.Outlined.LocalShipping,
-            accent = HFColors.StatusOrange.copy(alpha = 0.50f),
-            destination = HomeDestination.PartsInOut
         )
     }
 

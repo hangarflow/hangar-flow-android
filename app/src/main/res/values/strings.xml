@@ -128,8 +128,11 @@
     <string name="card_users_s">Manage roles, invite teammates, deactivate access</string>
     <string name="card_payroll_t">Payroll</string>
     <string name="card_payroll_s">Approve hours, set rates, see what\'s owed</string>
-    <string name="card_partsinout_t">Parts In &amp; Out</string>
-    <string name="card_partsinout_s">Receiving, cores due back, out for overhaul</string>
+    <string name="err_no_shop">No shop.</string>
+    <string name="card_receiving_t">Receiving</string>
+    <string name="card_receiving_s">Parts that just arrived — inspect and accept before fitting</string>
+    <string name="card_partsinout_t">Cores &amp; Returns</string>
+    <string name="card_partsinout_s">Cores owed back to vendors, and units out for overhaul</string>
     <string name="tab_control_center">Control Center</string>
     <string name="clock_lunch_out">Lunch Out</string>
     <string name="clock_lunch_in">Lunch In</string>

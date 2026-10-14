@@ -91,8 +91,11 @@
     <string name="card_users_s">Gestiona roles, invita compañeros, desactiva accesos</string>
     <string name="card_payroll_t">Nómina</string>
     <string name="card_payroll_s">Aprueba horas, fija tarifas, consulta lo que se debe</string>
-    <string name="card_partsinout_t">Entradas y salidas de piezas</string>
-    <string name="card_partsinout_s">Recepción, cores por devolver, en revisión general</string>
+    <string name="err_no_shop">Sin taller.</string>
+    <string name="card_receiving_t">Recepción</string>
+    <string name="card_receiving_s">Piezas recién llegadas: inspecciona y acepta antes de instalar</string>
+    <string name="card_partsinout_t">Cores y devoluciones</string>
+    <string name="card_partsinout_s">Cores pendientes de devolver al proveedor y unidades en reparación</string>
     <string name="tab_control_center">Centro de control</string>
     <string name="clock_lunch_out">Salir a comer</string>
     <string name="clock_lunch_in">Volver de comer</string>

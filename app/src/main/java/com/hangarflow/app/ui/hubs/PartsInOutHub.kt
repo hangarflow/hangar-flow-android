@@ -159,7 +159,7 @@ private fun PartsInOutContent() {
                 // perfectly well; the amount is on Windows and macOS.
                 MiniStat(
                     "At Risk",
-                    "${outstandingCores.count { (it.coreDepositCents ?: 0) > 0 }}",
+                    "${outstandingCores.count { it.hasCoreDeposit }}",
                     if (overdue.isNotEmpty()) HFColors.StatusRed else HFColors.StatusGreen,
                     Modifier.weight(1f)
                 )
@@ -181,7 +181,7 @@ private fun PartsInOutContent() {
                             "still owed back" +
                             // No dollar figure on a hangar tablet; see the
                             // At Risk tile above.
-                            if (atRisk > 0) " · deposits at risk" else "",
+                            if (outstandingCores.any { it.hasCoreDeposit }) " · deposits at risk" else "",
                         color = accent, fontSize = 14.sp, fontWeight = FontWeight.Bold
                     )
                     Spacer(Modifier.height(3.dp))
@@ -569,7 +569,7 @@ private fun MovementCard(m: HFPartMovement, today: LocalDate, onTap: () -> Unit)
                 m.kindLabel,
                 m.vendorName.takeIf { it.isNotBlank() },
                 // "has a deposit", not how much. Same rule as the tile.
-                m.coreDepositCents?.takeIf { it > 0 }?.let { "deposit held" }
+                if (m.hasCoreDeposit) "deposit held" else null
             )
             Row {
                 m.planeTailNumber?.takeIf { it.isNotBlank() }?.let {

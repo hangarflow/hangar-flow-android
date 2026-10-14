@@ -99,6 +99,23 @@ fun HubSheetHost(
                 HomeDestination.PartsInOut -> PartsInOutHub()
                 HomeDestination.Equipment -> EquipmentHub()
                 HomeDestination.QuickPic -> QuickPicScreen()
+                HomeDestination.Receiving -> {
+                    val org = com.hangarflow.app.auth.AuthManager.state.value.orgId
+                    val me = com.hangarflow.app.data.SharedStore.state.value.currentUser
+                    if (org.isNullOrBlank()) {
+                        Text(
+                            stringResource(R.string.err_no_shop),
+                            color = HFColors.OnSurfaceMuted
+                        )
+                    } else {
+                        com.hangarflow.app.ui.receiving.ReceivingScreen(
+                            orgId = org,
+                            actorId = me?.authUserId,
+                            actorName = me?.displayName,
+                            onClose = onDismiss
+                        )
+                    }
+                }
                 else -> Column(
                     modifier = Modifier
                         .padding(horizontal = 16.dp)
@@ -132,6 +149,7 @@ private val HomeDestination.title: String
         HomeDestination.Equipment -> "Equipment"
         HomeDestination.QuickPic -> "QuickPic"
         HomeDestination.Payroll -> "Payroll"
+        HomeDestination.Receiving -> "Receiving"
     }
 
 private val HomeDestination.subtitle: String
@@ -154,6 +172,7 @@ private val HomeDestination.subtitle: String
         HomeDestination.Equipment -> "Shop gear — maintenance & calibration due."
         HomeDestination.QuickPic -> "Scan or print QR labels for parts & gear."
         HomeDestination.Payroll -> "Approve hours, set rates, and see what is owed."
+        HomeDestination.Receiving -> "Parts that just arrived - inspect and accept before fitting"
     }
 
 private val HomeDestination.phaseMessage: String

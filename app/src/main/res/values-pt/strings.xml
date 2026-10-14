@@ -91,8 +91,11 @@
     <string name="card_users_s">Gerir funções, convidar colegas, desativar acessos</string>
     <string name="card_payroll_t">Salários</string>
     <string name="card_payroll_s">Aprovar horas, definir tarifas, ver o que é devido</string>
-    <string name="card_partsinout_t">Entrada e saída de peças</string>
-    <string name="card_partsinout_s">Receção, cores a devolver, em overhaul</string>
+    <string name="err_no_shop">Sem oficina.</string>
+    <string name="card_receiving_t">Receção</string>
+    <string name="card_receiving_s">Peças acabadas de chegar: inspecione e aceite antes de instalar</string>
+    <string name="card_partsinout_t">Cores e devoluções</string>
+    <string name="card_partsinout_s">Cores a devolver ao fornecedor e unidades em revisão</string>
     <string name="tab_control_center">Centro de controlo</string>
     <string name="clock_lunch_out">Sair para almoço</string>
     <string name="clock_lunch_in">Voltar do almoço</string>

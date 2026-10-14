@@ -91,8 +91,11 @@
     <string name="card_users_s">管理角色、邀请同事、停用访问权限</string>
     <string name="card_payroll_t">薪资</string>
     <string name="card_payroll_s">审批工时、设置费率、查看应付金额</string>
-    <string name="card_partsinout_t">零件出入库</string>
-    <string name="card_partsinout_s">收货、待退还 core、送修中</string>
+    <string name="err_no_shop">无机库。</string>
+    <string name="card_receiving_t">到货接收</string>
+    <string name="card_receiving_s">刚到的航材——装机前先检验并验收</string>
+    <string name="card_partsinout_t">核心件与退回</string>
+    <string name="card_partsinout_s">需退回供应商的核心件，以及送修中的部件</string>
     <string name="tab_control_center">控制中心</string>
     <string name="clock_lunch_out">去午休</string>
     <string name="clock_lunch_in">午休结束</string>

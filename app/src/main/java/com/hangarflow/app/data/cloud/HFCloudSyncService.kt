@@ -424,11 +424,32 @@ class HFCloudSyncService {
     // Same table and same rules as Desktop; this is the client half only.
     // ----------------------------------------------------------------------
 
-    suspend fun fetchPartMovements(orgId: String): List<HFPartMovement> =
-        client.postgrest
+    /**
+     * Cores and returns. ADMINS read the table, EVERYONE ELSE reads
+     * hf_part_movements_floor.
+     *
+     * The table is admin-only in RLS because it carries six money columns, so
+     * a tech selecting it gets zero rows, not an error -- the screen would
+     * simply look empty and nobody would know why. The floor view returns the
+     * same movements with the cost columns ABSENT (asking it for
+     * core_deposit_cents is a 42703), and enforces the org boundary itself.
+     *
+     * `has_core_deposit` comes straight off the view. On the admin path it is
+     * derived from the cents, so callers can use one field either way.
+     */
+    suspend fun fetchPartMovements(orgId: String, isAdmin: Boolean): List<HFPartMovement> {
+        if (!isAdmin) {
+            return client.postgrest
+                .from("hf_part_movements_floor")
+                .select { filter { eq("org_id", orgId) } }
+                .decodeList()
+        }
+        return client.postgrest
             .from("hf_part_movements")
             .select { filter { eq("org_id", orgId) } }
-            .decodeList()
+            .decodeList<HFPartMovement>()
+            .map { it.copy(hasCoreDeposit = (it.coreDepositCents ?: 0L) > 0L) }
+    }
 
     @kotlinx.serialization.Serializable
     private data class PartMovementRow(

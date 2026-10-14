@@ -62,18 +62,32 @@ private enum class CCTool(
 ) {
     Equipment("Equipment", "Shop gear — maintenance & calibration due", Icons.Outlined.Build, HFColors.StatusGreen),
     QuickPic("QuickPic", "Scan or print QR labels for parts & equipment", Icons.Outlined.QrCodeScanner, HFColors.StatusBlue),
-    // Admin-only. RLS on hf_part_movements is admin-only for every verb, so
-    // hiding the tile and restricting the data agree.
-    PartsInOut("Parts In & Out", "Receiving, cores due back, out for overhaul", Icons.Outlined.LocalShipping, HFColors.StatusOrange),
+    // RENAMED from "Parts In & Out", whose subtitle used to read "Receiving,
+    // cores due back, out for overhaul" -- it claimed to BE receiving while
+    // Receiving sat right below it as its own tool, which is exactly why
+    // nobody could tell them apart. This one is the vendor side: what the shop
+    // owes back. Receiving is what just arrived.
+    //
+    // Open to techs since 2026-10-14 (the owner wants both): a non-admin
+    // reads hf_part_movements_floor, which has no cost columns, so the
+    // screen shows which cores are owed and when, never what they cost.
+    PartsInOut("Cores & Returns", "Cores owed back to vendors, and units out for overhaul", Icons.Outlined.LocalShipping, HFColors.StatusOrange),
 
     // 14 CFR 43.13: a mechanic determines a part is acceptable BEFORE it goes
     // on the aeroplane, and the determination is theirs. The part is in their
     // hands at the bench, so the accept/reject call belongs on the tablet.
-    Receiving("Receiving", "The paperwork a part arrived on — accept or reject", Icons.Outlined.FactCheck, HFColors.StatusCyan)
+    Receiving("Receiving", "Parts that just arrived — inspect and accept before fitting", Icons.Outlined.FactCheck, HFColors.StatusCyan)
 }
 
-/** Tools a tech never sees. RLS enforces the same boundary server-side. */
-private val ADMIN_ONLY_TOOLS = setOf(CCTool.PartsInOut)
+/**
+ * Tools a tech never sees.
+ *
+ * Empty since 2026-10-14. Cores & Returns used to be here because the table
+ * behind it carries the shop's money; a tech now reads the money-free
+ * hf_part_movements_floor instead, so the screen can be open to everyone
+ * without the costs being on a hangar tablet.
+ */
+private val ADMIN_ONLY_TOOLS = emptySet<CCTool>()
 
 @Composable
 fun ControlCenterTab() {
@@ -97,10 +111,10 @@ fun ControlCenterTab() {
     ) { tool ->
         when (tool) {
             null -> CCToolGrid(onOpen = { active = it })
-            CCTool.Equipment -> ToolFrame("Equipment", onBack = { active = null }) { EquipmentHub() }
-            CCTool.QuickPic -> ToolFrame("QuickPic", onBack = { active = null }) { QuickPicScreen() }
-            CCTool.PartsInOut -> ToolFrame("Parts In & Out", onBack = { active = null }) { PartsInOutHub() }
-            CCTool.Receiving -> ToolFrame("Receiving", onBack = { active = null }) {
+            CCTool.Equipment -> ToolFrame(CCTool.Equipment.title, onBack = { active = null }) { EquipmentHub() }
+            CCTool.QuickPic -> ToolFrame(CCTool.QuickPic.title, onBack = { active = null }) { QuickPicScreen() }
+            CCTool.PartsInOut -> ToolFrame(CCTool.PartsInOut.title, onBack = { active = null }) { PartsInOutHub() }
+            CCTool.Receiving -> ToolFrame(CCTool.Receiving.title, onBack = { active = null }) {
                 val auth = AuthManager.state.value
                 val me = SharedStore.state.value.currentUser
                 val orgId = auth.orgId

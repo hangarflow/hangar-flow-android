@@ -1058,7 +1058,7 @@ object SharedStore {
     // ---------------------------------------------------------------------
 
     private suspend fun refreshPartMovements(orgId: String) {
-        runCatching { cloud.fetchPartMovements(orgId) }
+        runCatching { cloud.fetchPartMovements(orgId, com.hangarflow.app.auth.AuthManager.state.value.isAdmin) }
             .onSuccess { rows -> _state.update { it.copy(partMovements = rows) } }
     }
 
@@ -2518,7 +2518,7 @@ object SharedStore {
             val partRequestsD = async { cloud.fetchPartRequests(orgId) }
             // Fail-open fetches (tables may be missing on older orgs).
             val partLocationsD = async { runCatching { cloud.fetchPartLocations(orgId) }.getOrElse { emptyList() } }
-            val partMovementsD = async { runCatching { cloud.fetchPartMovements(orgId) }.getOrElse { emptyList() } }
+            val partMovementsD = async { runCatching { cloud.fetchPartMovements(orgId, com.hangarflow.app.auth.AuthManager.state.value.isAdmin) }.getOrElse { emptyList() } }
             val equipmentD = async { runCatching { cloud.fetchEquipment(orgId) }.getOrElse { emptyList() } }
             val equipmentMaintenanceItemsD = async { runCatching { cloud.fetchEquipmentMaintenanceItems(orgId) }.getOrElse { emptyList() } }
             val equipmentServiceLogD = async { runCatching { cloud.fetchEquipmentServiceLog(orgId) }.getOrElse { emptyList() } }

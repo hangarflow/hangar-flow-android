@@ -91,8 +91,11 @@
     <string name="card_users_s">Gestisci ruoli, invita colleghi, disattiva accessi</string>
     <string name="card_payroll_t">Buste paga</string>
     <string name="card_payroll_s">Approva ore, imposta tariffe, vedi quanto è dovuto</string>
-    <string name="card_partsinout_t">Ricambi in entrata e uscita</string>
-    <string name="card_partsinout_s">Ricezione, cores da restituire, in revisione</string>
+    <string name="err_no_shop">Nessuna officina.</string>
+    <string name="card_receiving_t">Accettazione</string>
+    <string name="card_receiving_s">Parti appena arrivate: ispeziona e accetta prima del montaggio</string>
+    <string name="card_partsinout_t">Cores e resi</string>
+    <string name="card_partsinout_s">Cores da restituire al fornitore e unità in revisione</string>
     <string name="tab_control_center">Centro di controllo</string>
     <string name="clock_lunch_out">Inizio pausa</string>
     <string name="clock_lunch_in">Fine pausa</string>

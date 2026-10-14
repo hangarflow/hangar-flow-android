@@ -91,8 +91,11 @@
     <string name="card_users_s">Rollen verwalten, Kollegen einladen, Zugänge deaktivieren</string>
     <string name="card_payroll_t">Lohnabrechnung</string>
     <string name="card_payroll_s">Stunden genehmigen, Sätze festlegen, Offenes einsehen</string>
-    <string name="card_partsinout_t">Teilezugang und -abgang</string>
-    <string name="card_partsinout_s">Annahme, fällige Cores, in Überholung</string>
+    <string name="err_no_shop">Kein Betrieb.</string>
+    <string name="card_receiving_t">Wareneingang</string>
+    <string name="card_receiving_s">Neu eingetroffene Teile: prüfen und annehmen, bevor sie verbaut werden</string>
+    <string name="card_partsinout_t">Cores &amp; Rückgaben</string>
+    <string name="card_partsinout_s">Cores, die an Lieferanten zurückgehen, und Einheiten in Überholung</string>
     <string name="tab_control_center">Kontrollzentrum</string>
     <string name="clock_lunch_out">Pause beginnen</string>
     <string name="clock_lunch_in">Pause beenden</string>

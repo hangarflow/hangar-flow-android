@@ -40,8 +40,19 @@ data class HFPartMovement(
     @SerialName("shipped_at") val shippedAt: String? = null,
     @SerialName("received_at") val receivedAt: String? = null,
     @SerialName("core_due_back_by") val coreDueBackBy: String? = null,
+    // MONEY, and null for anyone who is not an admin: a tech reads this from
+    // hf_part_movements_floor, which does not contain the cost columns at all.
     @SerialName("core_deposit_cents") val coreDepositCents: Long? = null,
     @SerialName("core_refunded_cents") val coreRefundedCents: Long? = null,
+    /**
+     * "There is a deposit riding on this core", without the amount.
+     *
+     * Use THIS, never `coreDepositCents != null`, to decide whether a core is
+     * carrying money -- the cents are null on a tech's session and the UI
+     * would silently count zero. The floor view supplies this directly; the
+     * admin path derives it from the cents.
+     */
+    @SerialName("has_core_deposit") val hasCoreDeposit: Boolean = false,
     val condition: String? = null,
     /** shelf = stock was incremented; aircraft = fitted on arrival, never
      *  entered stock. Null until someone decides. */
