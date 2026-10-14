@@ -17,8 +17,20 @@ android {
         applicationId = "com.hangarflow.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 19
-        versionName = "1.8.8"
+        // versionCode is a COUNTER, versionName is what people see, and they
+        // are deliberately not the same number.
+        //
+        // The shown version is pinned at 1.8.5 and only moves when the owner
+        // says so -- the point is to stop a new number appearing every few
+        // days. versionCode must still climb on every build that ships,
+        // because Android refuses to install an APK whose code is lower than
+        // the installed one (INSTALL_FAILED_VERSION_DOWNGRADE). A build that
+        // went out as code 19 is on phones right now, so going back to 19 or
+        // below would make this APK uninstallable for those techs.
+        //
+        // So: do NOT "fix" these to match. Bump the code, leave the name.
+        versionCode = 20
+        versionName = "1.8.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
