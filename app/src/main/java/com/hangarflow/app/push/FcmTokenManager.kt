@@ -73,7 +73,17 @@ object FcmTokenManager {
                 Log.w(TAG, "No auth session yet; will register on next launch/sign-in")
                 return@launch
             }
-            runCatching {
+            // READ THE ROW BACK. RLS refuses by matching zero rows, not by
+            // raising, so the old code logged "Token registered" for a write
+            // that never happened -- and a device with no row silently gets no
+            // notifications forever. There is nothing a shop can report except
+            // "it doesn't buzz".
+            //
+            // One retry, because the usual cause is a race: the session is
+            // restored a moment after this fires and the write goes out as
+            // anon. If the second attempt also lands nothing, say so plainly
+            // and let the next launch try again.
+            suspend fun attempt(): Boolean = runCatching {
                 client.postgrest.from("hf_user_devices").upsert(
                     DeviceRow(
                         device_id = deviceId,
@@ -81,10 +91,26 @@ object FcmTokenManager {
                         platform = "android",
                         fcm_token = token
                     )
-                )
+                ) { select() }.decodeList<DeviceRow>().isNotEmpty()
+            }.getOrElse {
+                Log.w(TAG, "Token upsert threw: ${it.message}")
+                false
+            }
+
+            if (attempt()) {
                 Log.i(TAG, "Token registered for device ${deviceId.take(8)}")
-            }.onFailure {
-                Log.w(TAG, "Token upsert failed: ${it.message}")
+            } else {
+                delay(2_000)
+                if (attempt()) {
+                    Log.i(TAG, "Token registered for device ${deviceId.take(8)} (second attempt)")
+                } else {
+                    Log.w(
+                        TAG,
+                        "Token NOT registered for device ${deviceId.take(8)} - the write was " +
+                            "refused or matched no row. This device will receive no push " +
+                            "notifications until it registers. Retrying next launch."
+                    )
+                }
             }
         }
     }
