@@ -158,8 +158,11 @@ fun PlaneDetailView(
                 // A FRESH link every time, deliberately: techs keep adding
                 // squawks, and a reused link would show the owner a list that
                 // no longer matches the sheet in their hand.
-                val canSend = com.hangarflow.app.auth.AuthManager.state.value
-                    .let { it.isAdmin || it.isLeadTech }
+                // ADMIN ONLY -- matches SquawksHub, which already gated this
+                // on isAdmin, and the narrowed RLS + edge-function check. A
+                // lead tech raises and works squawks; releasing the list to
+                // the owner is the shop's commercial call.
+                val canSend = com.hangarflow.app.auth.AuthManager.state.value.isAdmin
                 val undecided = planeSquawks.filter { it.ownerDecision == null }
                 var url: String? = null
                 if (canSend && undecided.isNotEmpty()) {
