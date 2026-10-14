@@ -91,7 +91,14 @@ object FcmTokenManager {
                         platform = "android",
                         fcm_token = token
                     )
-                ) { select() }.decodeList<DeviceRow>().isNotEmpty()
+                ) {
+                    // Named explicitly. The key is (device_id, user_id) since
+                    // 20261014 -- a shared device carries a row per person --
+                    // and relying on the default would silently repoint if the
+                    // key ever changes again.
+                    onConflict = "device_id,user_id"
+                    select()
+                }.decodeList<DeviceRow>().isNotEmpty()
             }.getOrElse {
                 Log.w(TAG, "Token upsert threw: ${it.message}")
                 false
