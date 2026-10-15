@@ -29,7 +29,7 @@ android {
         // below would make this APK uninstallable for those techs.
         //
         // So: do NOT "fix" these to match. Bump the code, leave the name.
-        versionCode = 20
+        versionCode = 21
         versionName = "1.8.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
