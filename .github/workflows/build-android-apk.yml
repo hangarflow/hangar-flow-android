@@ -101,4 +101,4 @@ jobs:
         with:
           name: hangar-flow-android-beta-apk
           path: ${{ steps.locate.outputs.apk_path }}
-          retention-days: 7
+          retention-days: 1   # copies of what is on R2; 7 days of 237 MB MSIs filled the 0.5 GB Actions quota (2026-10-20)
